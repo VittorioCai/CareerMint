@@ -12,7 +12,7 @@ CareerMint 是一个面向海外求职的个人工作台。当前基础版本聚
 - PDF.js 与 Mammoth，用于服务器端 PDF/DOCX 文字提取
 - Vitest、React Testing Library、Playwright 和 pgTAP
 
-建议使用 Node.js 20.9 或更高版本、pnpm，以及已启动的 Docker Desktop。
+建议使用 Node.js 24（最低 22.13）、pnpm，以及已启动的 Docker Desktop。当前锁定的 pnpm 11.19 需要 Node.js 22.13 或更高版本。
 
 ## 本地启动
 
