@@ -4,12 +4,16 @@ import { expect, test } from "@playwright/test";
 test("create and track a private application workspace", async ({ page }) => {
   test.setTimeout(120_000);
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
-  if (!supabaseUrl || !secretKey) {
+  if (!supabaseUrl || !publishableKey || !secretKey) {
     throw new Error("application-e2e-supabase-env-missing");
   }
 
   const admin = createClient(supabaseUrl, secretKey, {
+    auth: { autoRefreshToken: false, persistSession: false },
+  });
+  const account = createClient(supabaseUrl, publishableKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
   const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -28,6 +32,8 @@ test("create and track a private application workspace", async ({ page }) => {
       throw created.error ?? new Error("application-e2e-user-not-created");
     }
     userId = created.data.user.id;
+    const signedIn = await account.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw signedIn.error;
 
     await page.goto("/login");
     await page.getByLabel("邮箱").fill(email);
@@ -41,6 +47,46 @@ test("create and track a private application workspace", async ({ page }) => {
     await page.getByRole("button", { name: "暂时跳过" }).click();
     await page.getByRole("button", { name: "进入工作台" }).click();
     await expect(page).toHaveURL(/\/app/);
+
+    const consented = await account
+      .from("profiles")
+      .update({ ai_processing_consent_at: new Date().toISOString() })
+      .eq("user_id", userId);
+    if (consented.error) throw consented.error;
+    const facts = await account.from("career_facts").insert([
+      {
+        user_id: userId,
+        fact_type: "achievement",
+        data: {
+          title: "Checkout conversion improvement",
+          organization: "Acme GmbH",
+          startDate: null,
+          endDate: null,
+          description:
+            "Improved checkout conversion by 18% through funnel analysis.",
+          skills: ["SQL", "Funnel analysis"],
+        },
+        source_excerpt:
+          "Improved checkout conversion by 18% through funnel analysis.",
+        confirmation_status: "confirmed",
+        confirmed_at: new Date().toISOString(),
+      },
+      {
+        user_id: userId,
+        fact_type: "skill",
+        data: {
+          title: "Unconfirmed Python",
+          organization: null,
+          startDate: null,
+          endDate: null,
+          description: "Python experience awaiting confirmation",
+          skills: ["Python"],
+        },
+        source_excerpt: "Python",
+        confirmation_status: "pending",
+      },
+    ]);
+    if (facts.error) throw facts.error;
 
     await page.goto("/applications/new");
     await page.getByLabel("公司").fill("Acme GmbH");
@@ -65,6 +111,39 @@ test("create and track a private application workspace", async ({ page }) => {
     await expect(page.getByText("Acme GmbH", { exact: true })).toBeVisible();
     await page.getByRole("link", { name: "JD", exact: true }).click();
     await expect(page.getByText(/Lead product discovery/)).toBeVisible();
+    const runsBefore = await account
+      .from("application_analysis_runs")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId);
+    if (runsBefore.error) throw runsBefore.error;
+    expect(runsBefore.count).toBe(0);
+
+    await page.getByRole("button", { name: "开始分析 JD" }).click();
+    await expect(
+      page.getByText("分析完成，匹配结果已更新。"),
+    ).toBeVisible();
+    await expect(page.getByLabel("匹配状态：部分匹配")).toBeVisible();
+    await expect(page.getByText("Checkout conversion improvement")).toBeVisible();
+    await expect(page.getByText("Unconfirmed Python")).toHaveCount(0);
+
+    await page.getByRole("button", { name: "重新检查匹配" }).click();
+    await expect(
+      page.getByText("已复用相同 JD 与职业事实的分析结果。"),
+    ).toBeVisible();
+    const [runsAfter, requirementsAfter] = await Promise.all([
+      account
+        .from("application_analysis_runs")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+      account
+        .from("application_requirements")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId),
+    ]);
+    if (runsAfter.error) throw runsAfter.error;
+    if (requirementsAfter.error) throw requirementsAfter.error;
+    expect(runsAfter.count).toBe(1);
+    expect(requirementsAfter.count).toBe(1);
 
     await page.goto("/applications");
     await expect(page.getByRole("link", { name: /Acme GmbH/ })).toBeVisible();

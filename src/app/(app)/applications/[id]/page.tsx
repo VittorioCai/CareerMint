@@ -10,6 +10,13 @@ import {
   type ApplicationStageEvent,
 } from "@/features/applications/schemas";
 import { StageUpdateForm } from "@/features/applications/stage-update-form";
+import { AnalysisControl } from "@/features/jd-analysis/analysis-control";
+import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
+import { RequirementsPanel } from "@/features/jd-analysis/requirements-panel";
+import type {
+  JDAnalysisRun,
+  JDRequirementRecord,
+} from "@/features/jd-analysis/schemas";
 import { requireUser } from "@/lib/auth/require-user";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
@@ -80,24 +87,39 @@ function Overview({ application }: { application: Application }) {
   );
 }
 
-function JdPanel({ application }: { application: Application }) {
+function JdPanel({
+  application,
+  analysisRun,
+  requirements,
+}: {
+  application: Application;
+  analysisRun: JDAnalysisRun | null;
+  requirements: JDRequirementRecord[];
+}) {
   return (
-    <article className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-4">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">原始快照</p>
-          <h2 className="heading-font mt-1 text-xl font-black">JD 原文</h2>
+    <div className="space-y-6">
+      <AnalysisControl
+        applicationId={application.id}
+        initialStatus={analysisRun?.status ?? null}
+      />
+      <RequirementsPanel requirements={requirements} />
+      <article className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-4">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">原始快照</p>
+            <h2 className="heading-font mt-1 text-xl font-black">JD 原文</h2>
+          </div>
+          {application.jobUrl ? (
+            <a href={application.jobUrl} target="_blank" rel="noreferrer" className="button-secondary inline-flex min-h-10 items-center px-4 text-xs font-black">
+              打开原岗位 ↗
+            </a>
+          ) : null}
         </div>
-        {application.jobUrl ? (
-          <a href={application.jobUrl} target="_blank" rel="noreferrer" className="button-secondary inline-flex min-h-10 items-center px-4 text-xs font-black">
-            打开原岗位 ↗
-          </a>
-        ) : null}
-      </div>
-      <div className="mt-5 whitespace-pre-wrap break-words text-sm font-medium leading-7 text-[var(--ink-muted)]">
-        {application.jdText}
-      </div>
-    </article>
+        <div className="mt-5 whitespace-pre-wrap break-words text-sm font-medium leading-7 text-[var(--ink-muted)]">
+          {application.jdText}
+        </div>
+      </article>
+    </div>
   );
 }
 
@@ -151,10 +173,18 @@ export default async function ApplicationDetailPage({
 }) {
   const user = await requireUser();
   const [{ id }, query] = await Promise.all([params, searchParams]);
+  const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const events = await applicationRepository.listEvents(user.id, id);
-  const activeTab = detailTab(first(query.tab));
+  const [events, analysisRun, requirements] = await Promise.all([
+    applicationRepository.listEvents(user.id, id),
+    activeTab === "jd"
+      ? jdAnalysisRepository.getLatest(user.id, id)
+      : Promise.resolve(null),
+    activeTab === "jd"
+      ? jdAnalysisRepository.listRequirements(user.id, id)
+      : Promise.resolve([]),
+  ]);
 
   return (
     <section className="min-w-0">
@@ -192,7 +222,13 @@ export default async function ApplicationDetailPage({
 
       <div className="mt-6">
         {activeTab === "overview" ? <Overview application={application} /> : null}
-        {activeTab === "jd" ? <JdPanel application={application} /> : null}
+        {activeTab === "jd" ? (
+          <JdPanel
+            application={application}
+            analysisRun={analysisRun}
+            requirements={requirements}
+          />
+        ) : null}
         {activeTab === "timeline" ? <Timeline events={events} /> : null}
         {activeTab === "resume" ? <FuturePanel type="resume" /> : null}
         {activeTab === "interview" ? <FuturePanel type="interview" /> : null}
