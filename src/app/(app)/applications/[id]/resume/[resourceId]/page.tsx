@@ -9,6 +9,7 @@ import {
 } from "@/features/resume-customization/actions";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import { ResumeEditor } from "@/features/resume-customization/resume-editor";
+import { ResumeExportActions } from "@/features/resume-customization/resume-export-actions";
 import type {
   ResumeSection,
   ResumeVersion,
@@ -37,10 +38,12 @@ function formatDate(value: string) {
 }
 
 function VersionViewer({
+  applicationId,
   companyName,
   roleTitle,
   version,
 }: {
+  applicationId: string;
   companyName: string;
   roleTitle: string;
   version: ResumeVersion;
@@ -61,9 +64,20 @@ function VersionViewer({
             {formatDate(version.createdAt)} · {version.template === "modern" ? "现代" : "简洁"}模板
           </p>
         </div>
-        <p className="mt-4 max-w-md text-xs font-semibold leading-5 text-[var(--ink-muted)] sm:mt-0 sm:text-right">
-          这个版本不会被后续编辑覆盖。即使职业档案发生变化，下面仍保留创建当时的事实快照。
-        </p>
+        <div className="mt-4 max-w-md sm:mt-0 sm:text-right">
+          <p className="text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+            这个版本不会被后续编辑覆盖。即使职业档案发生变化，下面仍保留创建当时的事实快照。
+          </p>
+          <div className="mt-3">
+            <ResumeExportActions
+              applicationId={applicationId}
+              versionId={version.id}
+            />
+          </div>
+          <p className="mt-2 text-[10px] font-bold leading-4 text-[var(--ink-muted)]">
+            导出不调用 AI、不产生模型费用。含中文等非拉丁文字时请优先使用 DOCX。
+          </p>
+        </div>
       </div>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_360px]">
@@ -200,6 +214,7 @@ export default async function ResumeResourcePage({
         ← 返回简历版本
       </Link>
       <VersionViewer
+        applicationId={application.id}
         companyName={application.companyName}
         roleTitle={application.roleTitle}
         version={version}
