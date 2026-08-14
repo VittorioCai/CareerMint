@@ -30,6 +30,17 @@ export type AccountExportDependencies = {
     userId: string,
     applicationId: string,
   ): Promise<ApplicationChildRecord[]>;
+  listResumeRuns(
+    userId: string,
+  ): Promise<Array<OwnedRecord & ApplicationChildRecord & { id: string }>>;
+  listResumeSuggestions(
+    userId: string,
+    runId: string,
+  ): Promise<ApplicationChildRecord[]>;
+  listResumeVersions(
+    userId: string,
+    applicationId: string,
+  ): Promise<Array<OwnedRecord & ApplicationChildRecord>>;
   download(storagePath: string): Promise<Blob>;
 };
 
@@ -59,13 +70,21 @@ export async function buildAccountExport(
   userId: string,
   dependencies: AccountExportDependencies,
 ): Promise<Buffer> {
-  const [profile, allFacts, allAssets, allApplications, allAnalysisRuns] =
+  const [
+    profile,
+    allFacts,
+    allAssets,
+    allApplications,
+    allAnalysisRuns,
+    allResumeRuns,
+  ] =
     await Promise.all([
     dependencies.getProfile(userId),
     dependencies.listFacts(userId),
     dependencies.listAssets(userId),
       dependencies.listApplications(userId),
       dependencies.listAnalysisRuns(userId),
+      dependencies.listResumeRuns(userId),
     ]);
   const ownedProfile = profile?.userId === userId ? profile : null;
   const facts = allFacts.filter((fact) => fact.userId === userId);
@@ -79,7 +98,10 @@ export async function buildAccountExport(
   const analysisRuns = allAnalysisRuns.filter(
     (run) => run.userId === userId && applicationIds.has(run.applicationId),
   );
-  const [eventGroups, requirementGroups] = await Promise.all([
+  const resumeRuns = allResumeRuns.filter(
+    (run) => run.userId === userId && applicationIds.has(run.applicationId),
+  );
+  const [eventGroups, requirementGroups, suggestionGroups, versionGroups] = await Promise.all([
     Promise.all(
       applications.map((application) =>
         dependencies.listApplicationEvents(userId, application.id),
@@ -88,6 +110,16 @@ export async function buildAccountExport(
     Promise.all(
       applications.map((application) =>
         dependencies.listRequirements(userId, application.id),
+      ),
+    ),
+    Promise.all(
+      resumeRuns.map((run) =>
+        dependencies.listResumeSuggestions(userId, run.id),
+      ),
+    ),
+    Promise.all(
+      applications.map((application) =>
+        dependencies.listResumeVersions(userId, application.id),
       ),
     ),
   ]);
@@ -100,6 +132,15 @@ export async function buildAccountExport(
   const requirements = requirementGroups
     .flat()
     .filter((requirement) => applicationIds.has(requirement.applicationId));
+  const resumeSuggestions = suggestionGroups
+    .flat()
+    .filter((suggestion) => applicationIds.has(suggestion.applicationId));
+  const resumeVersions = versionGroups
+    .flat()
+    .filter(
+      (version) =>
+        version.userId === userId && applicationIds.has(version.applicationId),
+    );
   const zip = new JSZip();
 
   zip.file(
@@ -121,7 +162,15 @@ export async function buildAccountExport(
   zip.file(
     "application-workspaces.json",
     JSON.stringify(
-      { applications, stageEvents, analysisRuns, requirements },
+      {
+        applications,
+        stageEvents,
+        analysisRuns,
+        requirements,
+        resumeRuns,
+        resumeSuggestions,
+        resumeVersions,
+      },
       null,
       2,
     ),

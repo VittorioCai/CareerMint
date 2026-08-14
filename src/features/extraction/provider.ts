@@ -3,6 +3,10 @@ import type {
   JDAnalysis,
   JobDescriptionAnalysisInput,
 } from "@/features/jd-analysis/schemas";
+import type {
+  ResumeGenerationInput,
+  ResumeSuggestionOutput,
+} from "@/features/resume-customization/schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -23,4 +27,7 @@ export type AIProvider = {
   analyzeJobDescription(
     input: JobDescriptionAnalysisInput,
   ): Promise<AIResult<JDAnalysis>>;
+  generateResumeSuggestions(
+    input: ResumeGenerationInput,
+  ): Promise<AIResult<ResumeSuggestionOutput>>;
 };

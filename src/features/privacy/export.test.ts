@@ -88,6 +88,37 @@ describe("buildAccountExport", () => {
           evidence: [],
         },
       ]),
+      listResumeRuns: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-1111-4111-8111-111111111111",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          status: "succeeded",
+        },
+      ]),
+      listResumeSuggestions: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-2222-4222-8222-222222222222",
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          content: "Improved checkout conversion by 18%.",
+          facts: [],
+          requirements: [],
+        },
+      ]),
+      listResumeVersions: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-3333-4333-8333-333333333333",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          versionNumber: 1,
+          items: [
+            {
+              content: "Improved checkout conversion by 18%.",
+              evidence: [],
+            },
+          ],
+        },
+      ]),
       download: vi.fn().mockResolvedValue(new Blob(["synthetic pdf"])),
     };
 
@@ -117,6 +148,10 @@ describe("buildAccountExport", () => {
     expect(applicationsJson).toContain("Acme GmbH");
     expect(applicationsJson).toContain("Private owned JD text");
     expect(applicationsJson).toContain("Advanced SQL");
+    expect(applicationsJson).toContain("resumeRuns");
+    expect(applicationsJson).toContain("resumeSuggestions");
+    expect(applicationsJson).toContain("resumeVersions");
+    expect(applicationsJson).toContain("Improved checkout conversion by 18%.");
     expect(applicationsJson).not.toContain("Other user private JD");
     expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
       `${userId}/asset/source.pdf`,

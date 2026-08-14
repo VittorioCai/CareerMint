@@ -434,6 +434,382 @@ export type Database = {
         }
         Relationships: []
       }
+      resume_generation_runs: {
+        Row: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash: string
+          model: string
+          provider: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash?: string
+          model?: string
+          provider?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_generation_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_suggestion_facts: {
+        Row: {
+          application_id: string
+          career_fact_id: string
+          created_at: string
+          run_id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          career_fact_id: string
+          created_at?: string
+          run_id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          career_fact_id?: string
+          created_at?: string
+          run_id?: string
+          suggestion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_suggestion_facts_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_facts_career_fact_id_fkey"
+            columns: ["career_fact_id"]
+            isOneToOne: false
+            referencedRelation: "career_facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_facts_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "resume_generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_facts_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "resume_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_suggestion_requirements: {
+        Row: {
+          application_id: string
+          created_at: string
+          requirement_id: string
+          run_id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          requirement_id: string
+          run_id: string
+          suggestion_id: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          requirement_id?: string
+          run_id?: string
+          suggestion_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_suggestion_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_requirements_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "application_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_requirements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "resume_generation_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestion_requirements_suggestion_id_fkey"
+            columns: ["suggestion_id"]
+            isOneToOne: false
+            referencedRelation: "resume_suggestions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_suggestions: {
+        Row: {
+          application_id: string
+          content: string
+          created_at: string
+          decision: string
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_content: string | null
+          run_id: string
+          section: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          content: string
+          created_at?: string
+          decision?: string
+          id?: string
+          reason: string
+          reviewed_at?: string | null
+          reviewed_content?: string | null
+          run_id: string
+          section: string
+          sort_order: number
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          content?: string
+          created_at?: string
+          decision?: string
+          id?: string
+          reason?: string
+          reviewed_at?: string | null
+          reviewed_content?: string | null
+          run_id?: string
+          section?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_suggestions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_suggestions_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "resume_generation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_version_item_evidence: {
+        Row: {
+          application_id: string
+          career_fact_id: string | null
+          created_at: string
+          fact_snapshot: Json
+          item_id: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          career_fact_id?: string | null
+          created_at?: string
+          fact_snapshot: Json
+          item_id: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          career_fact_id?: string | null
+          created_at?: string
+          fact_snapshot?: Json
+          item_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_version_item_evidence_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_version_item_evidence_career_fact_id_fkey"
+            columns: ["career_fact_id"]
+            isOneToOne: false
+            referencedRelation: "career_facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_version_item_evidence_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "resume_version_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_version_items: {
+        Row: {
+          application_id: string
+          content: string
+          created_at: string
+          id: string
+          reason: string
+          section: string
+          sort_order: number
+          user_id: string
+          version_id: string
+        }
+        Insert: {
+          application_id: string
+          content: string
+          created_at?: string
+          id?: string
+          reason: string
+          section: string
+          sort_order: number
+          user_id: string
+          version_id: string
+        }
+        Update: {
+          application_id?: string
+          content?: string
+          created_at?: string
+          id?: string
+          reason?: string
+          section?: string
+          sort_order?: number
+          user_id?: string
+          version_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_version_items_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_version_items_version_id_fkey"
+            columns: ["version_id"]
+            isOneToOne: false
+            referencedRelation: "resume_versions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_versions: {
+        Row: {
+          application_id: string
+          created_at: string
+          id: string
+          source_run_id: string
+          template: string
+          user_id: string
+          version_number: number
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          id?: string
+          source_run_id: string
+          template?: string
+          user_id: string
+          version_number: number
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          id?: string
+          source_run_id?: string
+          template?: string
+          user_id?: string
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_versions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_versions_source_run_id_fkey"
+            columns: ["source_run_id"]
+            isOneToOne: false
+            referencedRelation: "resume_generation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       source_assets: {
         Row: {
           content_type: string
@@ -481,10 +857,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      claim_application_analysis: {
-        Args: { target_run_id: string }
-        Returns: boolean
-      }
       change_application_stage: {
         Args: {
           target_application_id: string
@@ -517,8 +889,16 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      claim_application_analysis: {
+        Args: { target_run_id: string }
+        Returns: boolean
+      }
       claim_processing_job: {
         Args: { target_job_id: string }
+        Returns: boolean
+      }
+      claim_resume_generation: {
+        Args: { target_run_id: string }
         Returns: boolean
       }
       complete_application_analysis: {
@@ -530,7 +910,28 @@ export type Database = {
           rejected_requirement_count: number
           target_run_id: string
         }
-        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "application_analysis_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       complete_resume_extraction: {
         Args: {
@@ -560,6 +961,38 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_resume_generation: {
+        Args: {
+          accepted_suggestions: Json
+          ai_usage: Json
+          estimated_cost: Json
+          rejected_reference_count: number
+          rejected_suggestion_count: number
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_generation_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -606,7 +1039,58 @@ export type Database = {
           target_model: string
           target_provider: string
         }
-        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "application_analysis_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_or_get_resume_generation: {
+        Args: {
+          target_application_id: string
+          target_input_hash: string
+          target_model: string
+          target_provider: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       create_or_get_resume_job: {
         Args: { target_asset_id: string; target_key: string }
@@ -632,13 +1116,56 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_resume_version: {
+        Args: {
+          target_application_id: string
+          target_source_run_id: string
+          target_template: string
+        }
+        Returns: {
+          application_id: string
+          created_at: string
+          id: string
+          source_run_id: string
+          template: string
+          user_id: string
+          version_number: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_versions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fail_application_analysis: {
         Args: {
           target_error_code: string
           target_error_message: string
           target_run_id: string
         }
-        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "application_analysis_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       fail_resume_extraction: {
         Args: {
@@ -665,6 +1192,62 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fail_resume_generation: {
+        Args: {
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      review_resume_suggestion: {
+        Args: {
+          target_decision: string
+          target_reviewed_content: string
+          target_suggestion_id: string
+        }
+        Returns: {
+          application_id: string
+          content: string
+          created_at: string
+          decision: string
+          id: string
+          reason: string
+          reviewed_at: string | null
+          reviewed_content: string | null
+          run_id: string
+          section: string
+          sort_order: number
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_suggestions"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -814,10 +1397,20 @@ export const Constants = {
   },
   public: {
     Enums: {
+      application_stage: [
+        "preparing",
+        "applied",
+        "hr",
+        "interview",
+        "offer",
+        "rejected",
+        "withdrawn",
+      ],
       fact_confirmation_status: ["pending", "confirmed", "needs_detail"],
       processing_job_kind: ["resume_extract"],
       processing_job_status: ["queued", "running", "succeeded", "failed"],
       source_asset_status: ["uploaded", "extracting", "ready", "failed"],
+      workplace_mode: ["unspecified", "onsite", "hybrid", "remote"],
     },
   },
 } as const
