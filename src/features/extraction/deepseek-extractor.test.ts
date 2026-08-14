@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createDeepSeekAIProvider } from "./deepseek-extractor";
 import { resumeExtractionInstructions } from "./prompt";
 import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
+import { resumeCustomizationInstructions } from "@/features/resume-customization/prompt";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -229,6 +230,85 @@ describe("DeepSeek JD analyzer", () => {
 
     await expect(provider.analyzeJobDescription(input)).rejects.toThrow(
       "jd-analysis-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("DeepSeek resume customizer", () => {
+  const input = {
+    jdText: "Advanced SQL is required for funnel analysis.",
+    confirmedFacts: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        factType: "achievement" as const,
+        title: "Checkout conversion improvement",
+        organization: "Acme GmbH",
+        description: "Improved checkout conversion by 18%.",
+        skills: ["SQL"],
+        sourceExcerpt: "Improved checkout conversion by 18%.",
+      },
+    ],
+    requirements: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        category: "skill" as const,
+        text: "Advanced SQL",
+        priority: "core" as const,
+      },
+    ],
+  };
+  const output = {
+    suggestions: [
+      {
+        section: "achievement",
+        content:
+          "Improved checkout conversion by 18% through SQL-led funnel analysis.",
+        reason: "Highlights evidence relevant to the core SQL requirement.",
+        factIds: [input.confirmedFacts[0].id],
+        requirementIds: [input.requirements[0].id],
+      },
+    ],
+  };
+
+  it("uses a stable safety prompt and returns structured suggestion metadata", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.generateResumeSuggestions(input);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({ max_tokens: 6144 });
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: resumeCustomizationInstructions,
+    });
+    expect(body.messages[1].content).toContain(
+      `<job_description>\n${input.jdText}\n</job_description>`,
+    );
+    expect(body.messages[1].content).toContain(input.confirmedFacts[0].id);
+    expect(body.messages[1].content).toContain(input.requirements[0].id);
+    expect(result).toMatchObject({
+      data: output,
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      requestId: "request-123",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(input.jdText);
+    expect(JSON.stringify(log.mock.calls)).not.toContain("checkout conversion");
+  });
+
+  it("retries invalid suggestion output once with a stable error", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"suggestions":['));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.generateResumeSuggestions(input)).rejects.toThrow(
+      "resume-generation-invalid-output",
     );
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });

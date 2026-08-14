@@ -21,7 +21,7 @@ import { getServerEnv } from "@/lib/env/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function fakeProvider(): AIProvider {
+function fakeProvider(): Pick<AIProvider, "extractResumeFacts"> {
   return {
     async extractResumeFacts(resumeText) {
       const achievementExcerpt =
@@ -52,19 +52,6 @@ function fakeProvider(): AIProvider {
         },
         provider: "fake",
         model: "fake-resume-extractor-v1",
-        requestId: null,
-        usage: {
-          inputCacheHitTokens: 0,
-          inputCacheMissTokens: 0,
-          outputTokens: 0,
-        },
-      };
-    },
-    async analyzeJobDescription() {
-      return {
-        data: { requirements: [] },
-        provider: "fake",
-        model: "fake-jd-analyzer-v1",
         requestId: null,
         usage: {
           inputCacheHitTokens: 0,

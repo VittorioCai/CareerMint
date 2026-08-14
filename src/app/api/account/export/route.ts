@@ -3,6 +3,7 @@ import { applicationRepository } from "@/features/applications/repository";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { buildAccountExport } from "@/features/privacy/export";
+import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import { listAssets } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";
 import { getCurrentUser } from "@/lib/auth/require-user";
@@ -23,6 +24,9 @@ export async function GET() {
       listApplicationEvents: applicationRepository.listEvents,
       listAnalysisRuns: jdAnalysisRepository.listRuns,
       listRequirements: jdAnalysisRepository.listRequirements,
+      listResumeRuns: resumeCustomizationRepository.listRuns,
+      listResumeSuggestions: resumeCustomizationRepository.listSuggestions,
+      listResumeVersions: resumeCustomizationRepository.listVersions,
       download: downloadSource,
     });
     const date = new Date().toISOString().slice(0, 10);

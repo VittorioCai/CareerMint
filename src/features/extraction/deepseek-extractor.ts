@@ -13,6 +13,12 @@ import {
   type JDAnalysis,
   type JobDescriptionAnalysisInput,
 } from "@/features/jd-analysis/schemas";
+import { resumeCustomizationInstructions } from "@/features/resume-customization/prompt";
+import {
+  resumeSuggestionOutputSchema,
+  type ResumeGenerationInput,
+  type ResumeSuggestionOutput,
+} from "@/features/resume-customization/schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -292,6 +298,24 @@ export function createDeepSeekAIProvider(
             maxTokens: 6144,
           }),
         jdInvalidOutputError,
+      );
+    },
+    async generateResumeSuggestions(input: ResumeGenerationInput) {
+      const generationInvalidOutputError = "resume-generation-invalid-output";
+      return withInvalidOutputRetry<ResumeSuggestionOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: resumeCustomizationInstructions,
+            userContent: [
+              `<job_description>\n${input.jdText}\n</job_description>`,
+              `<job_requirements>\n${JSON.stringify(input.requirements)}\n</job_requirements>`,
+              `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+            ].join("\n"),
+            outputSchema: resumeSuggestionOutputSchema,
+            invalidOutputError: generationInvalidOutputError,
+            maxTokens: 6144,
+          }),
+        generationInvalidOutputError,
       );
     },
   };
