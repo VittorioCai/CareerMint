@@ -3,6 +3,7 @@ import { expect, test } from "@playwright/test";
 
 test("create and track a private application workspace", async ({ page }) => {
   test.setTimeout(120_000);
+  const expectAIUnavailable = process.env.E2E_EXPECT_AI_UNAVAILABLE === "1";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const publishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
   const secretKey = process.env.SUPABASE_SECRET_KEY;
@@ -119,17 +120,25 @@ test("create and track a private application workspace", async ({ page }) => {
     expect(runsBefore.count).toBe(0);
 
     await page.getByRole("button", { name: "开始分析 JD" }).click();
-    await expect(
-      page.getByText("分析完成，匹配结果已更新。"),
-    ).toBeVisible();
-    await expect(page.getByLabel("匹配状态：部分匹配")).toBeVisible();
-    await expect(page.getByText("Checkout conversion improvement")).toBeVisible();
-    await expect(page.getByText("Unconfirmed Python")).toHaveCount(0);
+    if (expectAIUnavailable) {
+      await expect(page.getByRole("alert")).toContainText(
+        "AI 暂未配置，JD 和现有结果都已保留",
+      );
+    } else {
+      await expect(
+        page.getByText("分析完成，匹配结果已更新。"),
+      ).toBeVisible();
+      await expect(page.getByLabel("匹配状态：部分匹配")).toBeVisible();
+      await expect(
+        page.getByText("Checkout conversion improvement"),
+      ).toBeVisible();
+      await expect(page.getByText("Unconfirmed Python")).toHaveCount(0);
 
-    await page.getByRole("button", { name: "重新检查匹配" }).click();
-    await expect(
-      page.getByText("已复用相同 JD 与职业事实的分析结果。"),
-    ).toBeVisible();
+      await page.getByRole("button", { name: "重新检查匹配" }).click();
+      await expect(
+        page.getByText("已复用相同 JD 与职业事实的分析结果。"),
+      ).toBeVisible();
+    }
     const [runsAfter, requirementsAfter] = await Promise.all([
       account
         .from("application_analysis_runs")
@@ -143,7 +152,7 @@ test("create and track a private application workspace", async ({ page }) => {
     if (runsAfter.error) throw runsAfter.error;
     if (requirementsAfter.error) throw requirementsAfter.error;
     expect(runsAfter.count).toBe(1);
-    expect(requirementsAfter.count).toBe(1);
+    expect(requirementsAfter.count).toBe(expectAIUnavailable ? 0 : 1);
 
     await page.goto("/applications");
     await expect(page.getByRole("link", { name: /Acme GmbH/ })).toBeVisible();
