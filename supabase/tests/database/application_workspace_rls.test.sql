@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(18);
 
 select has_table('public', 'applications', 'applications table exists');
 select has_table(
@@ -127,12 +127,26 @@ select results_eq(
   'stage event keeps the user note'
 );
 
+select results_eq(
+  $$
+    select stage::text
+    from public.change_application_stage(
+      current_setting('test.application_id')::uuid,
+      'hr',
+      date_trunc('day', now()) + interval '12 hours',
+      'Recorded as happening today'
+    )
+  $$,
+  array['hr'::text],
+  'a date-only stage change accepts the current day'
+);
+
 select throws_ok(
   $$
     select public.change_application_stage(
       current_setting('test.application_id')::uuid,
-      'applied',
-      '2026-08-13T12:00:00Z'::timestamptz,
+      'hr',
+      date_trunc('day', now()) + interval '12 hours',
       null
     )
   $$,
@@ -226,7 +240,7 @@ select results_eq(
     from public.application_stage_events
     where application_id = current_setting('test.application_id')::uuid
   $$,
-  array[2::bigint],
+  array[3::bigint],
   'failed cross-owner change did not append an event'
 );
 

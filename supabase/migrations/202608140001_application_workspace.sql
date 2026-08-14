@@ -193,7 +193,7 @@ begin
 
   if target_stage is null
     or target_occurred_at is null
-    or target_occurred_at > now() + interval '5 minutes' then
+    or target_occurred_at >= date_trunc('day', now()) + interval '1 day' then
     raise exception 'invalid-stage-change' using errcode = '22023';
   end if;
 
