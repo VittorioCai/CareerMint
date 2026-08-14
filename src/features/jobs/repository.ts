@@ -120,6 +120,20 @@ export async function getOwnedJob(
   return data ? toProcessingJob(data) : null;
 }
 
+export async function listOwnedJobs(userId: string): Promise<ProcessingJob[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("processing_jobs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw new ProcessingJobRepositoryError(repositoryError(error.code));
+  }
+  return (data ?? []).map(toProcessingJob);
+}
+
 export async function succeedJob(
   input: SucceedJobInput,
 ): Promise<ProcessingJob> {
