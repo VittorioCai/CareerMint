@@ -2,6 +2,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getOwnedProfile } from "@/features/account/repository";
+import { applicationRepository } from "@/features/applications/repository";
+import { APPLICATION_STAGE_LABELS } from "@/features/applications/schemas";
+import { summarizeApplications } from "@/features/applications/summary";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { listOwnedJobs } from "@/features/jobs/repository";
 import { listAssets } from "@/features/source-assets/repository";
@@ -10,14 +13,15 @@ import { requireUser } from "@/lib/auth/require-user";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [profile, assets, facts, jobs] = await Promise.all([
-    getOwnedProfile(user.id),
+  const profile = await getOwnedProfile(user.id);
+  if (!profile?.onboardingCompletedAt) redirect("/onboarding");
+
+  const [assets, facts, jobs, applications] = await Promise.all([
     listAssets(user.id),
     careerFactRepository.list(user.id),
     listOwnedJobs(user.id),
+    applicationRepository.list(user.id),
   ]);
-
-  if (!profile?.onboardingCompletedAt) redirect("/onboarding");
 
   const activeJob = jobs.find(
     (job) => job.status === "queued" || job.status === "running",
@@ -26,6 +30,7 @@ export default async function DashboardPage() {
     (fact) => fact.confirmationStatus !== "confirmed",
   );
   const confirmedCount = facts.length - pendingFacts.length;
+  const applicationSummary = summarizeApplications(applications);
 
   let primaryState;
   if (assets.length === 0) {
@@ -79,8 +84,8 @@ export default async function DashboardPage() {
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           已确认 {confirmedCount} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。
         </p>
-        <Link href="/profile" className="button-secondary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-black">
-          查看职业档案
+        <Link href="/applications/new" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-black">
+          添加第一份 JD →
         </Link>
       </article>
     );
@@ -98,6 +103,75 @@ export default async function DashboardPage() {
         </p>
       </div>
       <div className="mt-8">{primaryState}</div>
+
+      <section className="mt-10" aria-labelledby="application-progress-heading">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+              真实申请记录
+            </p>
+            <h2 id="application-progress-heading" className="heading-font mt-1 text-2xl font-black">
+              投递进度一眼看清
+            </h2>
+          </div>
+          <Link href="/applications" className="text-sm font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
+            查看全部投递 →
+          </Link>
+        </div>
+
+        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+          {[
+            ["总记录", applicationSummary.total, "包含全部历史"],
+            ["进行中", applicationSummary.active, "不含拒绝与撤回"],
+            ["面试中", applicationSummary.interviews, "当前阶段"],
+            ["Offer", applicationSummary.offers, "当前阶段"],
+          ].map(([label, value, note], index) => (
+            <article
+              key={label}
+              className={`rounded-2xl border p-4 ${
+                index === 0
+                  ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[3px_3px_0_var(--ink)]"
+                  : "border-[var(--line)] bg-white"
+              }`}
+            >
+              <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
+              <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
+              <p className="mt-1 text-[10px] font-semibold text-[var(--ink-soft)]">{note}</p>
+            </article>
+          ))}
+        </div>
+
+        {applicationSummary.recent.length > 0 ? (
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+            <div className="border-b border-[var(--line)] px-4 py-3">
+              <h3 className="text-sm font-black">最近更新</h3>
+            </div>
+            <ul className="divide-y divide-[var(--line)]">
+              {applicationSummary.recent.map((application) => (
+                <li key={application.id}>
+                  <Link href={`/applications/${application.id}`} className="flex min-w-0 items-center gap-3 px-4 py-3 hover:bg-[var(--canvas)]">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-black">{application.companyName}</span>
+                      <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--ink-muted)]">{application.roleTitle}</span>
+                    </span>
+                    <span className="status-chip bg-[var(--mist-blue)]">
+                      {APPLICATION_STAGE_LABELS[application.stage]}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ) : (
+          <article className="mt-5 rounded-2xl border border-dashed border-[var(--ink-soft)] bg-white p-5">
+            <p className="text-sm font-bold">还没有真实申请记录。</p>
+            <Link href="/applications/new" className="mt-3 inline-flex text-sm font-black underline underline-offset-4">
+              新建申请工作区
+            </Link>
+          </article>
+        )}
+      </section>
+
       <p className="mt-7 text-xs font-medium leading-5 text-[var(--ink-muted)]">
         数据说明：页面只展示你的真实记录，不填充演示投递或虚构经历。
       </p>

@@ -34,6 +34,104 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_stage_events: {
+        Row: {
+          application_id: string
+          created_at: string
+          from_stage: Database["public"]["Enums"]["application_stage"] | null
+          id: string
+          note: string | null
+          occurred_at: string
+          to_stage: Database["public"]["Enums"]["application_stage"]
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["application_stage"] | null
+          id?: string
+          note?: string | null
+          occurred_at: string
+          to_stage: Database["public"]["Enums"]["application_stage"]
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          from_stage?: Database["public"]["Enums"]["application_stage"] | null
+          id?: string
+          note?: string | null
+          occurred_at?: string
+          to_stage?: Database["public"]["Enums"]["application_stage"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_stage_events_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      applications: {
+        Row: {
+          applied_at: string | null
+          company_name: string
+          created_at: string
+          id: string
+          jd_text: string
+          job_url: string | null
+          location: string | null
+          next_action: string | null
+          next_action_due_at: string | null
+          role_title: string
+          source: string | null
+          stage: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at: string
+          updated_at: string
+          user_id: string
+          workplace_mode: Database["public"]["Enums"]["workplace_mode"]
+        }
+        Insert: {
+          applied_at?: string | null
+          company_name: string
+          created_at?: string
+          id?: string
+          jd_text: string
+          job_url?: string | null
+          location?: string | null
+          next_action?: string | null
+          next_action_due_at?: string | null
+          role_title: string
+          source?: string | null
+          stage?: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at?: string
+          updated_at?: string
+          user_id: string
+          workplace_mode?: Database["public"]["Enums"]["workplace_mode"]
+        }
+        Update: {
+          applied_at?: string | null
+          company_name?: string
+          created_at?: string
+          id?: string
+          jd_text?: string
+          job_url?: string | null
+          location?: string | null
+          next_action?: string | null
+          next_action_due_at?: string | null
+          role_title?: string
+          source?: string | null
+          stage?: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at?: string
+          updated_at?: string
+          user_id?: string
+          workplace_mode?: Database["public"]["Enums"]["workplace_mode"]
+        }
+        Relationships: []
+      }
       career_facts: {
         Row: {
           confirmation_status: Database["public"]["Enums"]["fact_confirmation_status"]
@@ -218,6 +316,38 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_application_stage: {
+        Args: {
+          target_application_id: string
+          target_note: string
+          target_occurred_at: string
+          target_stage: Database["public"]["Enums"]["application_stage"]
+        }
+        Returns: {
+          applied_at: string | null
+          company_name: string
+          created_at: string
+          id: string
+          jd_text: string
+          job_url: string | null
+          location: string | null
+          next_action: string | null
+          next_action_due_at: string | null
+          role_title: string
+          source: string | null
+          stage: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at: string
+          updated_at: string
+          user_id: string
+          workplace_mode: Database["public"]["Enums"]["workplace_mode"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       claim_processing_job: {
         Args: { target_job_id: string }
         Returns: boolean
@@ -250,6 +380,41 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_application: {
+        Args: {
+          target_company_name: string
+          target_jd_text: string
+          target_job_url: string
+          target_location: string
+          target_role_title: string
+          target_source: string
+          target_workplace_mode: Database["public"]["Enums"]["workplace_mode"]
+        }
+        Returns: {
+          applied_at: string | null
+          company_name: string
+          created_at: string
+          id: string
+          jd_text: string
+          job_url: string | null
+          location: string | null
+          next_action: string | null
+          next_action_due_at: string | null
+          role_title: string
+          source: string | null
+          stage: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at: string
+          updated_at: string
+          user_id: string
+          workplace_mode: Database["public"]["Enums"]["workplace_mode"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -309,10 +474,19 @@ export type Database = {
       }
     }
     Enums: {
+      application_stage:
+        | "preparing"
+        | "applied"
+        | "hr"
+        | "interview"
+        | "offer"
+        | "rejected"
+        | "withdrawn"
       fact_confirmation_status: "pending" | "confirmed" | "needs_detail"
       processing_job_kind: "resume_extract"
       processing_job_status: "queued" | "running" | "succeeded" | "failed"
       source_asset_status: "uploaded" | "extracting" | "ready" | "failed"
+      workplace_mode: "unspecified" | "onsite" | "hybrid" | "remote"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -450,4 +624,3 @@ export const Constants = {
     },
   },
 } as const
-
