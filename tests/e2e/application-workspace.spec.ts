@@ -280,6 +280,22 @@ test("create and track a private application workspace", async ({ page }) => {
       await page.getByRole("button", { name: "保存为新版本" }).click();
       await expect(page.getByText("V2", { exact: true })).toBeVisible();
 
+      const docxDownloadPromise = page.waitForEvent("download");
+      await page.getByRole("button", { name: "下载 DOCX" }).click();
+      const docxDownload = await docxDownloadPromise;
+      expect(docxDownload.suggestedFilename()).toBe(
+        "acme-gmbh-product-manager-v2.docx",
+      );
+      expect(await docxDownload.failure()).toBeNull();
+
+      const pdfDownloadPromise = page.waitForEvent("download");
+      await page.getByRole("button", { name: "下载 PDF" }).click();
+      const pdfDownload = await pdfDownloadPromise;
+      expect(pdfDownload.suggestedFilename()).toBe(
+        "acme-gmbh-product-manager-v2.pdf",
+      );
+      expect(await pdfDownload.failure()).toBeNull();
+
       await page.goto(`${detailUrl}?tab=resume`);
       await page
         .getByRole("button", { name: "按最新资料重新生成" })
