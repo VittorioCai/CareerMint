@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import type { AIUsage } from "@/features/extraction/provider";
 import { factTypeSchema } from "@/features/career-profile/schemas";
 import { verifyCandidateEvidence } from "@/features/extraction/evidence";
 
@@ -64,6 +65,47 @@ export type JobDescriptionAnalysisInput = {
 export type SanitizedJDAnalysis = JDAnalysis & {
   rejectedRequirementCount: number;
   rejectedEvidenceCount: number;
+};
+
+export type JDAnalysisRunResult = {
+  acceptedRequirementCount: number;
+  rejectedRequirementCount: number;
+  rejectedEvidenceCount: number;
+  ai: {
+    provider: string;
+    model: string;
+    requestId: string | null;
+    usage: AIUsage;
+    priceScheduleVersion: string | null;
+  };
+  estimatedCost: {
+    amount: number;
+    currency: "USD";
+    scheduleVersion: string;
+    tier: "default" | "peak";
+  } | null;
+};
+
+export type JDAnalysisRun = {
+  id: string;
+  applicationId: string;
+  userId: string;
+  inputHash: string;
+  provider: string;
+  model: string;
+  status: "queued" | "running" | "succeeded" | "failed";
+  attemptCount: number;
+  result: JDAnalysisRunResult | null;
+  errorCode: string | null;
+  createdAt: string;
+};
+
+export type JDRequirementRecord = Omit<JDRequirement, "matchedFactIds"> & {
+  id: string;
+  analysisRunId: string;
+  applicationId: string;
+  sortOrder: number;
+  evidence: ConfirmedFactForAnalysis[];
 };
 
 function deduplicationKey(requirement: JDRequirement) {
