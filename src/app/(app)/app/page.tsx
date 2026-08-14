@@ -13,15 +13,15 @@ import { requireUser } from "@/lib/auth/require-user";
 
 export default async function DashboardPage() {
   const user = await requireUser();
-  const [profile, assets, facts, jobs, applications] = await Promise.all([
-    getOwnedProfile(user.id),
+  const profile = await getOwnedProfile(user.id);
+  if (!profile?.onboardingCompletedAt) redirect("/onboarding");
+
+  const [assets, facts, jobs, applications] = await Promise.all([
     listAssets(user.id),
     careerFactRepository.list(user.id),
     listOwnedJobs(user.id),
     applicationRepository.list(user.id),
   ]);
-
-  if (!profile?.onboardingCompletedAt) redirect("/onboarding");
 
   const activeJob = jobs.find(
     (job) => job.status === "queued" || job.status === "running",

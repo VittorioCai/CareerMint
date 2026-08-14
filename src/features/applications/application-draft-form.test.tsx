@@ -33,7 +33,7 @@ describe("ApplicationDraftForm", () => {
       <ApplicationDraftForm createApplication={createApplication} />,
     );
 
-    expect(screen.getByLabelText("公司")).toHaveValue("Saved Company");
+    expect(await screen.findByDisplayValue("Saved Company")).toBeVisible();
     expect(screen.getByLabelText("职位")).toHaveValue("Product Manager");
 
     await user.clear(screen.getByLabelText("公司"));

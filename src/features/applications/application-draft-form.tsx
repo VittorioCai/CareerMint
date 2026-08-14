@@ -71,9 +71,12 @@ export function ApplicationDraftForm({
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const recovered = recoverDraft(window.localStorage.getItem(STORAGE_KEY));
-    if (recovered) setDraft(recovered);
-    setHydrated(true);
+    const restoreTimer = window.setTimeout(() => {
+      const recovered = recoverDraft(window.localStorage.getItem(STORAGE_KEY));
+      if (recovered) setDraft(recovered);
+      setHydrated(true);
+    });
+    return () => window.clearTimeout(restoreTimer);
   }, []);
 
   useEffect(() => {

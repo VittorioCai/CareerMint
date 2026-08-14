@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
 import type { ApplicationActionState } from "./actions";
@@ -22,13 +23,14 @@ export function StageUpdateForm({
   applicationId,
   currentStage,
   changeStage,
-  refresh = () => window.location.reload(),
+  refresh,
 }: {
   applicationId: string;
   currentStage: ApplicationStage;
   changeStage(formData: FormData): Promise<ApplicationActionState>;
   refresh?: () => void;
 }) {
+  const router = useRouter();
   const availableStages = APPLICATION_STAGES.filter(
     (stage) => stage !== currentStage,
   );
@@ -62,7 +64,7 @@ export function StageUpdateForm({
         return;
       }
       setSuccess(true);
-      window.setTimeout(refresh, 350);
+      (refresh ?? router.refresh)();
     } catch {
       setError(errorMessages["application-action-failed"]);
     } finally {

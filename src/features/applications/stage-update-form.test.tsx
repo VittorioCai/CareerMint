@@ -1,8 +1,12 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { StageUpdateForm } from "./stage-update-form";
+
+vi.mock("next/navigation", () => ({
+  useRouter: () => ({ refresh: vi.fn() }),
+}));
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 
@@ -25,12 +29,17 @@ describe("StageUpdateForm", () => {
     expect(screen.getByLabelText("备注（可选）")).toBeVisible();
   });
 
-  it("submits once, stays disabled while pending, and refreshes after success", async () => {
+  it("submits once, stays disabled while pending, and refreshes without a delayed navigation", async () => {
     let resolveAction:
       | ((value: { ok: true; applicationId: string }) => void)
       | undefined;
-    const changeStage = vi.fn(
-      (_formData: FormData) =>
+    const changeStage = vi.fn<
+      (formData: FormData) => Promise<{
+        ok: true;
+        applicationId: string;
+      }>
+    >(
+      () =>
         new Promise<{ ok: true; applicationId: string }>((resolve) => {
           resolveAction = resolve;
         }),
@@ -61,7 +70,7 @@ describe("StageUpdateForm", () => {
 
     resolveAction?.({ ok: true, applicationId });
     expect(await screen.findByText("阶段已更新，时间线已记录。")).toBeVisible();
-    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(refresh).toHaveBeenCalledOnce();
   });
 
   it("keeps the form visible when the server rejects an unchanged stage", async () => {

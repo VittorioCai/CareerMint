@@ -69,6 +69,7 @@ function Overview({ application }: { application: Application }) {
         </p>
         <div className="mt-4 border-t border-[color:var(--ink-soft)] pt-4">
           <StageUpdateForm
+            key={`${application.id}:${application.stage}`}
             applicationId={application.id}
             currentStage={application.stage}
             changeStage={changeApplicationStageAction.bind(null, {})}
