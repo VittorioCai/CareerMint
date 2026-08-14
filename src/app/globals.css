@@ -87,6 +87,39 @@ button {
   background: var(--white);
 }
 
+.form-label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 800;
+}
+
+.form-input {
+  width: 100%;
+  min-height: 3rem;
+  border: 1.5px solid var(--ink-soft);
+  border-radius: 12px;
+  background: var(--white);
+  padding: 0.75rem 0.875rem;
+  color: var(--ink);
+  font-size: 0.9375rem;
+  transition: border-color 160ms ease, box-shadow 160ms ease;
+}
+
+.form-input::placeholder {
+  color: var(--ink-soft);
+}
+
+.form-input:hover {
+  border-color: var(--ink-muted);
+}
+
+.form-input:focus {
+  border-color: var(--ink);
+  box-shadow: 0 0 0 3px var(--mist-blue);
+  outline: none;
+}
+
 .button-primary,
 .button-secondary {
   border: 2px solid var(--ink);
