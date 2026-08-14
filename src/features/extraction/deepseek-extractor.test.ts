@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { createDeepSeekAIProvider } from "./deepseek-extractor";
 import { resumeExtractionInstructions } from "./prompt";
+import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -159,5 +160,76 @@ describe("DeepSeek resume extractor", () => {
       "ai-provider-timeout",
     );
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("DeepSeek JD analyzer", () => {
+  const input = {
+    jdText:
+      "Lead product discovery across international markets. Advanced SQL is required.",
+    confirmedFacts: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        factType: "achievement" as const,
+        title: "Checkout conversion improvement",
+        organization: "Acme GmbH",
+        description: "Improved checkout conversion by 18%.",
+        skills: ["SQL"],
+        sourceExcerpt: "Improved checkout conversion by 18%.",
+      },
+    ],
+  };
+  const analysis = {
+    requirements: [
+      {
+        category: "skill",
+        text: "Advanced SQL",
+        sourceExcerpt: "Advanced SQL is required.",
+        priority: "core",
+        matchStatus: "partial",
+        matchReason: "The confirmed achievement lists SQL.",
+        matchedFactIds: ["11111111-1111-4111-8111-111111111111"],
+      },
+    ],
+  };
+
+  it("uses the stable JD prompt and returns structured analysis metadata", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(analysis)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeJobDescription(input);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: jdAnalysisInstructions,
+    });
+    expect(body.messages[1].content).toContain(
+      `<job_description>\n${input.jdText}\n</job_description>`,
+    );
+    expect(body.messages[1].content).toContain(input.confirmedFacts[0].id);
+    expect(result).toMatchObject({
+      data: analysis,
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      requestId: "request-123",
+    });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(input.jdText);
+    expect(JSON.stringify(log.mock.calls)).not.toContain("Checkout conversion");
+  });
+
+  it("retries invalid JD output once with a stable error", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"requirements":['));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeJobDescription(input)).rejects.toThrow(
+      "jd-analysis-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 });

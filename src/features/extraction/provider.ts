@@ -1,4 +1,8 @@
 import type { ResumeExtraction } from "./schemas";
+import type {
+  JDAnalysis,
+  JobDescriptionAnalysisInput,
+} from "@/features/jd-analysis/schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -16,4 +20,7 @@ export type AIResult<T> = {
 
 export type AIProvider = {
   extractResumeFacts(resumeText: string): Promise<AIResult<ResumeExtraction>>;
+  analyzeJobDescription(
+    input: JobDescriptionAnalysisInput,
+  ): Promise<AIResult<JDAnalysis>>;
 };

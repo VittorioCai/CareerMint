@@ -60,6 +60,19 @@ function fakeProvider(): AIProvider {
         },
       };
     },
+    async analyzeJobDescription() {
+      return {
+        data: { requirements: [] },
+        provider: "fake",
+        model: "fake-jd-analyzer-v1",
+        requestId: null,
+        usage: {
+          inputCacheHitTokens: 0,
+          inputCacheMissTokens: 0,
+          outputTokens: 0,
+        },
+      };
+    },
   };
 }
 
