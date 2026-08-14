@@ -1,12 +1,16 @@
-import { ComingSoonPage } from "@/components/coming-soon-page";
+import { PrivacyControls } from "@/features/privacy/privacy-controls";
 
 export default function PrivacySettingsPage() {
   return (
-    <ComingSoonPage
-      title="AI 与数据授权"
-      description="这里将说明哪些资料会发送给 AI、如何撤销授权，以及如何导出或删除数据。完整简历和 JD 不会写入普通日志。"
-      nextStepHref="/app"
-      nextStepLabel="返回工作台"
-    />
+    <section className="min-w-0">
+      <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">账户菜单</p>
+      <h1 className="heading-font mt-2 text-4xl font-black tracking-[-0.04em]">数据与隐私</h1>
+      <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        你的数据可以随时导出或删除。普通日志不会记录完整简历、JD 或模型响应正文。
+      </p>
+      <div className="mt-7 max-w-3xl">
+        <PrivacyControls />
+      </div>
+    </section>
   );
 }
