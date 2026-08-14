@@ -48,6 +48,46 @@ describe("buildAccountExport", () => {
           storagePath: `${otherUserId}/asset/source.pdf`,
         },
       ]),
+      listApplications: vi.fn().mockResolvedValue([
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          userId,
+          companyName: "Acme GmbH",
+          roleTitle: "Product Manager",
+          jdText: "Private owned JD text",
+        },
+        {
+          id: "77777777-7777-4777-8777-777777777777",
+          userId: otherUserId,
+          companyName: "Other Company",
+          roleTitle: "Secret",
+          jdText: "Other user private JD",
+        },
+      ]),
+      listApplicationEvents: vi.fn().mockResolvedValue([
+        {
+          id: "44444444-4444-4444-8444-444444444444",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          toStage: "applied",
+        },
+      ]),
+      listAnalysisRuns: vi.fn().mockResolvedValue([
+        {
+          id: "55555555-5555-4555-8555-555555555555",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          status: "succeeded",
+        },
+      ]),
+      listRequirements: vi.fn().mockResolvedValue([
+        {
+          id: "66666666-6666-4666-8666-666666666666",
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          text: "Advanced SQL",
+          evidence: [],
+        },
+      ]),
       download: vi.fn().mockResolvedValue(new Blob(["synthetic pdf"])),
     };
 
@@ -58,11 +98,15 @@ describe("buildAccountExport", () => {
       "files/",
       "files/11111111-1111-4111-8111-111111111111/",
       "files/11111111-1111-4111-8111-111111111111/resume.pdf",
+      "application-workspaces.json",
       "profile.json",
       "source-assets.json",
-    ]);
+    ].sort());
     const profileJson = await zip.file("profile.json")!.async("string");
     const assetsJson = await zip.file("source-assets.json")!.async("string");
+    const applicationsJson = await zip
+      .file("application-workspaces.json")!
+      .async("string");
     expect(profileJson).toContain("Lin Chen");
     expect(profileJson).toContain("SQL");
     expect(profileJson).not.toContain("Other user secret");
@@ -70,6 +114,10 @@ describe("buildAccountExport", () => {
     expect(assetsJson).not.toContain("storage_path");
     expect(assetsJson).not.toContain(`${userId}/asset/source.pdf`);
     expect(JSON.stringify(Object.keys(zip.files))).not.toContain(otherUserId);
+    expect(applicationsJson).toContain("Acme GmbH");
+    expect(applicationsJson).toContain("Private owned JD text");
+    expect(applicationsJson).toContain("Advanced SQL");
+    expect(applicationsJson).not.toContain("Other user private JD");
     expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
       `${userId}/asset/source.pdf`,
     );

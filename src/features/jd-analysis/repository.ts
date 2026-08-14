@@ -188,6 +188,17 @@ async function getLatest(
   return data ? toRun(data) : null;
 }
 
+async function listRuns(userId: string): Promise<JDAnalysisRun[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("application_analysis_runs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) throw new JDAnalysisRepositoryError(stableError(error));
+  return (data ?? []).map(toRun);
+}
+
 async function complete(
   input: CompleteJDAnalysisInput,
 ): Promise<JDAnalysisRun> {
@@ -281,6 +292,7 @@ export const jdAnalysisRepository = {
   claim,
   getOwned,
   getLatest,
+  listRuns,
   complete,
   fail,
   listRequirements,
