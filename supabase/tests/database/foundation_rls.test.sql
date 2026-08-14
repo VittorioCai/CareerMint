@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(8);
+select plan(15);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'source_assets', 'source_assets table exists');
@@ -102,6 +102,54 @@ select results_eq(
   'user A can see their career fact'
 );
 
+select results_eq(
+  $$
+    select status::text
+    from public.create_or_get_resume_job(
+      '11111111-1111-4111-8111-111111111111',
+      'source-asset:11111111-1111-4111-8111-111111111111:resume-extract:v1'
+    )
+  $$,
+  array['queued'::text],
+  'user A can create a resume extraction job for their asset'
+);
+
+select set_config(
+  'test.resume_job_id',
+  (
+    select id::text
+    from public.create_or_get_resume_job(
+      '11111111-1111-4111-8111-111111111111',
+      'source-asset:11111111-1111-4111-8111-111111111111:resume-extract:v1'
+    )
+  ),
+  true
+);
+
+select results_eq(
+  $$
+    select id::text
+    from public.create_or_get_resume_job(
+      '11111111-1111-4111-8111-111111111111',
+      'source-asset:11111111-1111-4111-8111-111111111111:resume-extract:v1'
+    )
+  $$,
+  array[current_setting('test.resume_job_id')],
+  'repeating the create call returns the existing idempotent job'
+);
+
+select results_eq(
+  $$select public.claim_processing_job(current_setting('test.resume_job_id')::uuid)$$,
+  array[true],
+  'user A can atomically claim their queued job'
+);
+
+select results_eq(
+  $$select public.claim_processing_job(current_setting('test.resume_job_id')::uuid)$$,
+  array[false],
+  'the same running job cannot be claimed twice'
+);
+
 select set_config(
   'request.jwt.claims',
   '{"sub":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","role":"authenticated"}',
@@ -117,6 +165,38 @@ select results_eq(
   $query$,
   array[0::bigint],
   'user B cannot see user A data'
+);
+
+select results_eq(
+  $$select public.claim_processing_job(current_setting('test.resume_job_id')::uuid)$$,
+  array[false],
+  'user B cannot claim user A job'
+);
+
+select throws_ok(
+  $$
+    insert into public.processing_jobs (
+      user_id,
+      kind,
+      entity_id,
+      idempotency_key
+    ) values (
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+      'resume_extract',
+      gen_random_uuid(),
+      'direct-insert'
+    )
+  $$,
+  '42501',
+  'permission denied for table processing_jobs',
+  'authenticated users cannot directly insert processing jobs'
+);
+
+select throws_ok(
+  $$update public.processing_jobs set status = 'failed'$$,
+  '42501',
+  'permission denied for table processing_jobs',
+  'authenticated users cannot directly update processing jobs'
 );
 
 reset role;

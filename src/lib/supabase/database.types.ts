@@ -218,7 +218,95 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_processing_job: {
+        Args: { target_job_id: string }
+        Returns: boolean
+      }
+      complete_resume_extraction: {
+        Args: {
+          accepted_count: number
+          accepted_facts: Json
+          ai_usage: Json
+          estimated_cost: Json
+          rejected_count: number
+          target_asset_id: string
+          target_job_id: string
+        }
+        Returns: {
+          attempt_count: number
+          created_at: string
+          entity_id: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          kind: Database["public"]["Enums"]["processing_job_kind"]
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_or_get_resume_job: {
+        Args: { target_asset_id: string; target_key: string }
+        Returns: {
+          attempt_count: number
+          created_at: string
+          entity_id: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          kind: Database["public"]["Enums"]["processing_job_kind"]
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fail_resume_extraction: {
+        Args: {
+          target_asset_id: string
+          target_error_code: string
+          target_error_message: string
+          target_job_id: string
+        }
+        Returns: {
+          attempt_count: number
+          created_at: string
+          entity_id: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          idempotency_key: string
+          kind: Database["public"]["Enums"]["processing_job_kind"]
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "processing_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
     }
     Enums: {
       fact_confirmation_status: "pending" | "confirmed" | "needs_detail"

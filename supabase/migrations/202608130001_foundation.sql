@@ -207,3 +207,259 @@ $$;
 create trigger on_auth_user_created
 after insert on auth.users
 for each row execute function public.handle_new_user();
+
+create function public.create_or_get_resume_job(
+  target_asset_id uuid,
+  target_key text
+)
+returns public.processing_jobs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  owned_job public.processing_jobs%rowtype;
+begin
+  if current_user_id is null then
+    raise exception 'authentication-required' using errcode = '42501';
+  end if;
+
+  if not exists (
+    select 1
+    from public.source_assets
+    where id = target_asset_id
+      and user_id = current_user_id
+  ) then
+    raise exception 'source-asset-not-found' using errcode = 'P0002';
+  end if;
+
+  insert into public.processing_jobs (
+    user_id,
+    kind,
+    entity_id,
+    idempotency_key
+  )
+  values (
+    current_user_id,
+    'resume_extract',
+    target_asset_id,
+    target_key
+  )
+  on conflict (user_id, kind, idempotency_key) do nothing;
+
+  select *
+  into owned_job
+  from public.processing_jobs
+  where user_id = current_user_id
+    and kind = 'resume_extract'
+    and idempotency_key = target_key;
+
+  if owned_job.id is null or owned_job.entity_id <> target_asset_id then
+    raise exception 'resume-job-conflict' using errcode = '23505';
+  end if;
+
+  return owned_job;
+end;
+$$;
+
+create function public.claim_processing_job(target_job_id uuid)
+returns boolean
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  changed_count integer;
+begin
+  if current_user_id is null then
+    raise exception 'authentication-required' using errcode = '42501';
+  end if;
+
+  update public.processing_jobs
+  set
+    status = 'running',
+    attempt_count = attempt_count + 1,
+    error_code = null,
+    error_message = null,
+    result = null,
+    started_at = now(),
+    finished_at = null
+  where id = target_job_id
+    and user_id = current_user_id
+    and status in ('queued', 'failed');
+
+  get diagnostics changed_count = row_count;
+  return changed_count = 1;
+end;
+$$;
+
+create function public.complete_resume_extraction(
+  target_job_id uuid,
+  target_asset_id uuid,
+  accepted_facts jsonb,
+  accepted_count integer,
+  rejected_count integer,
+  ai_usage jsonb,
+  estimated_cost jsonb
+)
+returns public.processing_jobs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  completed_job public.processing_jobs%rowtype;
+  candidate jsonb;
+  candidate_type text;
+  detail_reason text;
+begin
+  if current_user_id is null then
+    raise exception 'authentication-required' using errcode = '42501';
+  end if;
+
+  if jsonb_typeof(accepted_facts) <> 'array'
+    or jsonb_array_length(accepted_facts) <> accepted_count
+    or accepted_count < 0
+    or rejected_count < 0 then
+    raise exception 'invalid-resume-extraction-result' using errcode = '22023';
+  end if;
+
+  if not exists (
+    select 1
+    from public.processing_jobs
+    where id = target_job_id
+      and user_id = current_user_id
+      and entity_id = target_asset_id
+      and kind = 'resume_extract'
+      and status = 'running'
+  ) or not exists (
+    select 1
+    from public.source_assets
+    where id = target_asset_id
+      and user_id = current_user_id
+  ) then
+    raise exception 'resume-job-not-running' using errcode = 'P0002';
+  end if;
+
+  for candidate in select value from jsonb_array_elements(accepted_facts)
+  loop
+    candidate_type := candidate ->> 'factType';
+    detail_reason := nullif(btrim(candidate ->> 'needsDetailReason'), '');
+
+    if candidate_type is null or candidate_type not in (
+      'summary',
+      'work_experience',
+      'education',
+      'project',
+      'skill',
+      'certification',
+      'language',
+      'achievement',
+      'story'
+    ) then
+      raise exception 'unsupported-career-fact-type' using errcode = '22023';
+    end if;
+
+    insert into public.career_facts (
+      user_id,
+      source_asset_id,
+      fact_type,
+      data,
+      source_excerpt,
+      confirmation_status
+    )
+    values (
+      current_user_id,
+      target_asset_id,
+      candidate_type,
+      candidate -> 'data',
+      candidate ->> 'sourceExcerpt',
+      case
+        when detail_reason is null then 'pending'::public.fact_confirmation_status
+        else 'needs_detail'::public.fact_confirmation_status
+      end
+    );
+  end loop;
+
+  update public.source_assets
+  set status = 'ready', error_code = null, updated_at = now()
+  where id = target_asset_id
+    and user_id = current_user_id;
+
+  update public.processing_jobs
+  set
+    status = 'succeeded',
+    result = jsonb_build_object(
+      'acceptedCount', accepted_count,
+      'rejectedCount', rejected_count,
+      'ai', coalesce(ai_usage, '{}'::jsonb),
+      'estimatedCost', estimated_cost
+    ),
+    error_code = null,
+    error_message = null,
+    finished_at = now()
+  where id = target_job_id
+    and user_id = current_user_id
+  returning * into completed_job;
+
+  return completed_job;
+end;
+$$;
+
+create function public.fail_resume_extraction(
+  target_job_id uuid,
+  target_asset_id uuid,
+  target_error_code text,
+  target_error_message text
+)
+returns public.processing_jobs
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  current_user_id uuid := auth.uid();
+  failed_job public.processing_jobs%rowtype;
+begin
+  if current_user_id is null then
+    raise exception 'authentication-required' using errcode = '42501';
+  end if;
+
+  update public.source_assets
+  set status = 'failed', error_code = target_error_code, updated_at = now()
+  where id = target_asset_id
+    and user_id = current_user_id;
+
+  update public.processing_jobs
+  set
+    status = 'failed',
+    error_code = target_error_code,
+    error_message = target_error_message,
+    result = null,
+    finished_at = now()
+  where id = target_job_id
+    and user_id = current_user_id
+    and entity_id = target_asset_id
+    and kind = 'resume_extract'
+  returning * into failed_job;
+
+  if failed_job.id is null then
+    raise exception 'resume-job-not-found' using errcode = 'P0002';
+  end if;
+
+  return failed_job;
+end;
+$$;
+
+revoke all on function public.create_or_get_resume_job(uuid, text) from public;
+revoke all on function public.claim_processing_job(uuid) from public;
+revoke all on function public.complete_resume_extraction(uuid, uuid, jsonb, integer, integer, jsonb, jsonb) from public;
+revoke all on function public.fail_resume_extraction(uuid, uuid, text, text) from public;
+
+grant execute on function public.create_or_get_resume_job(uuid, text) to authenticated;
+grant execute on function public.claim_processing_job(uuid) to authenticated;
+grant execute on function public.complete_resume_extraction(uuid, uuid, jsonb, integer, integer, jsonb, jsonb) to authenticated;
+grant execute on function public.fail_resume_extraction(uuid, uuid, text, text) to authenticated;

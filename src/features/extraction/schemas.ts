@@ -17,3 +17,4 @@ export const resumeExtractionSchema = z.object({
 });
 
 export type ResumeExtraction = z.infer<typeof resumeExtractionSchema>;
+export type ExtractedFact = z.infer<typeof extractedFactSchema>;
