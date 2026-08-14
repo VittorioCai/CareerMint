@@ -162,7 +162,10 @@ test("complete private career-profile foundation flow", async ({
   expect(ctaColor).toBe("rgb(255, 242, 168)");
 
   await page.goto("/applications");
-  await expect(page.getByRole("main").getByText("即将开放")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "我的投递" }),
+  ).toBeVisible();
+  await expect(page.getByText("还没有投递记录")).toBeVisible();
   await page.goto("/interview");
   await expect(page.getByRole("main").getByText("即将开放")).toBeVisible();
 
