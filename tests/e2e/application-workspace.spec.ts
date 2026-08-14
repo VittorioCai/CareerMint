@@ -121,9 +121,11 @@ test("create and track a private application workspace", async ({ page }) => {
 
     await page.getByRole("button", { name: "开始分析 JD" }).click();
     if (expectAIUnavailable) {
-      await expect(page.getByRole("alert")).toContainText(
-        "AI 暂未配置，JD 和现有结果都已保留",
-      );
+      await expect(
+        page.getByText("AI 暂未配置，JD 和现有结果都已保留。", {
+          exact: true,
+        }),
+      ).toBeVisible();
     } else {
       await expect(
         page.getByText("分析完成，匹配结果已更新。"),
