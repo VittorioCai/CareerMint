@@ -24,19 +24,26 @@ export const maxDuration = 60;
 function fakeProvider(): AIProvider {
   return {
     async extractResumeFacts(resumeText) {
-      const excerpt = resumeText.slice(0, Math.min(resumeText.length, 500));
+      const achievementExcerpt =
+        "Improved checkout conversion by 18% through funnel analysis.";
+      const hasAchievement = resumeText.includes(achievementExcerpt);
+      const excerpt = hasAchievement
+        ? achievementExcerpt
+        : resumeText.slice(0, Math.min(resumeText.length, 500));
       return {
         data: {
           facts: [
             {
-              factType: "summary",
+              factType: hasAchievement ? "achievement" : "summary",
               data: {
-                title: "简历内容摘要",
+                title: hasAchievement
+                  ? "Improved checkout conversion by 18%"
+                  : "简历内容摘要",
                 organization: null,
                 startDate: null,
                 endDate: null,
                 description: excerpt,
-                skills: [],
+                skills: hasAchievement ? ["Funnel analysis"] : [],
               },
               sourceExcerpt: excerpt,
               needsDetailReason: null,
