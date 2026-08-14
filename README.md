@@ -94,7 +94,7 @@ pnpm build
 ```bash
 pnpm db:reset
 pnpm test:db
-pnpm exec supabase db lint --local --level error
+pnpm exec supabase db lint --local --schema public --level error --fail-on error
 ```
 
 完整本地流程使用确定性假模型：
