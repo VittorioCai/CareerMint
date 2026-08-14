@@ -44,4 +44,4 @@ jobs:
           version: latest
       - run: supabase start
       - run: supabase test db supabase/tests/database --local
-      - run: supabase db lint --local --level error
+      - run: supabase db lint --local --schema public --level error --fail-on error

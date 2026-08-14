@@ -34,6 +34,171 @@ export type Database = {
   }
   public: {
     Tables: {
+      application_analysis_runs: {
+        Row: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash: string
+          model: string
+          provider: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash?: string
+          model?: string
+          provider?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_analysis_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_requirement_evidence: {
+        Row: {
+          application_id: string
+          career_fact_id: string
+          created_at: string
+          requirement_id: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          career_fact_id: string
+          created_at?: string
+          requirement_id: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          career_fact_id?: string
+          created_at?: string
+          requirement_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_requirement_evidence_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_requirement_evidence_career_fact_id_fkey"
+            columns: ["career_fact_id"]
+            isOneToOne: false
+            referencedRelation: "career_facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_requirement_evidence_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "application_requirements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      application_requirements: {
+        Row: {
+          analysis_run_id: string
+          application_id: string
+          category: string
+          created_at: string
+          id: string
+          match_reason: string | null
+          match_status: string
+          priority: string
+          requirement_text: string
+          sort_order: number
+          source_excerpt: string
+          user_id: string
+        }
+        Insert: {
+          analysis_run_id: string
+          application_id: string
+          category: string
+          created_at?: string
+          id?: string
+          match_reason?: string | null
+          match_status: string
+          priority: string
+          requirement_text: string
+          sort_order: number
+          source_excerpt: string
+          user_id: string
+        }
+        Update: {
+          analysis_run_id?: string
+          application_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          match_reason?: string | null
+          match_status?: string
+          priority?: string
+          requirement_text?: string
+          sort_order?: number
+          source_excerpt?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_requirements_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "application_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_stage_events: {
         Row: {
           application_id: string
@@ -316,6 +481,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      claim_application_analysis: {
+        Args: { target_run_id: string }
+        Returns: boolean
+      }
       change_application_stage: {
         Args: {
           target_application_id: string
@@ -351,6 +520,17 @@ export type Database = {
       claim_processing_job: {
         Args: { target_job_id: string }
         Returns: boolean
+      }
+      complete_application_analysis: {
+        Args: {
+          accepted_requirements: Json
+          ai_usage: Json
+          estimated_cost: Json
+          rejected_evidence_count: number
+          rejected_requirement_count: number
+          target_run_id: string
+        }
+        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
       }
       complete_resume_extraction: {
         Args: {
@@ -419,6 +599,15 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_or_get_application_analysis: {
+        Args: {
+          target_application_id: string
+          target_input_hash: string
+          target_model: string
+          target_provider: string
+        }
+        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
+      }
       create_or_get_resume_job: {
         Args: { target_asset_id: string; target_key: string }
         Returns: {
@@ -442,6 +631,14 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      fail_application_analysis: {
+        Args: {
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: Database["public"]["Tables"]["application_analysis_runs"]["Row"]
       }
       fail_resume_extraction: {
         Args: {

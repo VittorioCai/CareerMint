@@ -7,6 +7,12 @@ import type {
   AIResult,
   AIUsage,
 } from "./provider";
+import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
+import {
+  jdAnalysisSchema,
+  type JDAnalysis,
+  type JobDescriptionAnalysisInput,
+} from "@/features/jd-analysis/schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -101,20 +107,22 @@ function safeLog(logger: MetadataLogger, entry: AIMetadataLog) {
   }
 }
 
-function requestBody(model: string, resumeText: string) {
+function requestBody(
+  model: string,
+  systemInstructions: string,
+  userContent: string,
+  maxTokens: number,
+) {
   return {
     model,
     messages: [
-      { role: "system", content: resumeExtractionInstructions },
-      {
-        role: "user",
-        content: `<resume_document>\n${resumeText}\n</resume_document>`,
-      },
+      { role: "system", content: systemInstructions },
+      { role: "user", content: userContent },
     ],
     response_format: { type: "json_object" },
     thinking: { type: "disabled" },
     stream: false,
-    max_tokens: 4096,
+    max_tokens: maxTokens,
   };
 }
 
@@ -129,9 +137,19 @@ export function createDeepSeekAIProvider(
 
   if (!apiKey?.trim()) throw new Error("deepseek-api-key-missing");
 
-  async function runAttempt(
-    resumeText: string,
-  ): Promise<AIResult<ResumeExtraction>> {
+  async function runAttempt<Output>({
+    systemInstructions,
+    userContent,
+    outputSchema,
+    invalidOutputError,
+    maxTokens,
+  }: {
+    systemInstructions: string;
+    userContent: string;
+    outputSchema: z.ZodType<Output>;
+    invalidOutputError: string;
+    maxTokens: number;
+  }): Promise<AIResult<Output>> {
     const startedAt = performance.now();
     let status: number | null = null;
     let requestId: string | null = null;
@@ -144,7 +162,9 @@ export function createDeepSeekAIProvider(
           authorization: `Bearer ${apiKey}`,
           "content-type": "application/json",
         },
-        body: JSON.stringify(requestBody(model, resumeText)),
+        body: JSON.stringify(
+          requestBody(model, systemInstructions, userContent, maxTokens),
+        ),
         signal: AbortSignal.timeout(30_000),
       });
 
@@ -178,7 +198,7 @@ export function createDeepSeekAIProvider(
         throw new AdapterError(invalidOutputError, true);
       }
 
-      const extraction = resumeExtractionSchema.safeParse(rawExtraction);
+      const extraction = outputSchema.safeParse(rawExtraction);
       if (!extraction.success) {
         throw new AdapterError(invalidOutputError, true);
       }
@@ -221,24 +241,58 @@ export function createDeepSeekAIProvider(
     }
   }
 
+  async function withInvalidOutputRetry<Output>(
+    run: () => Promise<AIResult<Output>>,
+    invalidOutputError: string,
+  ) {
+    for (let attempt = 0; attempt < 2; attempt += 1) {
+      try {
+        return await run();
+      } catch (error) {
+        if (
+          error instanceof AdapterError &&
+          error.retryableOutput &&
+          attempt === 0
+        ) {
+          continue;
+        }
+        throw error;
+      }
+    }
+
+    throw new AdapterError(invalidOutputError);
+  }
+
   return {
     async extractResumeFacts(resumeText) {
-      for (let attempt = 0; attempt < 2; attempt += 1) {
-        try {
-          return await runAttempt(resumeText);
-        } catch (error) {
-          if (
-            error instanceof AdapterError &&
-            error.retryableOutput &&
-            attempt === 0
-          ) {
-            continue;
-          }
-          throw error;
-        }
-      }
-
-      throw new AdapterError(invalidOutputError);
+      return withInvalidOutputRetry<ResumeExtraction>(
+        () =>
+          runAttempt({
+            systemInstructions: resumeExtractionInstructions,
+            userContent: `<resume_document>\n${resumeText}\n</resume_document>`,
+            outputSchema: resumeExtractionSchema,
+            invalidOutputError,
+            maxTokens: 4096,
+          }),
+        invalidOutputError,
+      );
+    },
+    async analyzeJobDescription(input: JobDescriptionAnalysisInput) {
+      const jdInvalidOutputError = "jd-analysis-invalid-output";
+      return withInvalidOutputRetry<JDAnalysis>(
+        () =>
+          runAttempt({
+            systemInstructions: jdAnalysisInstructions,
+            userContent: [
+              `<job_description>\n${input.jdText}\n</job_description>`,
+              `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+            ].join("\n"),
+            outputSchema: jdAnalysisSchema,
+            invalidOutputError: jdInvalidOutputError,
+            maxTokens: 6144,
+          }),
+        jdInvalidOutputError,
+      );
     },
   };
 }

@@ -1,5 +1,7 @@
 import { getOwnedProfile } from "@/features/account/repository";
+import { applicationRepository } from "@/features/applications/repository";
 import { careerFactRepository } from "@/features/career-profile/repository";
+import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { buildAccountExport } from "@/features/privacy/export";
 import { listAssets } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";
@@ -17,6 +19,10 @@ export async function GET() {
       getProfile: getOwnedProfile,
       listFacts: (userId) => careerFactRepository.list(userId),
       listAssets,
+      listApplications: applicationRepository.list,
+      listApplicationEvents: applicationRepository.listEvents,
+      listAnalysisRuns: jdAnalysisRepository.listRuns,
+      listRequirements: jdAnalysisRepository.listRequirements,
       download: downloadSource,
     });
     const date = new Date().toISOString().slice(0, 10);
