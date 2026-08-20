@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(17);
+select plan(19);
 
 select has_function(
   'public',
@@ -42,6 +42,20 @@ select set_config(
   true
 );
 
+select throws_ok(
+  $$select public.update_interview_question('22222222-2222-4222-8222-222222222222'::uuid, 'ready', null, null)$$,
+  '42501',
+  'permission denied for function update_interview_question',
+  'authenticated users cannot call the legacy preparation RPC'
+);
+
+select throws_ok(
+  $$select public.replace_interview_question_facts('22222222-2222-4222-8222-222222222222'::uuid, array[]::uuid[])$$,
+  '42501',
+  'permission denied for function replace_interview_question_facts',
+  'authenticated users cannot call the legacy fact-link RPC'
+);
+
 select set_config(
   'test.corrective_question_id',
   (
@@ -73,17 +87,21 @@ values
     'A pending story.', 'pending', null
   );
 
-select public.update_interview_question(
+select public.save_interview_question_preparation(
   current_setting('test.corrective_question_id')::uuid,
   'outlined',
   'Old outline',
-  'Old notes'
+  'Old notes',
+  array[]::uuid[]
 );
 
-select public.replace_interview_question_facts(
+select (public.save_interview_question_preparation(
   current_setting('test.corrective_question_id')::uuid,
+  'outlined',
+  'Old outline',
+  'Old notes',
   array['11111111-1111-4111-8111-111111111111'::uuid]
-);
+)).id;
 
 select throws_ok(
   $$
@@ -190,10 +208,13 @@ select results_eq(
   'reconfirming a fact does not restore a removed link'
 );
 
-select public.replace_interview_question_facts(
+select (public.save_interview_question_preparation(
   current_setting('test.corrective_question_id')::uuid,
+  'ready',
+  'New outline',
+  'New notes',
   array['11111111-1111-4111-8111-111111111111'::uuid]
-);
+)).id;
 
 update public.career_facts
 set confirmation_status = 'needs_detail', confirmed_at = null
@@ -213,10 +234,13 @@ update public.career_facts
 set confirmation_status = 'confirmed', confirmed_at = now()
 where id = '11111111-1111-4111-8111-111111111111';
 
-select public.replace_interview_question_facts(
+select (public.save_interview_question_preparation(
   current_setting('test.corrective_question_id')::uuid,
+  'ready',
+  'New outline',
+  'New notes',
   array['11111111-1111-4111-8111-111111111111'::uuid]
-);
+)).id;
 
 select set_config(
   'test.normalized_question_id',
@@ -288,10 +312,13 @@ values (
   'Another confirmed story.', 'confirmed', now()
 );
 
-select public.replace_interview_question_facts(
+select (public.save_interview_question_preparation(
   current_setting('test.other_question_id')::uuid,
+  'not_started',
+  null,
+  null,
   array['33333333-3333-4333-8333-333333333333'::uuid]
-);
+)).id;
 
 update public.career_facts
 set confirmation_status = 'pending', confirmed_at = null

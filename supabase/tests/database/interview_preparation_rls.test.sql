@@ -107,11 +107,12 @@ select results_eq(
 select results_eq(
   $$
     select preparation_status || ':' || answer_outline
-    from public.update_interview_question(
+    from public.save_interview_question_preparation(
       current_setting('test.question_id')::uuid,
       'outlined',
       'Situation, action, and measurable result.',
-      'Practice this before the interview.'
+      'Practice this before the interview.',
+      array[]::uuid[]
     )
   $$,
   array['outlined:Situation, action, and measurable result.'::text],
@@ -140,12 +141,15 @@ values
 
 select results_eq(
   $$
-    select public.replace_interview_question_facts(
+    select (public.save_interview_question_preparation(
       current_setting('test.question_id')::uuid,
+      'outlined',
+      'Situation, action, and measurable result.',
+      'Practice this before the interview.',
       array['11111111-1111-4111-8111-111111111111'::uuid]
-    )
+    )).id
   $$,
-  array[1],
+  array[current_setting('test.question_id')::uuid],
   'owner can link confirmed career evidence'
 );
 
@@ -157,8 +161,11 @@ select results_eq(
 
 select throws_ok(
   $$
-    select public.replace_interview_question_facts(
+    select public.save_interview_question_preparation(
       current_setting('test.question_id')::uuid,
+      'outlined',
+      'Situation, action, and measurable result.',
+      'Practice this before the interview.',
       array['22222222-2222-4222-8222-222222222222'::uuid]
     )
   $$,
@@ -220,7 +227,7 @@ select results_eq(
 );
 
 select throws_ok(
-  $$select id from public.update_interview_question(current_setting('test.question_id')::uuid, 'ready', null, null)$$,
+  $$select id from public.save_interview_question_preparation(current_setting('test.question_id')::uuid, 'ready', null, null, array[]::uuid[])$$,
   'P0002',
   'interview-question-not-found',
   'another user cannot update the owner question'
