@@ -165,22 +165,16 @@ async function updatePreparation(input: {
   factIds: string[];
 }): Promise<void> {
   const supabase = await createClient();
-  const { error: factError } = await supabase.rpc(
-    "replace_interview_question_facts",
+  const { error } = await supabase.rpc(
+    "save_interview_question_preparation",
     {
       target_question_id: input.questionId,
+      target_preparation_status: input.preparationStatus,
+      target_answer_outline: input.answerOutline ?? "",
+      target_notes: input.notes ?? "",
       target_fact_ids: input.factIds,
     },
   );
-  if (factError) {
-    throw new InterviewPreparationRepositoryError(stableError(factError));
-  }
-  const { error } = await supabase.rpc("update_interview_question", {
-    target_question_id: input.questionId,
-    target_preparation_status: input.preparationStatus,
-    target_answer_outline: input.answerOutline ?? "",
-    target_notes: input.notes ?? "",
-  });
   if (error) {
     throw new InterviewPreparationRepositoryError(stableError(error));
   }

@@ -1477,6 +1477,34 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      save_interview_question_preparation: {
+        Args: {
+          target_answer_outline: string
+          target_fact_ids: string[]
+          target_notes: string
+          target_preparation_status: string
+          target_question_id: string
+        }
+        Returns: {
+          answer_outline: string | null
+          canonical_key: string
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          preparation_status: string
+          prompt: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_questions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       seed_interview_common_questions: {
         Args: { target_user_id: string }
         Returns: number
