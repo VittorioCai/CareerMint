@@ -119,6 +119,23 @@ describe("buildAccountExport", () => {
           ],
         },
       ]),
+      listInterviewQuestions: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-4444-4444-8444-444444444444",
+          userId,
+          prompt: "Tell me about yourself.",
+          answerOutline: "Present, past, and why this role.",
+          applicationLinks: [],
+          facts: [],
+        },
+        {
+          id: "aaaaaaaa-5555-4555-8555-555555555555",
+          userId: otherUserId,
+          prompt: "Other user interview secret",
+          applicationLinks: [],
+          facts: [],
+        },
+      ]),
       download: vi.fn().mockResolvedValue(new Blob(["synthetic pdf"])),
     };
 
@@ -130,6 +147,7 @@ describe("buildAccountExport", () => {
       "files/11111111-1111-4111-8111-111111111111/",
       "files/11111111-1111-4111-8111-111111111111/resume.pdf",
       "application-workspaces.json",
+      "interview-preparation.json",
       "profile.json",
       "source-assets.json",
     ].sort());
@@ -137,6 +155,9 @@ describe("buildAccountExport", () => {
     const assetsJson = await zip.file("source-assets.json")!.async("string");
     const applicationsJson = await zip
       .file("application-workspaces.json")!
+      .async("string");
+    const interviewJson = await zip
+      .file("interview-preparation.json")!
       .async("string");
     expect(profileJson).toContain("Lin Chen");
     expect(profileJson).toContain("SQL");
@@ -153,6 +174,9 @@ describe("buildAccountExport", () => {
     expect(applicationsJson).toContain("resumeVersions");
     expect(applicationsJson).toContain("Improved checkout conversion by 18%.");
     expect(applicationsJson).not.toContain("Other user private JD");
+    expect(interviewJson).toContain("Tell me about yourself.");
+    expect(interviewJson).toContain("Present, past, and why this role.");
+    expect(interviewJson).not.toContain("Other user interview secret");
     expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
       `${userId}/asset/source.pdf`,
     );

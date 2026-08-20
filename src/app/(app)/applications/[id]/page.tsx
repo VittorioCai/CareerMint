@@ -17,6 +17,19 @@ import type {
   JDAnalysisRun,
   JDRequirementRecord,
 } from "@/features/jd-analysis/schemas";
+import {
+  addInterviewQuestionAction,
+  addInterviewQuestionVariantAction,
+  updateInterviewQuestionAction,
+} from "@/features/interview-preparation/actions";
+import {
+  NewInterviewQuestionForm,
+  QuestionPreparationCard,
+} from "@/features/interview-preparation/components";
+import { interviewPreparationRepository } from "@/features/interview-preparation/repository";
+import type { InterviewQuestion } from "@/features/interview-preparation/schemas";
+import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import { ResumeGenerationControl } from "@/features/resume-customization/generation-control";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import type {
@@ -82,7 +95,6 @@ function Overview({ application }: { application: Application }) {
         </p>
         <div className="mt-4 border-t border-[color:var(--ink-soft)] pt-4">
           <StageUpdateForm
-            key={`${application.id}:${application.stage}`}
             applicationId={application.id}
             currentStage={application.stage}
             changeStage={changeApplicationStageAction.bind(null, {})}
@@ -242,17 +254,62 @@ function ResumePanel({
   );
 }
 
-function InterviewFuturePanel() {
+function InterviewPanel({
+  application,
+  questions,
+  facts,
+}: {
+  application: Application;
+  questions: InterviewQuestion[];
+  facts: ConfirmedFactForAnalysis[];
+}) {
+  const commonCount = questions.filter(
+    (question) => question.category === "common",
+  ).length;
   return (
-    <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-6 shadow-[3px_3px_0_var(--ink)]">
-      <span className="status-chip bg-white">下一切片</span>
-      <h2 className="heading-font mt-4 text-2xl font-black">
-        岗位面试准备
-      </h2>
-      <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
-        后续会组合通用题与岗位特定题，并把可能的问题明确标记为预测。
-      </p>
-    </article>
+    <div className="space-y-6">
+      <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-5 shadow-[3px_3px_0_var(--ink)] sm:flex sm:items-center sm:justify-between sm:gap-5">
+        <div>
+          <span className="status-chip bg-white">可能问题，不是雇主承诺</span>
+          <h2 className="heading-font mt-3 text-2xl font-black">岗位面试准备</h2>
+          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+            已自动包含 {commonCount} 道通用题；岗位增量题不会复制通用问题，准备记录会回写全局题库。
+          </p>
+        </div>
+        <Link href="/interview" className="button-secondary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-black sm:mt-0">
+          打开完整题库 →
+        </Link>
+      </article>
+
+      <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
+        <NewInterviewQuestionForm
+          applications={[]}
+          fixedApplicationId={application.id}
+          addQuestion={addInterviewQuestionAction.bind(null, {})}
+        />
+        <section>
+          <div className="flex items-end justify-between gap-4">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
+              <h2 className="heading-font mt-1 text-2xl font-black">本岗位准备清单</h2>
+            </div>
+            <span className="status-chip bg-white">{questions.length} 道</span>
+          </div>
+          <div className="mt-4 space-y-3">
+            {questions.map((question) => (
+              <QuestionPreparationCard
+                key={question.id}
+                question={question}
+                applicationId={application.id}
+                availableFacts={facts}
+                updateQuestion={updateInterviewQuestionAction.bind(null, {})}
+                addVariant={addInterviewQuestionVariantAction.bind(null, {})}
+              />
+            ))}
+          </div>
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -268,7 +325,7 @@ export default async function ApplicationDetailPage({
   const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, resumeRun, resumeVersions] = await Promise.all([
+  const [events, analysisRun, requirements, resumeRun, resumeVersions, interviewQuestions, interviewFacts] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "jd"
       ? jdAnalysisRepository.getLatest(user.id, id)
@@ -281,6 +338,12 @@ export default async function ApplicationDetailPage({
       : Promise.resolve(null),
     activeTab === "resume"
       ? resumeCustomizationRepository.listVersions(user.id, id)
+      : Promise.resolve([]),
+    activeTab === "interview"
+      ? interviewPreparationRepository.listForApplication(user.id, id)
+      : Promise.resolve([]),
+    activeTab === "interview"
+      ? listConfirmedFactsForAnalysis(user.id)
       : Promise.resolve([]),
   ]);
 
@@ -335,7 +398,13 @@ export default async function ApplicationDetailPage({
             versions={resumeVersions}
           />
         ) : null}
-        {activeTab === "interview" ? <InterviewFuturePanel /> : null}
+        {activeTab === "interview" ? (
+          <InterviewPanel
+            application={application}
+            questions={interviewQuestions}
+            facts={interviewFacts}
+          />
+        ) : null}
       </div>
     </section>
   );

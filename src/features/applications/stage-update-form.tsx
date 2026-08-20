@@ -35,6 +35,9 @@ export function StageUpdateForm({
     (stage) => stage !== currentStage,
   );
   const [stage, setStage] = useState<ApplicationStage>(availableStages[0]);
+  const selectedStage = availableStages.includes(stage)
+    ? stage
+    : availableStages[0];
   const [occurredOn, setOccurredOn] = useState(
     new Date().toISOString().slice(0, 10),
   );
@@ -52,7 +55,7 @@ export function StageUpdateForm({
 
     const formData = new FormData();
     formData.set("applicationId", applicationId);
-    formData.set("stage", stage);
+    formData.set("stage", selectedStage);
     formData.set("occurredOn", occurredOn);
     formData.set("note", note);
 
@@ -78,7 +81,7 @@ export function StageUpdateForm({
         新阶段
         <select
           className="form-input mt-2"
-          value={stage}
+          value={selectedStage}
           onChange={(event) => setStage(event.target.value as ApplicationStage)}
         >
           {availableStages.map((value) => (

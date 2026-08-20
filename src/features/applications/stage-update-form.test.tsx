@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { StageUpdateForm } from "./stage-update-form";
@@ -93,5 +94,47 @@ describe("StageUpdateForm", () => {
       "当前已经是这个阶段",
     );
     expect(screen.getByRole("button", { name: "确认更新阶段" })).toBeEnabled();
+  });
+
+  it("keeps success feedback and a valid next stage when the parent refreshes with the new current stage", async () => {
+    const user = userEvent.setup();
+    const refresh = vi.fn();
+    const changeStage = vi.fn<
+      (formData: FormData) => Promise<{ ok: true; applicationId: string }>
+    >(async () => {
+      setCurrentStageFromAction?.("applied");
+      return { ok: true, applicationId };
+    });
+    let setCurrentStageFromAction:
+      | ((stage: "applied") => void)
+      | undefined;
+
+    function Parent() {
+      const [currentStage, setCurrentStage] = useState<"preparing" | "applied">(
+        "preparing",
+      );
+      setCurrentStageFromAction = setCurrentStage;
+      return (
+        <StageUpdateForm
+          applicationId={applicationId}
+          currentStage={currentStage}
+          changeStage={changeStage}
+          refresh={refresh}
+        />
+      );
+    }
+
+    render(<Parent />);
+    await user.selectOptions(screen.getByLabelText("新阶段"), "applied");
+    await user.click(screen.getByRole("button", { name: "确认更新阶段" }));
+
+    expect(await screen.findByText("阶段已更新，时间线已记录。")).toBeVisible();
+    expect(screen.queryByRole("option", { name: "已投递" })).not.toBeInTheDocument();
+    expect(screen.getByLabelText("新阶段")).not.toHaveValue("applied");
+    expect(refresh).toHaveBeenCalledOnce();
+    await user.click(screen.getByRole("button", { name: "确认更新阶段" }));
+    const secondSubmission = changeStage.mock.calls[1]?.[0];
+    expect(secondSubmission).toBeDefined();
+    expect(secondSubmission?.get("stage")).not.toBe("applied");
   });
 });

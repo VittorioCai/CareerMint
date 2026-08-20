@@ -3,6 +3,9 @@ import JSZip from "jszip";
 type OwnedRecord = { userId: string };
 type OwnedApplication = OwnedRecord & { id: string };
 type ApplicationChildRecord = { applicationId: string };
+type InterviewExportRecord = OwnedRecord & {
+  applicationLinks?: ApplicationChildRecord[];
+};
 type ExportAsset = OwnedRecord & {
   id: string;
   originalName: string;
@@ -41,6 +44,7 @@ export type AccountExportDependencies = {
     userId: string,
     applicationId: string,
   ): Promise<Array<OwnedRecord & ApplicationChildRecord>>;
+  listInterviewQuestions(userId: string): Promise<InterviewExportRecord[]>;
   download(storagePath: string): Promise<Blob>;
 };
 
@@ -77,6 +81,7 @@ export async function buildAccountExport(
     allApplications,
     allAnalysisRuns,
     allResumeRuns,
+    allInterviewQuestions,
   ] =
     await Promise.all([
     dependencies.getProfile(userId),
@@ -85,6 +90,7 @@ export async function buildAccountExport(
       dependencies.listApplications(userId),
       dependencies.listAnalysisRuns(userId),
       dependencies.listResumeRuns(userId),
+      dependencies.listInterviewQuestions(userId),
     ]);
   const ownedProfile = profile?.userId === userId ? profile : null;
   const facts = allFacts.filter((fact) => fact.userId === userId);
@@ -101,6 +107,14 @@ export async function buildAccountExport(
   const resumeRuns = allResumeRuns.filter(
     (run) => run.userId === userId && applicationIds.has(run.applicationId),
   );
+  const interviewQuestions = allInterviewQuestions
+    .filter((question) => question.userId === userId)
+    .map((question) => ({
+      ...question,
+      applicationLinks: (question.applicationLinks ?? []).filter((link) =>
+        applicationIds.has(link.applicationId),
+      ),
+    }));
   const [eventGroups, requirementGroups, suggestionGroups, versionGroups] = await Promise.all([
     Promise.all(
       applications.map((application) =>
@@ -174,6 +188,10 @@ export async function buildAccountExport(
       null,
       2,
     ),
+  );
+  zip.file(
+    "interview-preparation.json",
+    JSON.stringify({ questions: interviewQuestions }, null, 2),
   );
 
   for (const asset of assets) {
