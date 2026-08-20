@@ -116,6 +116,41 @@ test("create and track a private application workspace", async ({ page }) => {
     if (!applicationId) throw new Error("application-e2e-id-missing");
     await expect(page.getByRole("heading", { name: "Product Manager" })).toBeVisible();
     await expect(page.getByText("Acme GmbH", { exact: true })).toBeVisible();
+
+    await page.getByRole("link", { name: "面试准备", exact: true }).click();
+    await expect(page.getByText(/已自动包含 5 道通用题/)).toBeVisible();
+    await expect(page.getByText("Tell me about yourself.")).toBeVisible();
+    await page
+      .getByLabel("核心问题")
+      .fill("How would you prioritize this product roadmap?");
+    await page.getByRole("button", { name: "加入题库" }).click();
+    await expect(
+      page.getByText("问题已加入，通用准备记录可继续复用。"),
+    ).toBeVisible();
+    const interviewCard = page.locator("article", {
+      hasText: "How would you prioritize this product roadmap?",
+    });
+    await expect(interviewCard.getByText("可能会问")).toBeVisible();
+    await interviewCard.getByText("准备回答", { exact: true }).click();
+    await interviewCard.getByLabel("准备状态").selectOption("outlined");
+    await interviewCard
+      .getByLabel("回答提纲")
+      .fill("Explain the customer evidence, tradeoff, and measurable result.");
+    await interviewCard
+      .getByLabel(/Checkout conversion improvement/)
+      .check();
+    await interviewCard
+      .getByRole("button", { name: "保存准备记录" })
+      .click();
+    await expect(interviewCard.getByText("准备记录已保存。")).toBeVisible();
+
+    await page.goto("/interview");
+    await expect(
+      page.getByText("How would you prioritize this product roadmap?"),
+    ).toBeVisible();
+    await expect(page.getByText("6 道核心题")).toBeVisible();
+
+    await page.goto(detailUrl);
     await page.getByRole("link", { name: "JD", exact: true }).click();
     await expect(page.getByText(/Lead product discovery/)).toBeVisible();
     const runsBefore = await account

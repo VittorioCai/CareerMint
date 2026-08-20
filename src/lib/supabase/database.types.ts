@@ -93,6 +93,48 @@ export type Database = {
           },
         ]
       }
+      application_interview_questions: {
+        Row: {
+          application_id: string
+          created_at: string
+          predicted: boolean
+          question_id: string
+          relevance_reason: string | null
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          predicted?: boolean
+          question_id: string
+          relevance_reason?: string | null
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          predicted?: boolean
+          question_id?: string
+          relevance_reason?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "application_interview_questions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "application_interview_questions_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       application_requirement_evidence: {
         Row: {
           application_id: string
@@ -343,6 +385,116 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      interview_question_facts: {
+        Row: {
+          career_fact_id: string
+          created_at: string
+          question_id: string
+          user_id: string
+        }
+        Insert: {
+          career_fact_id: string
+          created_at?: string
+          question_id: string
+          user_id: string
+        }
+        Update: {
+          career_fact_id?: string
+          created_at?: string
+          question_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_question_facts_career_fact_id_fkey"
+            columns: ["career_fact_id"]
+            isOneToOne: false
+            referencedRelation: "career_facts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_question_facts_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_question_variants: {
+        Row: {
+          created_at: string
+          id: string
+          question_id: string
+          user_id: string
+          wording: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          question_id: string
+          user_id: string
+          wording: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          question_id?: string
+          user_id?: string
+          wording?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_question_variants_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_questions: {
+        Row: {
+          answer_outline: string | null
+          canonical_key: string
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          preparation_status: string
+          prompt: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_outline?: string | null
+          canonical_key: string
+          category: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preparation_status?: string
+          prompt: string
+          source: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_outline?: string | null
+          canonical_key?: string
+          category?: string
+          created_at?: string
+          id?: string
+          notes?: string | null
+          preparation_status?: string
+          prompt?: string
+          source?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       processing_jobs: {
         Row: {
@@ -857,6 +1009,49 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_interview_question: {
+        Args: {
+          target_application_id?: string
+          target_category: string
+          target_prompt: string
+          target_relevance_reason?: string
+        }
+        Returns: {
+          answer_outline: string | null
+          canonical_key: string
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          preparation_status: string
+          prompt: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_questions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      add_interview_question_variant: {
+        Args: { target_question_id: string; target_wording: string }
+        Returns: {
+          created_at: string
+          id: string
+          question_id: string
+          user_id: string
+          wording: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_question_variants"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       change_application_stage: {
         Args: {
           target_application_id: string
@@ -1225,6 +1420,36 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      link_interview_question_to_application: {
+        Args: {
+          target_application_id: string
+          target_predicted?: boolean
+          target_question_id: string
+          target_relevance_reason?: string
+        }
+        Returns: {
+          application_id: string
+          created_at: string
+          predicted: boolean
+          question_id: string
+          relevance_reason: string | null
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "application_interview_questions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      normalize_interview_question_prompt: {
+        Args: { target_prompt: string }
+        Returns: string
+      }
+      replace_interview_question_facts: {
+        Args: { target_fact_ids: string[]; target_question_id: string }
+        Returns: number
+      }
       review_resume_suggestion: {
         Args: {
           target_decision: string
@@ -1248,6 +1473,37 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "resume_suggestions"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      seed_interview_common_questions: {
+        Args: { target_user_id: string }
+        Returns: number
+      }
+      update_interview_question: {
+        Args: {
+          target_answer_outline: string
+          target_notes: string
+          target_preparation_status: string
+          target_question_id: string
+        }
+        Returns: {
+          answer_outline: string | null
+          canonical_key: string
+          category: string
+          created_at: string
+          id: string
+          notes: string | null
+          preparation_status: string
+          prompt: string
+          source: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_questions"
           isOneToOne: true
           isSetofReturn: false
         }

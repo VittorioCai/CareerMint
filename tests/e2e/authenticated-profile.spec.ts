@@ -167,7 +167,9 @@ test("complete private career-profile foundation flow", async ({
   ).toBeVisible();
   await expect(page.getByText("还没有投递记录")).toBeVisible();
   await page.goto("/interview");
-  await expect(page.getByRole("main").getByText("即将开放")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "面试题库" })).toBeVisible();
+  await expect(page.getByText("5 道核心题")).toBeVisible();
+  await expect(page.getByText("Tell me about yourself.")).toBeVisible();
 
   await page.goto("/profile");
   const achievement = page.locator("article", { hasText: "18%" });
@@ -213,6 +215,7 @@ test("complete private career-profile foundation flow", async ({
   if (!downloadPath) throw new Error("export-download-missing");
   const zip = await JSZip.loadAsync(await readFile(downloadPath));
   expect(zip.file("profile.json")).not.toBeNull();
+  expect(zip.file("interview-preparation.json")).not.toBeNull();
   expect(
     Object.keys(zip.files).some(
       (path) => /^files\/[0-9a-f-]+\/resume-en\.pdf$/.test(path),
