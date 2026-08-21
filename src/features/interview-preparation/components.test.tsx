@@ -33,6 +33,7 @@ const question: InterviewQuestion = {
       applicationId,
       predicted: true,
       relevanceReason: "The role owns roadmap prioritization.",
+      sourceExcerpt: "roadmap prioritization",
     },
   ],
   facts: [],
@@ -70,6 +71,9 @@ describe("interview preparation components", () => {
     expect(
       screen.getByText("The role owns roadmap prioritization."),
     ).toBeVisible();
+    expect(screen.getByText("JD 依据：").parentElement).toHaveTextContent(
+      "roadmap prioritization",
+    );
     await user.click(screen.getByText("准备回答"));
     expect(screen.getByText("Roadmap tradeoff")).toBeVisible();
   });

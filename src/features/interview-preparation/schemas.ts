@@ -127,6 +127,23 @@ export const interviewQuestionFilterSchema = z.object({
   ),
 });
 
+const candidateIdsSchema = z
+  .array(z.uuid())
+  .min(1)
+  .max(6)
+  .transform((ids) => [...new Set(ids)]);
+
+export const acceptInterviewQuestionCandidatesSchema = z.object({
+  applicationId: z.uuid(),
+  candidateIds: candidateIdsSchema,
+});
+
+export const rejectInterviewQuestionCandidatesSchema = z.object({
+  applicationId: z.uuid(),
+  runId: z.uuid(),
+  candidateIds: candidateIdsSchema,
+});
+
 export type InterviewQuestion = {
   id: string;
   userId: string;
@@ -142,6 +159,7 @@ export type InterviewQuestion = {
     applicationId: string;
     predicted: boolean;
     relevanceReason: string | null;
+    sourceExcerpt: string | null;
   }>;
   facts: ConfirmedFactForAnalysis[];
   createdAt: string;

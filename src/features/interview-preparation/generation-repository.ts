@@ -208,6 +208,25 @@ async function getOwned(
   return data ? toRun(data) : null;
 }
 
+async function getLatestRun(
+  userId: string,
+  applicationId: string,
+): Promise<InterviewQuestionGenerationRun | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interview_question_generation_runs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("application_id", applicationId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) {
+    throw new InterviewQuestionGenerationRepositoryError(stableError(error));
+  }
+  return data ? toRun(data) : null;
+}
+
 async function listCandidates(
   userId: string,
   runId: string,
@@ -317,6 +336,7 @@ export const interviewQuestionGenerationRepository = {
   createOrGet,
   claim,
   getOwned,
+  getLatestRun,
   listCandidates,
   complete,
   fail,
