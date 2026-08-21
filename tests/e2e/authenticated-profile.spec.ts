@@ -357,14 +357,14 @@ test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
       .getByLabel("允许系统将提取后的简历文字发送给 AI 服务进行分析")
       .check();
 
-  await page.evaluate(() => {
-    const snapshots: string[] = [];
-    (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots = snapshots;
-    window.setInterval(() => {
-      const text = document.body?.innerText ?? "";
-      if (text.includes("正在本地识别扫描版简历")) snapshots.push(text);
-    }, 20);
-  });
+    await page.evaluate(() => {
+      const snapshots: string[] = [];
+      (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots = snapshots;
+      window.setInterval(() => {
+        const text = document.body?.innerText ?? "";
+        if (text.includes("正在本地识别扫描版简历")) snapshots.push(text);
+      }, 20);
+    });
 
     await page
       .getByLabel("上传现有简历")
