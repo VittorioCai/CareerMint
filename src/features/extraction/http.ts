@@ -195,7 +195,13 @@ export function createSourceAssetExtractPostHandler(
         provider: dependencies.providerFactory(),
         ...(sourceText === undefined ? {} : { sourceText }),
       });
-      return Response.json({ jobId: completed.id, status: completed.status });
+      return Response.json({
+        jobId: completed.id,
+        status: completed.status,
+        ...(completed.status === "failed" && completed.errorCode
+          ? { errorCode: completed.errorCode }
+          : {}),
+      });
     } catch {
       return Response.json(
         { error: "resume-extraction-request-failed" },

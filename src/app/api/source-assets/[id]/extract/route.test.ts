@@ -205,6 +205,33 @@ describe("POST /api/source-assets/[id]/extract", () => {
     expect(fakes.provider.extractResumeFacts).toHaveBeenCalledOnce();
   });
 
+  it("returns a sanitized failure code for immediate extraction failures", async () => {
+    const fakes = createFakes();
+    fakes.getAIProcessingConsentAt.mockResolvedValue(
+      "2026-08-14T00:00:00.000Z",
+    );
+    fakes.runExtraction.mockResolvedValue({
+      ...queuedJob,
+      status: "failed",
+      errorCode: "resume-text-too-short",
+    });
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      jobId,
+      status: "failed",
+      errorCode: "resume-text-too-short",
+    });
+  });
+
   it("accepts valid OCR text with a versioned OCR idempotency key", async () => {
     const fakes = createFakes();
     fakes.getAIProcessingConsentAt.mockResolvedValue(

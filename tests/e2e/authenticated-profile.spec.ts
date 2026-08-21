@@ -8,6 +8,7 @@ import {
   type Page,
 } from "@playwright/test";
 import JSZip from "jszip";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 async function latestEmail(
   request: APIRequestContext,
@@ -66,6 +67,34 @@ async function confirmFact(article: Locator) {
   await dialog.getByRole("checkbox").check();
   await dialog.getByRole("button", { name: "确认并保存" }).click();
   await expect(article.getByText("已确认")).toBeVisible();
+}
+
+async function createAccountAndReachOnboarding(
+  page: Page,
+  context: import("@playwright/test").BrowserContext,
+  admin: SupabaseClient,
+) {
+  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
+  const email = `career-mint-ocr-${stamp}@example.com`;
+  const initialPassword = "CareerMint123!";
+  const { data, error } = await admin.auth.admin.createUser({
+    email,
+    password: initialPassword,
+    email_confirm: true,
+  });
+  if (error || !data.user) throw error ?? new Error("e2e-user-create-failed");
+
+  await context.clearCookies();
+  await login(page, email, initialPassword);
+  await expect(page).toHaveURL(/\/onboarding/);
+  await expect(page.getByRole("heading", { name: "上传简历" })).toBeVisible();
+
+  await page.getByLabel("姓名").fill("Alex River");
+  await page.getByLabel("目标岗位").fill("Product Analyst");
+  await page.getByLabel("目标国家").fill("Germany, Netherlands");
+  await page.getByRole("button", { name: "保存求职目标" }).click();
+  await expect(page.getByLabel("上传现有简历")).toBeVisible();
+  return data.user.id;
 }
 
 test("complete private career-profile foundation flow", async ({
@@ -229,4 +258,109 @@ test("complete private career-profile foundation flow", async ({
   await expect(page).toHaveURL("http://127.0.0.1:3000/");
   await page.goto("/profile");
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
+});
+
+test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
+  page,
+  context,
+}) => {
+  test.skip(process.env.E2E_LOCAL_OCR !== "1", "local OCR smoke is opt-in");
+  test.setTimeout(300_000);
+
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const secretKey = process.env.SUPABASE_SECRET_KEY ?? process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !secretKey) throw new Error("supabase-admin-env-missing");
+  const admin = createClient(supabaseUrl, secretKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const createdUserIds: string[] = [];
+
+  const modelRequests: string[] = [];
+  const sourceUploads: string[] = [];
+  const extractionPosts: Array<{ url: string; body: string | null }> = [];
+  page.on("request", (requestEvent) => {
+    const url = requestEvent.url();
+    if (/paddle-model-ecology|onnxruntime-web|PP-OCR|\.onnx/i.test(url)) {
+      modelRequests.push(url);
+    }
+    if (requestEvent.method() !== "POST") return;
+    if (/\/api\/source-assets$/.test(new URL(url).pathname)) {
+      sourceUploads.push(url);
+    }
+    if (/\/api\/source-assets\/[^/]+\/extract$/.test(new URL(url).pathname)) {
+      extractionPosts.push({ url, body: requestEvent.postData() });
+    }
+  });
+
+  try {
+    // The ordinary text-PDF path must finish without importing PaddleOCR or
+    // requesting its model assets. This also proves the default E2E path keeps
+    // OCR entirely out of the browser until the native parser reports too-short.
+    createdUserIds.push(await createAccountAndReachOnboarding(page, context, admin));
+  await page
+    .getByLabel("上传现有简历")
+    .setInputFiles("tests/fixtures/resume-en.pdf");
+  await page.getByRole("button", { name: "上传并开始建档" }).click();
+  await expect(page.getByText(/文件已保存在你的私有空间/)).toBeVisible();
+  expect(modelRequests).toEqual([]);
+    // Use a fresh account because onboarding intentionally disables re-upload
+    // after the first source is saved. The second account exercises the real
+    // scanned-PDF fallback and its idempotent OCR submission.
+    modelRequests.length = 0;
+    sourceUploads.length = 0;
+    extractionPosts.length = 0;
+    createdUserIds.push(await createAccountAndReachOnboarding(page, context, admin));
+  await page
+    .getByLabel("允许系统将提取后的简历文字发送给 AI 服务进行分析")
+    .check();
+
+  await page.evaluate(() => {
+    const snapshots: string[] = [];
+    (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots = snapshots;
+    window.setInterval(() => {
+      const text = document.body?.innerText ?? "";
+      if (text.includes("正在本地识别扫描版简历")) snapshots.push(text);
+    }, 20);
+  });
+
+  await page
+    .getByLabel("上传现有简历")
+    .setInputFiles("tests/fixtures/resume-scanned.pdf");
+  await page.getByRole("button", { name: "上传并开始建档" }).click();
+  await expect(page.getByRole("button", { name: "取消本地识别" })).toBeVisible({
+    timeout: 120_000,
+  });
+  await expect.poll(
+    () => extractionPosts.filter(({ body }) => body === null).length,
+    { timeout: 30_000 },
+  ).toBeGreaterThanOrEqual(1);
+
+  await page.getByRole("button", { name: "取消本地识别" }).click();
+  await expect(page.getByText("已取消本地识别，可重新尝试。")).toBeVisible();
+  expect(sourceUploads).toHaveLength(1);
+  expect(
+    extractionPosts.filter(({ body }) => body?.includes('"ocrText"')),
+  ).toHaveLength(0);
+
+  await page.getByRole("button", { name: "重新尝试" }).click();
+  await expect.poll(() => sourceUploads.length, { timeout: 30_000 }).toBe(1);
+  await expect(page.getByText("简历分析完成")).toBeVisible({ timeout: 240_000 });
+
+  const ocrPosts = extractionPosts.filter(({ body }) => body?.includes('"ocrText"'));
+  expect(ocrPosts).toHaveLength(1);
+  expect(modelRequests.length).toBeGreaterThan(0);
+  expect(modelRequests.some((url) => /paddle-model-ecology|PP-OCR/i.test(url))).toBe(true);
+  const snapshots = await page.evaluate(
+    () => (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots ?? [],
+  );
+  expect(snapshots.some((text) => text.includes("正在本地识别扫描版简历（第 2/2 页）"))).toBe(true);
+
+  await page.getByRole("button", { name: "继续核对事实" }).click();
+  await page.getByRole("button", { name: "进入工作台" }).click();
+  await expect(page).toHaveURL(/\/app/);
+  } finally {
+    for (const userId of createdUserIds) {
+      await admin.auth.admin.deleteUser(userId);
+    }
+  }
 });
