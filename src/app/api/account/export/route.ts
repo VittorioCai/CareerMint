@@ -3,6 +3,7 @@ import { applicationRepository } from "@/features/applications/repository";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { interviewPreparationRepository } from "@/features/interview-preparation/repository";
+import { interviewQuestionGenerationRepository } from "@/features/interview-preparation/generation-repository";
 import { buildAccountExport } from "@/features/privacy/export";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import { listAssets } from "@/features/source-assets/repository";
@@ -29,6 +30,12 @@ export async function GET() {
       listResumeSuggestions: resumeCustomizationRepository.listSuggestions,
       listResumeVersions: resumeCustomizationRepository.listVersions,
       listInterviewQuestions: interviewPreparationRepository.list,
+      listInterviewGenerationRuns: interviewQuestionGenerationRepository.listRuns,
+      listInterviewGenerationCandidates:
+        async (userId) =>
+          (await interviewQuestionGenerationRepository.listAllCandidates(userId)).map(
+            (candidate) => ({ ...candidate, userId }),
+          ),
       download: downloadSource,
     });
     const date = new Date().toISOString().slice(0, 10);

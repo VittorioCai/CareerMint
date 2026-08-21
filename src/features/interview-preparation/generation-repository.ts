@@ -82,6 +82,13 @@ export type InterviewQuestionCandidateAcceptance = {
   questionId: string | null;
 };
 
+export type InterviewQuestionGenerationExportCandidate =
+  InterviewQuestionGenerationCandidateRecord & {
+    canonicalKey: string;
+    createdAt: string;
+    updatedAt: string;
+  };
+
 function stableError(error: { code?: string } | null) {
   if (error?.code === "P0002" || error?.code === "PGRST116") {
     return "interview-question-generation-not-found";
@@ -144,6 +151,17 @@ function toCandidate(
     status: status.data,
     questionId: row.question_id,
     sortOrder: row.sort_order,
+  };
+}
+
+function toExportCandidate(
+  row: CandidateRow,
+): InterviewQuestionGenerationExportCandidate {
+  return {
+    ...toCandidate(row),
+    canonicalKey: row.canonical_key,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
   };
 }
 
@@ -227,6 +245,19 @@ async function getLatestRun(
   return data ? toRun(data) : null;
 }
 
+async function listRuns(userId: string): Promise<InterviewQuestionGenerationRun[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interview_question_generation_runs")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false });
+  if (error) {
+    throw new InterviewQuestionGenerationRepositoryError(stableError(error));
+  }
+  return (data ?? []).map(toRun);
+}
+
 async function listCandidates(
   userId: string,
   runId: string,
@@ -242,6 +273,21 @@ async function listCandidates(
     throw new InterviewQuestionGenerationRepositoryError(stableError(error));
   }
   return (data ?? []).map(toCandidate);
+}
+
+async function listAllCandidates(
+  userId: string,
+): Promise<InterviewQuestionGenerationExportCandidate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("interview_question_candidates")
+    .select("*")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: true });
+  if (error) {
+    throw new InterviewQuestionGenerationRepositoryError(stableError(error));
+  }
+  return (data ?? []).map(toExportCandidate);
 }
 
 async function complete(
@@ -337,7 +383,9 @@ export const interviewQuestionGenerationRepository = {
   claim,
   getOwned,
   getLatestRun,
+  listRuns,
   listCandidates,
+  listAllCandidates,
   complete,
   fail,
   accept,

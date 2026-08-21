@@ -136,6 +136,128 @@ describe("buildAccountExport", () => {
           facts: [],
         },
       ]),
+      listInterviewGenerationRuns: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-6666-4666-8666-666666666666",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          schemaVersion: "interview-question-generation-v1",
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: {
+            acceptedCandidateCount: 1,
+            rejectedCandidateCount: 0,
+            pendingCandidateCount: 0,
+            ai: {
+              provider: "deepseek",
+              model: "deepseek-chat",
+              requestId: "req-owned",
+              usage: {
+                inputCacheHitTokens: 10,
+                inputCacheMissTokens: 20,
+                outputTokens: 30,
+              },
+              priceScheduleVersion: "2026-01",
+            },
+            estimatedCost: {
+              amount: 0.001,
+              currency: "USD",
+              scheduleVersion: "2026-01",
+              tier: "default",
+            },
+          },
+          errorCode: null,
+          errorMessage: "FULL JD SECRET MUST NOT EXPORT",
+          requestId: "req-owned",
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:01:00.000Z",
+          rawFullJobDescription: "FULL JD SECRET MUST NOT EXPORT",
+          providerRawBody: "PROVIDER RAW SECRET MUST NOT EXPORT",
+        },
+        {
+          id: "bbbbbbbb-6666-4666-8666-666666666666",
+          userId: otherUserId,
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          schemaVersion: "interview-question-generation-v1",
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: null,
+          errorCode: null,
+          errorMessage: "OTHER USER SECRET",
+          requestId: "req-other",
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:01:00.000Z",
+          rawFullJobDescription: "OTHER USER FULL JD",
+        },
+        {
+          id: "cccccccc-6666-4666-8666-666666666666",
+          userId,
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          schemaVersion: "interview-question-generation-v1",
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "failed",
+          attemptCount: 1,
+          result: null,
+          errorCode: "interview-question-generation-provider-error",
+          errorMessage: "FULL JD SECRET MUST NOT EXPORT",
+          requestId: null,
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:01:00.000Z",
+          rawFullJobDescription: "FULL JD SECRET MUST NOT EXPORT",
+        },
+      ]),
+      listInterviewGenerationCandidates: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-7777-4777-8777-777777777777",
+          runId: "aaaaaaaa-6666-4666-8666-666666666666",
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          userId,
+          category: "function",
+          prompt: "How would you improve this workflow?",
+          canonicalKey: "how would you improve this workflow?",
+          sourceExcerpt: "improve this workflow",
+          relevanceReason: "The role emphasizes workflow improvement.",
+          status: "accepted",
+          questionId: "aaaaaaaa-8888-4888-8888-888888888888",
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:02:00.000Z",
+        },
+        {
+          id: "bbbbbbbb-7777-4777-8777-777777777777",
+          runId: "aaaaaaaa-6666-4666-8666-666666666666",
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          userId,
+          category: "job_specific",
+          prompt: "Cross-application candidate",
+          canonicalKey: "cross-application candidate",
+          sourceExcerpt: "cross application",
+          relevanceReason: "Should not be exported.",
+          status: "pending",
+          questionId: null,
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:00:00.000Z",
+        },
+        {
+          id: "cccccccc-7777-4777-8777-777777777777",
+          runId: "aaaaaaaa-6666-4666-8666-666666666666",
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          userId: otherUserId,
+          category: "industry",
+          prompt: "Cross-user candidate",
+          canonicalKey: "cross-user candidate",
+          sourceExcerpt: "cross user",
+          relevanceReason: "Should not be exported.",
+          status: "pending",
+          questionId: null,
+          createdAt: "2026-08-21T00:00:00.000Z",
+          updatedAt: "2026-08-21T00:00:00.000Z",
+        },
+      ]),
       download: vi.fn().mockResolvedValue(new Blob(["synthetic pdf"])),
     };
 
@@ -177,6 +299,38 @@ describe("buildAccountExport", () => {
     expect(interviewJson).toContain("Tell me about yourself.");
     expect(interviewJson).toContain("Present, past, and why this role.");
     expect(interviewJson).not.toContain("Other user interview secret");
+    const interviewExport = JSON.parse(interviewJson) as {
+      generationRuns: Array<Record<string, unknown>>;
+      generationCandidates: Array<Record<string, unknown>>;
+    };
+    expect(interviewExport.generationRuns).toHaveLength(1);
+    expect(interviewExport.generationRuns[0]).toMatchObject({
+      id: "aaaaaaaa-6666-4666-8666-666666666666",
+      applicationId: "33333333-3333-4333-8333-333333333333",
+      provider: "deepseek",
+      model: "deepseek-chat",
+      status: "succeeded",
+      attemptCount: 1,
+      requestId: "req-owned",
+    });
+    expect(interviewExport.generationRuns[0]).not.toHaveProperty("errorMessage");
+    expect(interviewExport.generationRuns[0]).not.toHaveProperty("rawFullJobDescription");
+    expect(interviewExport.generationRuns[0]).not.toHaveProperty("providerRawBody");
+    expect(interviewExport.generationCandidates).toHaveLength(1);
+    expect(interviewExport.generationCandidates[0]).toMatchObject({
+      id: "aaaaaaaa-7777-4777-8777-777777777777",
+      runId: "aaaaaaaa-6666-4666-8666-666666666666",
+      applicationId: "33333333-3333-4333-8333-333333333333",
+      canonicalKey: "how would you improve this workflow?",
+      status: "accepted",
+      questionId: "aaaaaaaa-8888-4888-8888-888888888888",
+      createdAt: "2026-08-21T00:00:00.000Z",
+      reviewedAt: "2026-08-21T00:02:00.000Z",
+    });
+    expect(interviewJson).not.toContain("FULL JD SECRET MUST NOT EXPORT");
+    expect(interviewJson).not.toContain("PROVIDER RAW SECRET MUST NOT EXPORT");
+    expect(interviewJson).not.toContain("Cross-application candidate");
+    expect(interviewJson).not.toContain("Cross-user candidate");
     expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
       `${userId}/asset/source.pdf`,
     );
