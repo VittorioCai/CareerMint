@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(52);
+select plan(67);
 
 select has_table(
   'public', 'interview_question_generation_runs',
@@ -206,15 +206,16 @@ select results_eq(
       jsonb_build_array(
         jsonb_build_object('category', 'function',
           'prompt', 'HOW do you prioritize roadmap work？',
-          'sourceExcerpt', 'partners with engineering and design',
+          'sourceExcerpt', concat('partners', chr(160), 'with', chr(8195),
+            ' engineering', chr(8239), 'and', chr(160), 'design'),
           'relevanceReason', 'The role owns roadmap decisions.'),
         jsonb_build_object('category', 'industry',
           'prompt', 'How would you explain product tradeoffs?',
-          'sourceExcerpt', 'explain measurable customer outcomes',
+          'sourceExcerpt', 'EXPLAIN MEASURABLE CUSTOMER OUTCOMES',
           'relevanceReason', 'The role must communicate outcomes.'),
         jsonb_build_object('category', 'job_specific',
           'prompt', 'How do you lead product discovery?',
-          'sourceExcerpt', 'Lead product discovery',
+          'sourceExcerpt', 'Ｌｅａｄ product discovery',
           'relevanceReason', 'Discovery is a central responsibility.'),
         jsonb_build_object('category', 'function',
           'prompt', 'How do you partner with design?',
@@ -230,8 +231,8 @@ select results_eq(
           'relevanceReason', 'Prioritization is expected in this role.')
       ),
       2,
-      '{"provider":"fake","model":"fake-v1","requestId":"req-1","usage":{"inputCacheHitTokens":3,"inputCacheMissTokens":10,"outputTokens":20}}'::jsonb,
-      '{"amount":0.004,"currency":"USD","priceScheduleVersion":"test-v1"}'::jsonb,
+      '{"usage":{"inputCacheHitTokens":3,"inputCacheMissTokens":10,"outputTokens":20}}'::jsonb,
+      '{"amount":0.004,"currency":"USD","scheduleVersion":"test-v1","tier":"default"}'::jsonb,
       'req-1'
     )
   $sql$,
@@ -274,6 +275,18 @@ select results_eq(
   array['3:10:20'::text],
   'run stores nested provider token usage metadata'
 );
+select is(
+  (select result->'ai' from public.interview_question_generation_runs
+    where id = current_setting('test.run_id')::uuid),
+  '{"provider":"fake","model":"fake-v1","requestId":"req-1","usage":{"inputCacheHitTokens":3,"inputCacheMissTokens":10,"outputTokens":20},"priceScheduleVersion":"test-v1"}'::jsonb,
+  'completion rebuilds safe AI metadata from owned run and validated fields'
+);
+select is(
+  (select estimated_cost from public.interview_question_generation_runs
+    where id = current_setting('test.run_id')::uuid),
+  '{"amount":0.004,"currency":"USD","scheduleVersion":"test-v1","tier":"default"}'::jsonb,
+  'completion stores the exact safe estimated-cost shape'
+);
 select results_eq(
   $$select count(*)::bigint from public.interview_question_candidates where status = 'pending'$$,
   array[6::bigint],
@@ -299,6 +312,155 @@ select ok(
   'the target JSON contract has no client canonicalKey'
 );
 
+select set_config('test.ai_unknown_run_id', (
+  select id::text from public.create_or_get_interview_question_generation(
+    current_setting('test.generation_app_id')::uuid,
+    repeat('1', 64), 'interview-questions-v1', 'fake', 'fake-v1'
+  )
+), true);
+select public.claim_interview_question_generation(current_setting('test.ai_unknown_run_id')::uuid);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.ai_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe prompt here',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"provider":"attacker"}'::jsonb,
+      null, 'req-safe'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'AI metadata with an unknown key is rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.ai_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe prompt here',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0, '[]'::jsonb, null, 'req-safe'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'AI metadata with an invalid shape is rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.ai_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe prompt here',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":-1,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-safe'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'negative usage tokens are rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.ai_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe prompt here',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":2147483648,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-safe'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'usage tokens above the integer bound are rejected'
+);
+select results_eq(
+  $$select status::text || ':' || (select count(*) from public.interview_question_candidates c where c.run_id = r.id) || ':' || coalesce(r.result::text, 'null')
+    from public.interview_question_generation_runs r where r.id = current_setting('test.ai_unknown_run_id')::uuid$$,
+  array['running:0:null'::text],
+  'rejected AI metadata leaves no run result or candidate leakage'
+);
+
+select set_config('test.cost_unknown_run_id', (
+  select id::text from public.create_or_get_interview_question_generation(
+    current_setting('test.generation_app_id')::uuid,
+    repeat('2', 64), 'interview-questions-v1', 'fake', 'fake-v1'
+  )
+), true);
+select public.claim_interview_question_generation(current_setting('test.cost_unknown_run_id')::uuid);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.cost_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe cost prompt',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      '{"amount":0,"currency":"USD","scheduleVersion":"test-v1","tier":"default","unknown":"leak"}'::jsonb,
+      'req-cost'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'estimated cost with an unknown key is rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.cost_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe cost prompt',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      '[]'::jsonb, 'req-cost'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'estimated cost with an invalid shape is rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.cost_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe cost prompt',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      '{"amount":-0.01,"currency":"USD","scheduleVersion":"test-v1","tier":"default"}'::jsonb,
+      'req-cost'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'negative estimated cost is rejected'
+);
+select throws_ok(
+  $sql$
+    select public.complete_interview_question_generation(
+      current_setting('test.cost_unknown_run_id')::uuid,
+      jsonb_build_array(jsonb_build_object(
+        'category','function', 'prompt','A safe cost prompt',
+        'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
+      )), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      '{"amount":0,"currency":"USD","scheduleVersion":"unsafe value","tier":"default"}'::jsonb,
+      'req-cost'
+    )
+  $sql$,
+  '22023', 'invalid-interview-question-generation-result',
+  'an unsafe price schedule version is rejected'
+);
+select results_eq(
+  $$select status::text || ':' || (select count(*) from public.interview_question_candidates c where c.run_id = r.id)
+    from public.interview_question_generation_runs r where r.id = current_setting('test.cost_unknown_run_id')::uuid$$,
+  array['running:0'::text],
+  'rejected cost metadata leaves candidates untouched'
+);
+
 select throws_ok(
   $$
     select public.complete_interview_question_generation(
@@ -306,7 +468,9 @@ select throws_ok(
       jsonb_build_array(
         jsonb_build_object('category','function','prompt','Seventh candidate prompt',
           'sourceExcerpt','Lead product discovery','relevanceReason','Too many')
-      ), 0, '{}'::jsonb, '{}'::jsonb, 'req-2'
+      ), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-2'
     )
   $$,
   'P0002', 'interview-question-generation-not-running',
@@ -329,18 +493,22 @@ select throws_ok(
     select public.complete_interview_question_generation(
       current_setting('test.invalid_run_id')::uuid,
       jsonb_build_array(
+        jsonb_build_object('category','function','prompt','Grounded first prompt',
+          'sourceExcerpt','Lead product discovery','relevanceReason','Grounded'),
         jsonb_build_object('category','function','prompt','Forged excerpt prompt',
-          'sourceExcerpt','This text is not in the job description','relevanceReason','Forged')
-      ), 0, '{}'::jsonb, '{}'::jsonb, 'req-forged'
+          'sourceExcerpt','The resume says secret','relevanceReason','Forged')
+      ), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-forged'
     )
   $$,
   '22023', 'invalid-interview-question-generation-candidate',
-  'a forged source excerpt rejects completion'
+  'a resume-injection excerpt rejects completion after a legal candidate'
 );
 select results_eq(
   $$select count(*)::bigint from public.interview_question_candidates where run_id = current_setting('test.invalid_run_id')::uuid$$,
   array[0::bigint],
-  'forged source excerpt rolls back candidate inserts'
+  'a legal-then-invalid completion rolls back all candidate inserts'
 );
 
 select set_config(
@@ -361,7 +529,9 @@ select throws_ok(
         jsonb_build_object('category','function','prompt','Forged key prompt',
           'canonicalKey','forged by client',
           'sourceExcerpt','Lead product discovery','relevanceReason','Forged')
-      ), 0, '{}'::jsonb, '{}'::jsonb, 'req-forged-key'
+      ), 0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-forged-key'
     )
   $$,
   '22023', 'invalid-interview-question-generation-candidate',
@@ -393,11 +563,50 @@ select throws_ok(
   'P0002', 'interview-question-generation-not-found',
   'cross-user review is denied'
 );
+select throws_ok(
+  $$select public.accept_interview_question_candidates(
+    current_setting('test.generation_app_id')::uuid,
+    array[current_setting('test.one_candidate_id')::uuid]
+  )$$,
+  'P0002', 'application-not-found',
+  'cross-user candidate acceptance is denied'
+);
 
 select set_config(
   'request.jwt.claims',
   '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}',
   true
+);
+
+select set_config('test.fail_run_id', (
+  select id::text from public.create_or_get_interview_question_generation(
+    current_setting('test.generation_app_id')::uuid,
+    repeat('3', 64), 'interview-questions-v1', 'fake', 'fake-v1'
+  )
+), true);
+select public.claim_interview_question_generation(current_setting('test.fail_run_id')::uuid);
+select throws_ok(
+  $$select public.fail_interview_question_generation(
+    current_setting('test.fail_run_id')::uuid,
+    'arbitrary-provider-error',
+    'JD and resume contents must never be persisted',
+    'req-fail'
+  )$$,
+  '22023', 'invalid-interview-question-generation-error',
+  'failure rejects an error code outside the allowlist'
+);
+select public.fail_interview_question_generation(
+  current_setting('test.fail_run_id')::uuid,
+  'interview-question-generation-provider-error',
+  'JD and resume contents must never be persisted',
+  'req-fail'
+);
+select results_eq(
+  $$select error_code || ':' || error_message || ':' || request_id
+    from public.interview_question_generation_runs
+    where id = current_setting('test.fail_run_id')::uuid$$,
+  array['interview-question-generation-provider-error:岗位面试题生成失败，请稍后重试。:req-fail'::text],
+  'allowlisted failure stores only the fixed safe message'
 );
 
 select results_eq(
@@ -443,7 +652,7 @@ select is(
     join public.interview_questions question on question.id = link.question_id
     where link.application_id = current_setting('test.generation_app_id')::uuid
       and question.prompt = 'How do you lead product discovery?'),
-  'Lead product discovery',
+  'Ｌｅａｄ product discovery',
   'accepted generated links retain the candidate source excerpt'
 );
 select results_eq(
@@ -514,7 +723,9 @@ select throws_ok(
         jsonb_build_object('category','function','prompt','Overflow prompt seven',
           'sourceExcerpt','Lead product discovery','relevanceReason','Overflow')
       ),
-      0, '{}'::jsonb, '{}'::jsonb, 'req-overflow'
+      0,
+      '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+      null, 'req-overflow'
     )
   $sql$,
   '22023', 'invalid-interview-question-generation-result',
@@ -540,7 +751,9 @@ select public.complete_interview_question_generation(
     'category','function', 'prompt','Tell me about yourself?',
     'sourceExcerpt','Lead product discovery',
     'relevanceReason','A common duplicate must not be copied.'
-  )), 0, '{}'::jsonb, '{}'::jsonb, 'req-common'
+  )), 0,
+  '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+  null, 'req-common'
 );
 select results_eq(
   $sql$

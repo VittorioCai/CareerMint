@@ -259,6 +259,10 @@ declare
   input_cache_hit integer := 0;
   input_cache_miss integer := 0;
   output_token_count integer := 0;
+  safe_ai_usage jsonb;
+  safe_estimated_cost jsonb;
+  safe_request_id text;
+  usage_payload jsonb;
 begin
   if current_user_id is null then
     raise exception 'authentication-required' using errcode = '42501';
@@ -266,14 +270,24 @@ begin
 
   if target_run_id is null
     or target_candidates is null
-    or jsonb_typeof(target_candidates) <> 'array'
-    or jsonb_array_length(target_candidates) > 6
     or target_rejected_candidate_count is null
     or target_rejected_candidate_count < 0
     or (
       target_request_id is not null
       and char_length(btrim(target_request_id)) not between 1 and 200
+    )
+    or (
+      target_request_id is not null
+      and btrim(target_request_id) !~ '^[A-Za-z0-9._:-]{1,200}$'
     ) then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+  if jsonb_typeof(target_candidates) <> 'array' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+  if jsonb_array_length(target_candidates) > 6 then
     raise exception 'invalid-interview-question-generation-result'
       using errcode = '22023';
   end if;
@@ -290,6 +304,121 @@ begin
       using errcode = 'P0002';
   end if;
 
+  if target_ai_usage is null
+    or jsonb_typeof(target_ai_usage) <> 'object' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+
+  if not target_ai_usage ? 'usage'
+    or (select count(*) from jsonb_object_keys(target_ai_usage)) <> 1 then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+
+  usage_payload := target_ai_usage -> 'usage';
+  if jsonb_typeof(usage_payload) <> 'object' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+  if (select count(*) from jsonb_object_keys(usage_payload)) <> 3
+    or exists (
+      select 1 from jsonb_object_keys(usage_payload) as keys(key)
+      where key not in (
+        'inputCacheHitTokens', 'inputCacheMissTokens', 'outputTokens'
+      )
+    )
+    or not usage_payload ? 'inputCacheHitTokens'
+    or not usage_payload ? 'inputCacheMissTokens'
+    or not usage_payload ? 'outputTokens' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+
+  if jsonb_typeof(usage_payload -> 'inputCacheHitTokens') <> 'number'
+    or jsonb_typeof(usage_payload -> 'inputCacheMissTokens') <> 'number'
+    or jsonb_typeof(usage_payload -> 'outputTokens') <> 'number' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+  if (usage_payload ->> 'inputCacheHitTokens') !~ '^[0-9]+$'
+    or (usage_payload ->> 'inputCacheMissTokens') !~ '^[0-9]+$'
+    or (usage_payload ->> 'outputTokens') !~ '^[0-9]+$' then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+  if (usage_payload ->> 'inputCacheHitTokens')::numeric not between 0 and 2147483647
+    or (usage_payload ->> 'inputCacheMissTokens')::numeric not between 0 and 2147483647
+    or (usage_payload ->> 'outputTokens')::numeric not between 0 and 2147483647 then
+    raise exception 'invalid-interview-question-generation-result'
+      using errcode = '22023';
+  end if;
+
+  if target_estimated_cost is not null then
+    if jsonb_typeof(target_estimated_cost) <> 'object' then
+      raise exception 'invalid-interview-question-generation-result'
+        using errcode = '22023';
+    end if;
+    if (select count(*) from jsonb_object_keys(target_estimated_cost)) <> 4
+      or exists (
+        select 1 from jsonb_object_keys(target_estimated_cost) as keys(key)
+        where key not in ('amount', 'currency', 'scheduleVersion', 'tier')
+      )
+      or not target_estimated_cost ? 'amount'
+      or not target_estimated_cost ? 'currency'
+      or not target_estimated_cost ? 'scheduleVersion'
+      or not target_estimated_cost ? 'tier' then
+      raise exception 'invalid-interview-question-generation-result'
+        using errcode = '22023';
+    end if;
+    if jsonb_typeof(target_estimated_cost -> 'amount') <> 'number'
+      or jsonb_typeof(target_estimated_cost -> 'currency') <> 'string'
+      or target_estimated_cost ->> 'currency' <> 'USD'
+      or jsonb_typeof(target_estimated_cost -> 'scheduleVersion') <> 'string'
+      or char_length(btrim(target_estimated_cost ->> 'scheduleVersion')) not between 1 and 80
+      or btrim(target_estimated_cost ->> 'scheduleVersion') !~ '^[A-Za-z0-9._:-]{1,80}$'
+      or jsonb_typeof(target_estimated_cost -> 'tier') <> 'string'
+      or target_estimated_cost ->> 'tier' not in ('default', 'peak') then
+      raise exception 'invalid-interview-question-generation-result'
+        using errcode = '22023';
+    end if;
+    if (target_estimated_cost ->> 'amount') !~ '^[0-9]+(\.[0-9]+)?$' then
+      raise exception 'invalid-interview-question-generation-result'
+        using errcode = '22023';
+    end if;
+    if (target_estimated_cost ->> 'amount')::numeric not between 0 and 1000000000 then
+      raise exception 'invalid-interview-question-generation-result'
+        using errcode = '22023';
+    end if;
+    safe_estimated_cost := jsonb_build_object(
+      'amount', (target_estimated_cost ->> 'amount')::numeric,
+      'currency', 'USD',
+      'scheduleVersion', btrim(target_estimated_cost ->> 'scheduleVersion'),
+      'tier', target_estimated_cost ->> 'tier'
+    );
+  else
+    safe_estimated_cost := null;
+  end if;
+
+  safe_request_id := nullif(btrim(target_request_id), '');
+  input_cache_hit := (target_ai_usage -> 'usage' ->> 'inputCacheHitTokens')::integer;
+  input_cache_miss := (target_ai_usage -> 'usage' ->> 'inputCacheMissTokens')::integer;
+  output_token_count := (target_ai_usage -> 'usage' ->> 'outputTokens')::integer;
+  safe_ai_usage := jsonb_build_object(
+    'provider', owned_run.provider,
+    'model', owned_run.model,
+    'requestId', safe_request_id,
+    'usage', jsonb_build_object(
+      'inputCacheHitTokens', input_cache_hit,
+      'inputCacheMissTokens', input_cache_miss,
+      'outputTokens', output_token_count
+    ),
+    'priceScheduleVersion', case
+      when safe_estimated_cost is null then null
+      else safe_estimated_cost ->> 'scheduleVersion'
+    end
+  );
+
   select public.normalize_interview_question_generation_text(jd_text)
   into jd_folded
   from public.applications
@@ -300,52 +429,13 @@ begin
     raise exception 'application-not-found' using errcode = 'P0002';
   end if;
 
-  if jsonb_typeof(target_ai_usage) = 'object' then
-    if (case
-      when coalesce(target_ai_usage #>> '{usage,inputCacheHitTokens}',
-        target_ai_usage ->> 'inputCacheHitTokens', '') ~ '^[0-9]+$'
-      then coalesce(target_ai_usage #>> '{usage,inputCacheHitTokens}',
-        target_ai_usage ->> 'inputCacheHitTokens', '')::numeric
-        between 0 and 2147483647
-      else false
-    end) then
-      input_cache_hit := coalesce(
-        target_ai_usage #>> '{usage,inputCacheHitTokens}',
-        target_ai_usage ->> 'inputCacheHitTokens'
-      )::integer;
-    end if;
-    if (case
-      when coalesce(target_ai_usage #>> '{usage,inputCacheMissTokens}',
-        target_ai_usage ->> 'inputCacheMissTokens', '') ~ '^[0-9]+$'
-      then coalesce(target_ai_usage #>> '{usage,inputCacheMissTokens}',
-        target_ai_usage ->> 'inputCacheMissTokens', '')::numeric
-        between 0 and 2147483647
-      else false
-    end) then
-      input_cache_miss := coalesce(
-        target_ai_usage #>> '{usage,inputCacheMissTokens}',
-        target_ai_usage ->> 'inputCacheMissTokens'
-      )::integer;
-    end if;
-    if (case
-      when coalesce(target_ai_usage #>> '{usage,outputTokens}',
-        target_ai_usage ->> 'outputTokens', '') ~ '^[0-9]+$'
-      then coalesce(target_ai_usage #>> '{usage,outputTokens}',
-        target_ai_usage ->> 'outputTokens', '')::numeric
-        between 0 and 2147483647
-      else false
-    end) then
-      output_token_count := coalesce(
-        target_ai_usage #>> '{usage,outputTokens}',
-        target_ai_usage ->> 'outputTokens'
-      )::integer;
-    end if;
-  end if;
-
   for candidate in select value from jsonb_array_elements(target_candidates)
   loop
-    if jsonb_typeof(candidate) <> 'object'
-      or not candidate ? 'category'
+    if jsonb_typeof(candidate) <> 'object' then
+      raise exception 'invalid-interview-question-generation-candidate'
+        using errcode = '22023';
+    end if;
+    if not candidate ? 'category'
       or not candidate ? 'prompt'
       or not candidate ? 'sourceExcerpt'
       or not candidate ? 'relevanceReason'
@@ -423,16 +513,16 @@ begin
         'acceptedCandidateCount', 0,
         'rejectedCandidateCount', target_rejected_candidate_count,
         'pendingCandidateCount', jsonb_array_length(target_candidates),
-        'ai', coalesce(target_ai_usage, '{}'::jsonb),
-        'estimatedCost', target_estimated_cost
+        'ai', safe_ai_usage,
+        'estimatedCost', safe_estimated_cost
       ),
       error_code = null,
       error_message = null,
-      request_id = nullif(btrim(target_request_id), ''),
+      request_id = safe_request_id,
       input_cache_hit_tokens = input_cache_hit,
       input_cache_miss_tokens = input_cache_miss,
       output_tokens = output_token_count,
-      estimated_cost = target_estimated_cost,
+      estimated_cost = safe_estimated_cost,
       updated_at = now(),
       completed_at = now()
   where id = owned_run.id and user_id = current_user_id
@@ -462,13 +552,18 @@ begin
   end if;
   if target_run_id is null
     or target_error_code is null
-    or target_error_message is null
-    or char_length(btrim(target_error_code)) not between 1 and 120
-    or target_error_code !~ '^[a-z0-9-]+$'
-    or char_length(btrim(target_error_message)) not between 1 and 500
+    or target_error_code not in (
+      'interview-question-generation-unavailable',
+      'interview-question-generation-invalid-output',
+      'interview-question-generation-provider-error'
+    )
     or (
       target_request_id is not null
       and char_length(btrim(target_request_id)) not between 1 and 200
+    )
+    or (
+      target_request_id is not null
+      and btrim(target_request_id) !~ '^[A-Za-z0-9._:-]{1,200}$'
     ) then
     raise exception 'invalid-interview-question-generation-error'
       using errcode = '22023';
@@ -488,7 +583,7 @@ begin
   set status = 'failed',
       result = null,
       error_code = btrim(target_error_code),
-      error_message = btrim(target_error_message),
+      error_message = '岗位面试题生成失败，请稍后重试。',
       request_id = nullif(btrim(target_request_id), ''),
       updated_at = now(),
       completed_at = now()
