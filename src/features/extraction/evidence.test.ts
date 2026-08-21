@@ -20,4 +20,13 @@ describe("verifyCandidateEvidence", () => {
       verifyCandidateEvidence(source, "Improved conversion by 35%"),
     ).toBe(false);
   });
+
+  it("folds NEL and BOM as ordinary Unicode whitespace", () => {
+    expect(
+      verifyCandidateEvidence(
+        "Lead\u0085product\uFEFFdiscovery across markets.",
+        "lead product discovery across markets.",
+      ),
+    ).toBe(true);
+  });
 });

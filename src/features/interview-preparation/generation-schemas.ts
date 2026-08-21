@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { normalizeEvidence } from "@/features/extraction/evidence";
+import {
+  normalizeEvidence,
+  unicodeCodePointLength,
+} from "@/features/extraction/evidence";
 import { normalizeQuestionPrompt } from "./schemas";
 
 export const interviewQuestionGenerationCategorySchema = z.enum([
@@ -9,12 +12,22 @@ export const interviewQuestionGenerationCategorySchema = z.enum([
   "job_specific",
 ]);
 
+function unicodeBoundedText(min: number, max: number) {
+  return z.string().trim().refine(
+    (value) => {
+      const length = unicodeCodePointLength(value);
+      return length >= min && length <= max;
+    },
+    { message: `Must contain between ${min} and ${max} Unicode characters.` },
+  );
+}
+
 export const interviewQuestionGenerationCandidateSchema = z
   .object({
     category: interviewQuestionGenerationCategorySchema,
-    prompt: z.string().trim().min(8).max(500),
-    sourceExcerpt: z.string().trim().min(1).max(240),
-    relevanceReason: z.string().trim().min(1).max(700),
+    prompt: unicodeBoundedText(8, 500),
+    sourceExcerpt: unicodeBoundedText(1, 240),
+    relevanceReason: unicodeBoundedText(1, 700),
   })
   .strict();
 
@@ -61,8 +74,7 @@ export type SanitizedInterviewQuestionGeneration = {
 
 const maxAcceptedQuestions = 6;
 
-function excerptIsGrounded(jdText: string, sourceExcerpt: string) {
-  const normalizedJd = normalizeEvidence(jdText);
+function excerptIsGrounded(normalizedJd: string, sourceExcerpt: string) {
   const normalizedExcerpt = normalizeEvidence(sourceExcerpt);
   return normalizedExcerpt.length > 0 && normalizedJd.includes(normalizedExcerpt);
 }
@@ -73,6 +85,7 @@ export function sanitizeInterviewQuestionGeneration(
   },
 ): SanitizedInterviewQuestionGeneration {
   const { jdText, commonPrompts, output } = input;
+  const normalizedJd = normalizeEvidence(jdText);
   const parsed = interviewQuestionGenerationOutputSchema.parse(output);
   const commonCanonicalKeys = new Set(
     commonPrompts
@@ -89,7 +102,7 @@ export function sanitizeInterviewQuestionGeneration(
       canonicalKey.length === 0 ||
       commonCanonicalKeys.has(canonicalKey) ||
       seenCanonicalKeys.has(canonicalKey) ||
-      !excerptIsGrounded(jdText, candidate.sourceExcerpt)
+      !excerptIsGrounded(normalizedJd, candidate.sourceExcerpt)
     ) {
       rejectedQuestionCount += 1;
       continue;

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(70);
+select plan(72);
 
 select has_table(
   'public', 'interview_question_generation_runs',
@@ -52,6 +52,20 @@ select has_function(
   'public', 'reject_interview_question_candidates',
   array['uuid', 'uuid[]'],
   'reject candidates RPC exists'
+);
+select is(
+  public.normalize_interview_question_prompt(
+    chr(65279) || ' Ｆｕｌｌ' || chr(133) || ' ROADMAP？ ' || chr(65279)
+  ),
+  'full roadmap',
+  'canonical normalization folds NEL, BOM, NFKC, and edge whitespace'
+);
+select is(
+  public.normalize_interview_question_generation_text(
+    'Lead' || chr(133) || 'product' || chr(65279) || ' discovery  '
+  ),
+  'lead product discovery',
+  'JD evidence normalization folds NEL, BOM, and edge whitespace'
 );
 
 insert into auth.users (

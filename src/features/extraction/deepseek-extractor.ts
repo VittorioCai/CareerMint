@@ -111,6 +111,11 @@ function httpError(status: number) {
   return "ai-provider-request-failed";
 }
 
+function finishReasonError(reason: string | null) {
+  if (reason === "content_filter") return "ai-provider-content-filtered";
+  return "ai-provider-response-incomplete";
+}
+
 function safeLog(logger: MetadataLogger, entry: AIMetadataLog) {
   try {
     logger.log(entry);
@@ -199,8 +204,11 @@ export function createDeepSeekAIProvider(
       requestId = envelope.data.id ?? requestId;
       usage = mapUsage(envelope.data.usage);
       const choice = envelope.data.choices[0];
-      if (choice.finish_reason !== "stop" || !choice.message.content?.trim()) {
-        throw new AdapterError(invalidOutputError, true);
+      if (choice.finish_reason !== "stop") {
+        throw new AdapterError(finishReasonError(choice.finish_reason));
+      }
+      if (!choice.message.content?.trim()) {
+        throw new AdapterError("ai-provider-empty-content");
       }
 
       let rawExtraction: unknown;
@@ -237,6 +245,8 @@ export function createDeepSeekAIProvider(
         error instanceof AdapterError
           ? error
           : error instanceof DOMException && error.name === "AbortError"
+            ? new AdapterError("ai-provider-timeout")
+            : error instanceof DOMException && error.name === "TimeoutError"
             ? new AdapterError("ai-provider-timeout")
             : new AdapterError("ai-provider-request-failed");
 

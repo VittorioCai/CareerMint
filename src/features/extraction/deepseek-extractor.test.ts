@@ -31,13 +31,16 @@ const extraction = {
   ],
 };
 
-function successResponse(content = JSON.stringify(extraction)) {
+function successResponse(
+  content = JSON.stringify(extraction),
+  finishReason = "stop",
+) {
   return new Response(
     JSON.stringify({
       id: "request-123",
       choices: [
         {
-          finish_reason: "stop",
+          finish_reason: finishReason,
           message: { content },
         },
       ],
@@ -124,7 +127,6 @@ describe("DeepSeek resume extractor", () => {
   });
 
   it.each([
-    ["empty", ""],
     ["truncated", '{"facts":['],
     ["invalid schema", '{"facts":[{"unsupported":true}]}'],
   ])("retries %s output exactly once", async (_case, invalidContent) => {
@@ -138,6 +140,16 @@ describe("DeepSeek resume extractor", () => {
       data: extraction,
     });
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry an empty stopped response", async () => {
+    const fetchImpl = vi.fn<typeof fetch>().mockResolvedValue(successResponse(""));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(
+      "ai-provider-empty-content",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
   it("returns a stable error after a second invalid output", async () => {
@@ -161,6 +173,32 @@ describe("DeepSeek resume extractor", () => {
     await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(
       "ai-provider-timeout",
     );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it("maps a TimeoutError DOMException to a non-retryable timeout", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockRejectedValue(new DOMException("timed out", "TimeoutError"));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(
+      "ai-provider-timeout",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+
+  it.each([
+    ["content_filter", "ai-provider-content-filtered"],
+    ["length", "ai-provider-response-incomplete"],
+    ["tool_calls", "ai-provider-response-incomplete"],
+  ])("does not retry finish_reason %s", async (finishReason, errorCode) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(extraction), finishReason));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(errorCode);
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
@@ -345,7 +383,7 @@ describe("DeepSeek interview question generator", () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValue(successResponse(JSON.stringify(output)));
-    const { provider } = createProvider(fetchImpl);
+    const { provider, log } = createProvider(fetchImpl);
 
     const result = await provider.generateInterviewQuestions(input);
 
@@ -379,6 +417,11 @@ describe("DeepSeek interview question generator", () => {
         outputTokens: 30,
       },
     });
+    expect(interviewQuestionGenerationInstructions).toContain("possible");
+    const serializedLogs = JSON.stringify(log.mock.calls);
+    expect(serializedLogs).not.toContain(input.jdText);
+    expect(serializedLogs).not.toContain(output.questions[0].prompt);
+    expect(serializedLogs).not.toContain("Return one JSON object");
   });
 
   it.each([

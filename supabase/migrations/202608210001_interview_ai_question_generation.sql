@@ -100,7 +100,7 @@ revoke all on public.interview_question_candidates from anon, authenticated;
 grant select on public.interview_question_generation_runs to authenticated;
 grant select on public.interview_question_candidates to authenticated;
 
-create function public.normalize_interview_question_generation_text(target_text text)
+create or replace function public.normalize_interview_question_prompt(target_prompt text)
 returns text
 language sql
 immutable
@@ -109,8 +109,33 @@ set search_path = ''
 as $$
   select lower(
     regexp_replace(
-      btrim(normalize(coalesce(target_text, ''), NFKC)),
-      '[[:space:]]+', ' ', 'g'
+      regexp_replace(
+        btrim(
+          regexp_replace(
+            normalize(coalesce(target_prompt, ''), NFKC),
+            '([[:space:]]|' || chr(65279) || ')+', ' ', 'g'
+          )
+        ),
+        '[?？!.！。]+$', '', 'g'
+      ),
+      '([[:space:]]|' || chr(65279) || ')+', ' ', 'g'
+    )
+  );
+$$;
+
+create or replace function public.normalize_interview_question_generation_text(target_text text)
+returns text
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select lower(
+    btrim(
+      regexp_replace(
+        normalize(coalesce(target_text, ''), NFKC),
+        '([[:space:]]|' || chr(65279) || ')+', ' ', 'g'
+      )
     )
   );
 $$;
@@ -893,6 +918,7 @@ end;
 $$;
 
 revoke all on function public.normalize_interview_question_generation_text(text) from public;
+revoke all on function public.normalize_interview_question_prompt(text) from public;
 revoke all on function public.create_or_get_interview_question_generation(uuid, text, text, text, text) from public;
 revoke all on function public.claim_interview_question_generation(uuid) from public;
 revoke all on function public.complete_interview_question_generation(uuid, jsonb, integer, jsonb, jsonb, text) from public;

@@ -44,6 +44,20 @@ describe("interview question generation schemas", () => {
     ).toBe(false);
   });
 
+  it("rejects unknown top-level fields and more than the raw output cap", () => {
+    expect(
+      interviewQuestionGenerationOutputSchema.safeParse({
+        questions: [],
+        unexpected: true,
+      }).success,
+    ).toBe(false);
+    expect(
+      interviewQuestionGenerationOutputSchema.safeParse({
+        questions: Array.from({ length: 25 }, () => candidate()),
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects unknown categories and bounded fields", () => {
     expect(
       interviewQuestionGenerationOutputSchema.safeParse({
@@ -55,6 +69,25 @@ describe("interview question generation schemas", () => {
         questions: [candidate({ prompt: "short" })],
       }).success,
     ).toBe(false);
+  });
+
+  it("counts text bounds in Unicode code points", () => {
+    expect(
+      interviewQuestionGenerationOutputSchema.safeParse({
+        questions: [candidate({ prompt: "😀😀😀😀" })],
+      }).success,
+    ).toBe(false);
+    expect(
+      interviewQuestionGenerationOutputSchema.safeParse({
+        questions: [
+          candidate({
+            prompt: "😀😀😀😀😀😀😀😀",
+            sourceExcerpt: "😀".repeat(240),
+            relevanceReason: "😀".repeat(240),
+          }),
+        ],
+      }).success,
+    ).toBe(true);
   });
 
   it("grounds excerpts with NFKC, case, and Unicode whitespace matching", () => {
@@ -73,6 +106,22 @@ describe("interview question generation schemas", () => {
 
     expect(sanitized.questions).toHaveLength(1);
     expect(sanitized.rejectedQuestionCount).toBe(0);
+  });
+
+  it("folds NEL and BOM consistently when grounding excerpts", () => {
+    const foldedJd = "Lead\u0085product\uFEFFdiscovery across markets.";
+    const sanitized = sanitizeInterviewQuestionGeneration({
+      jdText: foldedJd,
+      requirements,
+      commonPrompts: [],
+      output: {
+        questions: [
+          candidate({ sourceExcerpt: "lead product discovery across markets." }),
+        ],
+      },
+    });
+
+    expect(sanitized.questions).toHaveLength(1);
   });
 
   it("rejects invented excerpts and common canonical duplicates", () => {

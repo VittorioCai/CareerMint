@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import { normalizeForMatching } from "@/features/extraction/evidence";
 
 export const INTERVIEW_QUESTION_CATEGORIES = [
   "common",
@@ -74,12 +75,7 @@ function optionalText(maxLength: number) {
 }
 
 export function normalizeQuestionPrompt(prompt: string) {
-  return prompt
-    .normalize("NFKC")
-    .trim()
-    .toLocaleLowerCase("en-US")
-    .replace(/[?？!.！。]+$/g, "")
-    .replace(/\s+/g, " ");
+  return normalizeForMatching(prompt).replace(/[?？!.！。]+$/g, "");
 }
 
 export const addInterviewQuestionSchema = z
