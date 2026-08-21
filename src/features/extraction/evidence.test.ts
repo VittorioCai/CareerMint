@@ -29,4 +29,16 @@ describe("verifyCandidateEvidence", () => {
       ),
     ).toBe(true);
   });
+
+  it("counts the evidence minimum in Unicode code points", () => {
+    const sixEmoji = "😀".repeat(6);
+    const twelveEmoji = "😀".repeat(12);
+
+    expect(verifyCandidateEvidence(`before ${sixEmoji} after`, sixEmoji)).toBe(
+      false,
+    );
+    expect(
+      verifyCandidateEvidence(`before ${twelveEmoji} after`, twelveEmoji),
+    ).toBe(true);
+  });
 });

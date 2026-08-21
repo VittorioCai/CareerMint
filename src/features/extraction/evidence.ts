@@ -19,7 +19,7 @@ export function verifyCandidateEvidence(source: string, excerpt: string) {
   const normalizedExcerpt = normalizeEvidence(excerpt);
 
   return (
-    normalizedExcerpt.length >= 12 &&
+    unicodeCodePointLength(normalizedExcerpt) >= 12 &&
     normalizedSource.includes(normalizedExcerpt)
   );
 }

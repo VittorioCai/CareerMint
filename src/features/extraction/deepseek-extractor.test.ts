@@ -147,7 +147,7 @@ describe("DeepSeek resume extractor", () => {
     const { provider } = createProvider(fetchImpl);
 
     await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(
-      "ai-provider-empty-content",
+      "resume-extraction-invalid-output",
     );
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
@@ -189,9 +189,9 @@ describe("DeepSeek resume extractor", () => {
   });
 
   it.each([
-    ["content_filter", "ai-provider-content-filtered"],
-    ["length", "ai-provider-response-incomplete"],
-    ["tool_calls", "ai-provider-response-incomplete"],
+    ["content_filter", "resume-extraction-invalid-output"],
+    ["length", "resume-extraction-invalid-output"],
+    ["tool_calls", "resume-extraction-invalid-output"],
   ])("does not retry finish_reason %s", async (finishReason, errorCode) => {
     const fetchImpl = vi
       .fn<typeof fetch>()
@@ -271,6 +271,22 @@ describe("DeepSeek JD analyzer", () => {
       "jd-analysis-invalid-output",
     );
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it.each([
+    ["content_filter", JSON.stringify(analysis)],
+    ["length", JSON.stringify(analysis)],
+    ["stop", ""],
+  ])("does not retry JD terminal output %s", async (finishReason, content) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(content, finishReason));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeJobDescription(input)).rejects.toThrow(
+      "jd-analysis-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
 });
@@ -471,4 +487,23 @@ describe("DeepSeek interview question generator", () => {
     });
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
+
+  it.each([
+    ["content_filter", JSON.stringify(output)],
+    ["length", JSON.stringify(output)],
+    ["stop", ""],
+  ])(
+    "does not retry interview terminal output %s",
+    async (finishReason, content) => {
+      const fetchImpl = vi
+        .fn<typeof fetch>()
+        .mockResolvedValue(successResponse(content, finishReason));
+      const { provider } = createProvider(fetchImpl);
+
+      await expect(provider.generateInterviewQuestions(input)).rejects.toThrow(
+        "interview-question-generation-invalid-output",
+      );
+      expect(fetchImpl).toHaveBeenCalledTimes(1);
+    },
+  );
 });
