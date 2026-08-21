@@ -2,6 +2,11 @@ import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
 test("create and track a private application workspace with interview question generation", async ({ page }) => {
+  if (process.env.E2E_FAKE_EXTRACTOR === "1" && process.env.PLAYWRIGHT_BASE_URL) {
+    throw new Error(
+      "interview-generation-fake-requires-local-playwright-server",
+    );
+  }
   test.setTimeout(120_000);
   const expectAIUnavailable = process.env.E2E_EXPECT_AI_UNAVAILABLE === "1";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

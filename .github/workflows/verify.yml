@@ -45,3 +45,44 @@ jobs:
       - run: supabase start
       - run: supabase test db supabase/tests/database --local
       - run: supabase db lint --local --schema public --level error --fail-on error
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.19.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: pnpm install --frozen-lockfile
+      - run: supabase start
+      - run: supabase db reset
+      - name: Export local Supabase environment
+        shell: bash
+        run: |
+          set -euo pipefail
+          status_json="$(supabase status --output json 2>/dev/null)"
+          api_url="$(jq -r '.API_URL // empty' <<<"$status_json")"
+          publishable_key="$(jq -r '.PUBLISHABLE_KEY // empty' <<<"$status_json")"
+          secret_key="$(jq -r '.SECRET_KEY // empty' <<<"$status_json")"
+          test -n "$api_url"
+          test -n "$publishable_key"
+          test -n "$secret_key"
+          {
+            echo "NEXT_PUBLIC_SITE_URL=http://127.0.0.1:3000"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$api_url"
+            echo "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY=$publishable_key"
+            echo "SUPABASE_SECRET_KEY=$secret_key"
+            echo "E2E_FAKE_EXTRACTOR=1"
+            echo "AI_TEXT_PROVIDER=deepseek"
+            echo "AI_TEXT_MODEL=ci-placeholder-model"
+            echo "DEEPSEEK_API_KEY=ci-placeholder-deepseek-key"
+          } >> "$GITHUB_ENV"
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm exec playwright test tests/e2e/application-workspace.spec.ts --grep "interview question generation"
