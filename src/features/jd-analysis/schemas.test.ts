@@ -78,6 +78,27 @@ describe("JD analysis schemas", () => {
     ).toThrow();
   });
 
+  it("counts requirement text, evidence, and reasons in Unicode code points", () => {
+    const valid = {
+      category: "skill" as const,
+      text: "😀".repeat(500),
+      sourceExcerpt: "😀".repeat(12),
+      priority: "core" as const,
+      matchStatus: "partial" as const,
+      matchReason: "😀".repeat(700),
+      matchedFactIds: [],
+    };
+
+    expect(jdAnalysisSchema.safeParse({ requirements: [valid] }).success).toBe(
+      true,
+    );
+    expect(
+      jdAnalysisSchema.safeParse({
+        requirements: [{ ...valid, sourceExcerpt: "😀".repeat(6) }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("keeps exact JD evidence, allowlists confirmed facts, downgrades unsupported matches, and deduplicates", () => {
     const jdText = [
       "Lead product discovery across international markets.",

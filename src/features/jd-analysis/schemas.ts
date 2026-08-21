@@ -2,7 +2,10 @@ import { z } from "zod";
 
 import type { AIUsage } from "@/features/extraction/provider";
 import { factTypeSchema } from "@/features/career-profile/schemas";
-import { verifyCandidateEvidence } from "@/features/extraction/evidence";
+import {
+  unicodeCodePointLength,
+  verifyCandidateEvidence,
+} from "@/features/extraction/evidence";
 
 export const requirementCategorySchema = z.enum([
   "responsibility",
@@ -23,6 +26,16 @@ export const requirementMatchStatusSchema = z.enum([
   "needs_user",
 ]);
 
+function unicodeBoundedText(min: number, max: number) {
+  return z.string().trim().refine(
+    (value) => {
+      const length = unicodeCodePointLength(value);
+      return length >= min && length <= max;
+    },
+    { message: `Must contain between ${min} and ${max} Unicode characters.` },
+  );
+}
+
 export const confirmedFactForAnalysisSchema = z.object({
   id: z.uuid(),
   factType: factTypeSchema,
@@ -35,11 +48,11 @@ export const confirmedFactForAnalysisSchema = z.object({
 
 export const jdRequirementSchema = z.object({
   category: requirementCategorySchema,
-  text: z.string().trim().min(1).max(500),
-  sourceExcerpt: z.string().trim().min(12).max(1000),
+  text: unicodeBoundedText(1, 500),
+  sourceExcerpt: unicodeBoundedText(12, 1000),
   priority: requirementPrioritySchema,
   matchStatus: requirementMatchStatusSchema,
-  matchReason: z.string().trim().min(1).max(700).nullable(),
+  matchReason: unicodeBoundedText(1, 700).nullable(),
   matchedFactIds: z.array(z.uuid()).max(5),
 });
 

@@ -86,7 +86,7 @@ export function NewInterviewQuestionForm({
   return (
     <form
       onSubmit={submit}
-      className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]"
+      className="self-start rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -302,6 +302,12 @@ export function QuestionPreparationCard({
       {applicationLink?.relevanceReason ? (
         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
           {applicationLink.relevanceReason}
+        </p>
+      ) : null}
+      {applicationLink?.sourceExcerpt ? (
+        <p className="mt-2 border-l-2 border-[var(--cream)] pl-3 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+          <span className="font-black text-[var(--ink)]">JD 依据：</span>
+          “{applicationLink.sourceExcerpt}”
         </p>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black text-[var(--ink-muted)]">

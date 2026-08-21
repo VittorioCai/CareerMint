@@ -20,4 +20,25 @@ describe("verifyCandidateEvidence", () => {
       verifyCandidateEvidence(source, "Improved conversion by 35%"),
     ).toBe(false);
   });
+
+  it("folds NEL and BOM as ordinary Unicode whitespace", () => {
+    expect(
+      verifyCandidateEvidence(
+        "Lead\u0085product\uFEFFdiscovery across markets.",
+        "lead product discovery across markets.",
+      ),
+    ).toBe(true);
+  });
+
+  it("counts the evidence minimum in Unicode code points", () => {
+    const sixEmoji = "😀".repeat(6);
+    const twelveEmoji = "😀".repeat(12);
+
+    expect(verifyCandidateEvidence(`before ${sixEmoji} after`, sixEmoji)).toBe(
+      false,
+    );
+    expect(
+      verifyCandidateEvidence(`before ${twelveEmoji} after`, twelveEmoji),
+    ).toBe(true);
+  });
 });

@@ -52,7 +52,7 @@ async function list(userId: string): Promise<InterviewQuestion[]> {
       .order("created_at", { ascending: true }),
     supabase
       .from("application_interview_questions")
-      .select("application_id, question_id, predicted, relevance_reason")
+      .select("application_id, question_id, predicted, relevance_reason, source_excerpt")
       .eq("user_id", userId),
     supabase
       .from("interview_question_facts")
@@ -85,6 +85,7 @@ async function list(userId: string): Promise<InterviewQuestion[]> {
       applicationId: link.application_id,
       predicted: link.predicted,
       relevanceReason: link.relevance_reason,
+      sourceExcerpt: link.source_excerpt,
     });
     linksByQuestion.set(link.question_id, current);
   }

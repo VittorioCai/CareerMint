@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import { normalizeForMatching } from "@/features/extraction/evidence";
 
 export const INTERVIEW_QUESTION_CATEGORIES = [
   "common",
@@ -74,12 +75,7 @@ function optionalText(maxLength: number) {
 }
 
 export function normalizeQuestionPrompt(prompt: string) {
-  return prompt
-    .normalize("NFKC")
-    .trim()
-    .toLocaleLowerCase("en-US")
-    .replace(/[?？!.！。]+$/g, "")
-    .replace(/\s+/g, " ");
+  return normalizeForMatching(prompt).replace(/[?？!.！。]+$/g, "");
 }
 
 export const addInterviewQuestionSchema = z
@@ -131,6 +127,23 @@ export const interviewQuestionFilterSchema = z.object({
   ),
 });
 
+const candidateIdsSchema = z
+  .array(z.uuid())
+  .min(1)
+  .max(6)
+  .transform((ids) => [...new Set(ids)]);
+
+export const acceptInterviewQuestionCandidatesSchema = z.object({
+  applicationId: z.uuid(),
+  candidateIds: candidateIdsSchema,
+});
+
+export const rejectInterviewQuestionCandidatesSchema = z.object({
+  applicationId: z.uuid(),
+  runId: z.uuid(),
+  candidateIds: candidateIdsSchema,
+});
+
 export type InterviewQuestion = {
   id: string;
   userId: string;
@@ -146,6 +159,7 @@ export type InterviewQuestion = {
     applicationId: string;
     predicted: boolean;
     relevanceReason: string | null;
+    sourceExcerpt: string | null;
   }>;
   facts: ConfirmedFactForAnalysis[];
   createdAt: string;

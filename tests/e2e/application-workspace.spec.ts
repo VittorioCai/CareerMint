@@ -1,7 +1,12 @@
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 
-test("create and track a private application workspace", async ({ page }) => {
+test("create and track a private application workspace with interview question generation", async ({ page }) => {
+  if (process.env.E2E_FAKE_EXTRACTOR === "1" && process.env.PLAYWRIGHT_BASE_URL) {
+    throw new Error(
+      "interview-generation-fake-requires-local-playwright-server",
+    );
+  }
   test.setTimeout(120_000);
   const expectAIUnavailable = process.env.E2E_EXPECT_AI_UNAVAILABLE === "1";
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -102,11 +107,9 @@ test("create and track a private application workspace", async ({ page }) => {
     await page
       .getByLabel("岗位链接")
       .fill("https://example.com/jobs/product-manager");
-    await page
-      .getByLabel("JD 原文")
-      .fill(
-        "Lead product discovery, partner with engineering, define strategy, and measure customer outcomes across international markets.",
-      );
+    const jdText =
+      "Lead product discovery, partner with engineering, define strategy, and measure customer outcomes across international markets.";
+    await page.getByLabel("JD 原文").fill(jdText);
     await expect(page.getByText("草稿已保存在当前浏览器")).toBeVisible();
     await page.getByRole("button", { name: "建立申请工作区" }).click();
     await expect(page).toHaveURL(/\/applications\/[0-9a-f-]+$/);
@@ -144,11 +147,243 @@ test("create and track a private application workspace", async ({ page }) => {
       .click();
     await expect(interviewCard.getByText("准备记录已保存。")).toBeVisible();
 
+    if (process.env.E2E_FAKE_EXTRACTOR === "1") {
+      const firstPrompt = "How would you lead product discovery for this role?";
+      const secondPrompt = "How would you measure customer outcomes in this role?";
+      const [bankBefore, commonBefore] = await Promise.all([
+        account
+          .from("interview_questions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId),
+        account
+          .from("interview_questions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId)
+          .eq("category", "common"),
+      ]);
+      if (bankBefore.error) throw bankBefore.error;
+      if (commonBefore.error) throw commonBefore.error;
+      expect(bankBefore.count).toBe(6);
+      const commonCountBefore = commonBefore.count ?? 0;
+      const preparationSection = page
+        .locator("section")
+        .filter({
+          has: page.getByRole("heading", { name: "本岗位准备清单" }),
+        })
+        .last();
+      await expect(
+        preparationSection.getByText(firstPrompt, { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        preparationSection.getByText(secondPrompt, { exact: true }),
+      ).toHaveCount(0);
+
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      const generationResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            `/api/applications/${applicationId}/interview/questions/generate`,
+          ) && response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "生成岗位增量题", exact: true }).click();
+      const generationResponse = await generationResponsePromise;
+      expect(generationResponse.ok()).toBe(true);
+      const generationBody = (await generationResponse.json()) as {
+        runId: string;
+        status: string;
+        reused: boolean;
+      };
+      expect(generationBody.status).toBe("succeeded");
+      expect(generationBody.reused).toBe(false);
+      await expect(
+        page.getByText("生成完成，请先预览，再决定是否加入题库。"),
+      ).toBeVisible();
+
+      const candidateRegion = page.getByLabel("岗位增量题候选");
+      const candidateCards = candidateRegion.locator("article");
+      await expect(candidateCards).toHaveCount(2);
+      const firstCandidate = candidateCards.nth(0);
+      const secondCandidate = candidateCards.nth(1);
+      await expect(
+        firstCandidate.getByText("岗位特定", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        firstCandidate.getByText("可能会问", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        firstCandidate.getByText(firstPrompt, { exact: true }),
+      ).toBeVisible();
+      await expect(
+        firstCandidate.getByText("JD 依据：", { exact: true }),
+      ).toBeVisible();
+      await expect(firstCandidate.getByText(jdText, { exact: false })).toBeVisible();
+      await expect(
+        firstCandidate.getByText("为什么相关：", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        firstCandidate.getByText(
+          "This preparation question is grounded in the supplied job description.",
+          { exact: false },
+        ),
+      ).toBeVisible();
+      await expect(
+        secondCandidate.getByText(secondPrompt, { exact: true }),
+      ).toBeVisible();
+
+      await expect(
+        preparationSection.getByText(firstPrompt, { exact: true }),
+      ).toHaveCount(0);
+      await expect(
+        preparationSection.getByText(secondPrompt, { exact: true }),
+      ).toHaveCount(0);
+      const [bankAfterGeneration, candidatesAfterGeneration] = await Promise.all([
+        account
+          .from("interview_questions")
+          .select("id", { count: "exact", head: true })
+          .eq("user_id", userId),
+        account
+          .from("interview_question_candidates")
+          .select("id", { count: "exact", head: true })
+          .eq("run_id", generationBody.runId),
+      ]);
+      if (bankAfterGeneration.error) throw bankAfterGeneration.error;
+      if (candidatesAfterGeneration.error) throw candidatesAfterGeneration.error;
+      expect(bankAfterGeneration.count).toBe(bankBefore.count);
+      expect(candidatesAfterGeneration.count).toBe(2);
+
+      await page.screenshot({
+        path: "/tmp/careermint-interview-ai-review.png",
+        fullPage: true,
+      });
+
+      await firstCandidate
+        .getByRole("checkbox", { name: firstPrompt })
+        .check();
+      await page
+        .getByRole("button", { name: "加入所选题库", exact: true })
+        .click();
+      await expect(page.getByText(/已处理 1 道：新增 1/)).toBeVisible();
+      await expect(
+        preparationSection.getByText(firstPrompt, { exact: true }),
+      ).toBeVisible();
+      const acceptedCard = preparationSection
+        .locator("article")
+        .filter({ hasText: firstPrompt });
+      await expect(
+        acceptedCard.getByText("AI 建议", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        acceptedCard.getByText("可能会问", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        acceptedCard.getByText("JD 依据：", { exact: true }),
+      ).toBeVisible();
+      await expect(acceptedCard.getByText(jdText, { exact: false })).toBeVisible();
+      const commonAfterAccept = await account
+        .from("interview_questions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId)
+        .eq("category", "common");
+      if (commonAfterAccept.error) throw commonAfterAccept.error;
+      expect(commonAfterAccept.count).toBe(commonCountBefore);
+
+      await page.reload();
+      const reloadedPreparationSection = page
+        .locator("section")
+        .filter({
+          has: page.getByRole("heading", { name: "本岗位准备清单" }),
+        })
+        .last();
+      const reloadedAcceptedCard = reloadedPreparationSection
+        .locator("article")
+        .filter({ hasText: firstPrompt });
+      await expect(reloadedAcceptedCard).toHaveCount(1);
+      await expect(
+        reloadedAcceptedCard.getByText("AI 建议", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        reloadedAcceptedCard.getByText("可能会问", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        reloadedAcceptedCard.getByText(jdText, { exact: false }),
+      ).toBeVisible();
+
+      const reloadedCandidateRegion = page.getByLabel("岗位增量题候选");
+      const reloadedSecondCandidate = reloadedCandidateRegion
+        .locator("article")
+        .nth(1);
+      await expect(
+        reloadedSecondCandidate.getByText(secondPrompt, { exact: true }),
+      ).toBeVisible();
+      await reloadedSecondCandidate
+        .getByRole("checkbox", { name: secondPrompt })
+        .check();
+      await page.getByRole("button", { name: "暂不加入", exact: true }).click();
+      await expect(
+        page.getByText("已跳过 1 道候选题。", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        reloadedSecondCandidate.getByText("已跳过", { exact: true }),
+      ).toBeVisible();
+      await expect(
+        reloadedPreparationSection.getByText(secondPrompt, { exact: true }),
+      ).toHaveCount(0);
+
+      const candidateDecisions = await account
+        .from("interview_question_candidates")
+        .select("prompt,status,question_id,sort_order")
+        .eq("run_id", generationBody.runId)
+        .order("sort_order");
+      if (candidateDecisions.error) throw candidateDecisions.error;
+      expect(candidateDecisions.data).toEqual([
+        expect.objectContaining({ prompt: firstPrompt, status: "accepted" }),
+        expect.objectContaining({
+          prompt: secondPrompt,
+          status: "rejected",
+          question_id: null,
+        }),
+      ]);
+
+      const reusedResponsePromise = page.waitForResponse(
+        (response) =>
+          response.url().includes(
+            `/api/applications/${applicationId}/interview/questions/generate`,
+          ) && response.request().method() === "POST",
+      );
+      await page.getByRole("button", { name: "生成岗位增量题", exact: true }).click();
+      const reusedResponse = await reusedResponsePromise;
+      expect(reusedResponse.ok()).toBe(true);
+      const reusedBody = (await reusedResponse.json()) as {
+        runId: string;
+        status: string;
+        reused: boolean;
+        errorCode: string | null;
+      };
+      expect(reusedBody).toEqual({
+        runId: generationBody.runId,
+        status: "succeeded",
+        reused: true,
+        errorCode: null,
+      });
+      const generationRuns = await account
+        .from("interview_question_generation_runs")
+        .select("id,attempt_count", { count: "exact" })
+        .eq("user_id", userId)
+        .eq("application_id", applicationId);
+      if (generationRuns.error) throw generationRuns.error;
+      expect(generationRuns.count).toBe(1);
+      expect(generationRuns.data).toEqual([
+        { id: generationBody.runId, attempt_count: 1 },
+      ]);
+    }
+
     await page.goto("/interview");
     await expect(
       page.getByText("How would you prioritize this product roadmap?"),
     ).toBeVisible();
-    await expect(page.getByText("6 道核心题")).toBeVisible();
+    await expect(
+      page.getByText(process.env.E2E_FAKE_EXTRACTOR === "1" ? "7 道核心题" : "6 道核心题"),
+    ).toBeVisible();
 
     await page.goto(detailUrl);
     await page.getByRole("link", { name: "JD", exact: true }).click();

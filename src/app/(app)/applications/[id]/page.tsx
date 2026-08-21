@@ -28,8 +28,19 @@ import {
 } from "@/features/interview-preparation/components";
 import { interviewPreparationRepository } from "@/features/interview-preparation/repository";
 import type { InterviewQuestion } from "@/features/interview-preparation/schemas";
+import {
+  acceptInterviewQuestionCandidatesAction,
+  rejectInterviewQuestionCandidatesAction,
+} from "@/features/interview-preparation/generation-actions";
+import { InterviewQuestionGenerationControl } from "@/features/interview-preparation/generation-control";
+import { interviewQuestionGenerationRepository } from "@/features/interview-preparation/generation-repository";
+import type {
+  InterviewQuestionGenerationCandidateRecord,
+  InterviewQuestionGenerationRun,
+} from "@/features/interview-preparation/generation-service";
 import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { ResumeGenerationControl } from "@/features/resume-customization/generation-control";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import type {
@@ -258,10 +269,16 @@ function InterviewPanel({
   application,
   questions,
   facts,
+  generationRun,
+  generationCandidates,
+  consentRequired,
 }: {
   application: Application;
   questions: InterviewQuestion[];
   facts: ConfirmedFactForAnalysis[];
+  generationRun: InterviewQuestionGenerationRun | null;
+  generationCandidates: InterviewQuestionGenerationCandidateRecord[];
+  consentRequired: boolean;
 }) {
   const commonCount = questions.filter(
     (question) => question.category === "common",
@@ -280,6 +297,15 @@ function InterviewPanel({
           打开完整题库 →
         </Link>
       </article>
+
+      <InterviewQuestionGenerationControl
+        applicationId={application.id}
+        initialRun={generationRun}
+        initialCandidates={generationCandidates}
+        consentRequired={consentRequired}
+        acceptCandidates={acceptInterviewQuestionCandidatesAction.bind(null, {})}
+        rejectCandidates={rejectInterviewQuestionCandidatesAction.bind(null, {})}
+      />
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <NewInterviewQuestionForm
@@ -325,7 +351,7 @@ export default async function ApplicationDetailPage({
   const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, resumeRun, resumeVersions, interviewQuestions, interviewFacts] = await Promise.all([
+  const [events, analysisRun, requirements, resumeRun, resumeVersions, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "jd"
       ? jdAnalysisRepository.getLatest(user.id, id)
@@ -345,6 +371,17 @@ export default async function ApplicationDetailPage({
     activeTab === "interview"
       ? listConfirmedFactsForAnalysis(user.id)
       : Promise.resolve([]),
+    activeTab === "interview"
+      ? interviewQuestionGenerationRepository.getLatestRun(user.id, id).then(async (run) => ({
+          run,
+          candidates: run
+            ? await interviewQuestionGenerationRepository.listCandidates(user.id, run.id)
+            : [],
+        }))
+      : Promise.resolve({ run: null, candidates: [] }),
+    activeTab === "interview"
+      ? getAIProcessingConsentAt(user.id)
+      : Promise.resolve("not-requested"),
   ]);
 
   return (
@@ -403,6 +440,9 @@ export default async function ApplicationDetailPage({
             application={application}
             questions={interviewQuestions}
             facts={interviewFacts}
+            generationRun={generationData.run}
+            generationCandidates={generationData.candidates}
+            consentRequired={!consentAt}
           />
         ) : null}
       </div>

@@ -100,6 +100,7 @@ export type Database = {
           predicted: boolean
           question_id: string
           relevance_reason: string | null
+          source_excerpt: string | null
           user_id: string
         }
         Insert: {
@@ -108,6 +109,7 @@ export type Database = {
           predicted?: boolean
           question_id: string
           relevance_reason?: string | null
+          source_excerpt?: string | null
           user_id: string
         }
         Update: {
@@ -116,6 +118,7 @@ export type Database = {
           predicted?: boolean
           question_id?: string
           relevance_reason?: string | null
+          source_excerpt?: string | null
           user_id?: string
         }
         Relationships: [
@@ -386,6 +389,79 @@ export type Database = {
           },
         ]
       }
+      interview_question_candidates: {
+        Row: {
+          application_id: string
+          canonical_key: string
+          category: string
+          created_at: string
+          id: string
+          prompt: string
+          question_id: string | null
+          relevance_reason: string
+          run_id: string
+          sort_order: number
+          source_excerpt: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          canonical_key: string
+          category: string
+          created_at?: string
+          id?: string
+          prompt: string
+          question_id?: string | null
+          relevance_reason: string
+          run_id: string
+          sort_order: number
+          source_excerpt: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          canonical_key?: string
+          category?: string
+          created_at?: string
+          id?: string
+          prompt?: string
+          question_id?: string | null
+          relevance_reason?: string
+          run_id?: string
+          sort_order?: number
+          source_excerpt?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_question_candidates_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_question_candidates_question_id_fkey"
+            columns: ["question_id"]
+            isOneToOne: false
+            referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "interview_question_candidates_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "interview_question_generation_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       interview_question_facts: {
         Row: {
           career_fact_id: string
@@ -418,6 +494,83 @@ export type Database = {
             columns: ["question_id"]
             isOneToOne: false
             referencedRelation: "interview_questions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      interview_question_generation_runs: {
+        Row: {
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost: Json | null
+          id: string
+          input_cache_hit_tokens: number
+          input_cache_miss_tokens: number
+          input_hash: string
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          result: Json | null
+          schema_version: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost?: Json | null
+          id?: string
+          input_cache_hit_tokens?: number
+          input_cache_miss_tokens?: number
+          input_hash: string
+          model: string
+          output_tokens?: number
+          provider: string
+          request_id?: string | null
+          result?: Json | null
+          schema_version: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost?: Json | null
+          id?: string
+          input_cache_hit_tokens?: number
+          input_cache_miss_tokens?: number
+          input_hash?: string
+          model?: string
+          output_tokens?: number
+          provider?: string
+          request_id?: string | null
+          result?: Json | null
+          schema_version?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "interview_question_generation_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
             referencedColumns: ["id"]
           },
         ]
@@ -1009,6 +1162,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      accept_interview_question_candidates: {
+        Args: { target_application_id: string; target_candidate_ids: string[] }
+        Returns: {
+          candidate_id: string
+          disposition: string
+          // The duplicate-common disposition intentionally returns no question.
+          question_id: string | null
+        }[]
+      }
       add_interview_question: {
         Args: {
           target_application_id?: string
@@ -1088,6 +1250,14 @@ export type Database = {
         Args: { target_run_id: string }
         Returns: boolean
       }
+      claim_interview_question_generation: {
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          target_run_id: string
+        }
+        Returns: boolean
+      }
       claim_processing_job: {
         Args: { target_job_id: string }
         Returns: boolean
@@ -1124,6 +1294,45 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "application_analysis_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_interview_question_generation: {
+        Args: {
+          target_ai_usage: Json
+          target_candidates: Json
+          target_estimated_cost: Json
+          target_rejected_candidate_count: number
+          target_request_id: string
+          expected_attempt_count: number
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost: Json | null
+          id: string
+          input_cache_hit_tokens: number
+          input_cache_miss_tokens: number
+          input_hash: string
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          result: Json | null
+          schema_version: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_question_generation_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1257,6 +1466,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_or_get_interview_question_generation: {
+        Args: {
+          target_application_id: string
+          target_input_hash: string
+          target_model: string
+          target_provider: string
+          target_schema_version: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost: Json | null
+          id: string
+          input_cache_hit_tokens: number
+          input_cache_miss_tokens: number
+          input_hash: string
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          result: Json | null
+          schema_version: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_question_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_or_get_resume_generation: {
         Args: {
           target_application_id: string
@@ -1362,6 +1608,43 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fail_interview_question_generation: {
+        Args: {
+          expected_attempt_count: number
+          target_error_code: string
+          target_error_message: string
+          target_request_id: string
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost: Json | null
+          id: string
+          input_cache_hit_tokens: number
+          input_cache_miss_tokens: number
+          input_hash: string
+          model: string
+          output_tokens: number
+          provider: string
+          request_id: string | null
+          result: Json | null
+          schema_version: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "interview_question_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fail_resume_extraction: {
         Args: {
           target_asset_id: string
@@ -1433,6 +1716,7 @@ export type Database = {
           predicted: boolean
           question_id: string
           relevance_reason: string | null
+          source_excerpt: string | null
           user_id: string
         }
         SetofOptions: {
@@ -1442,9 +1726,17 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      normalize_interview_question_generation_text: {
+        Args: { target_text: string }
+        Returns: string
+      }
       normalize_interview_question_prompt: {
         Args: { target_prompt: string }
         Returns: string
+      }
+      reject_interview_question_candidates: {
+        Args: { target_candidate_ids: string[]; target_run_id: string }
+        Returns: number
       }
       replace_interview_question_facts: {
         Args: { target_fact_ids: string[]; target_question_id: string }

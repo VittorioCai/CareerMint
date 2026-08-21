@@ -19,6 +19,12 @@ import {
   type ResumeGenerationInput,
   type ResumeSuggestionOutput,
 } from "@/features/resume-customization/schemas";
+import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
+import {
+  interviewQuestionGenerationOutputSchema,
+  type InterviewQuestionGenerationInput,
+  type InterviewQuestionGenerationOutput,
+} from "@/features/interview-preparation/generation-schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -193,8 +199,11 @@ export function createDeepSeekAIProvider(
       requestId = envelope.data.id ?? requestId;
       usage = mapUsage(envelope.data.usage);
       const choice = envelope.data.choices[0];
-      if (choice.finish_reason !== "stop" || !choice.message.content?.trim()) {
-        throw new AdapterError(invalidOutputError, true);
+      if (choice.finish_reason !== "stop") {
+        throw new AdapterError(invalidOutputError);
+      }
+      if (!choice.message.content?.trim()) {
+        throw new AdapterError(invalidOutputError);
       }
 
       let rawExtraction: unknown;
@@ -231,6 +240,8 @@ export function createDeepSeekAIProvider(
         error instanceof AdapterError
           ? error
           : error instanceof DOMException && error.name === "AbortError"
+            ? new AdapterError("ai-provider-timeout")
+            : error instanceof DOMException && error.name === "TimeoutError"
             ? new AdapterError("ai-provider-timeout")
             : new AdapterError("ai-provider-request-failed");
 
@@ -314,6 +325,25 @@ export function createDeepSeekAIProvider(
             outputSchema: resumeSuggestionOutputSchema,
             invalidOutputError: generationInvalidOutputError,
             maxTokens: 6144,
+          }),
+        generationInvalidOutputError,
+      );
+    },
+    async generateInterviewQuestions(input: InterviewQuestionGenerationInput) {
+      const generationInvalidOutputError =
+        "interview-question-generation-invalid-output";
+      return withInvalidOutputRetry<InterviewQuestionGenerationOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: interviewQuestionGenerationInstructions,
+            userContent: [
+              `<job_description>\n${input.jdText}\n</job_description>`,
+              `<job_requirements>\n${JSON.stringify(input.requirements)}\n</job_requirements>`,
+              `<common_question_prompts>\n${JSON.stringify(input.commonPrompts)}\n</common_question_prompts>`,
+            ].join("\n"),
+            outputSchema: interviewQuestionGenerationOutputSchema,
+            invalidOutputError: generationInvalidOutputError,
+            maxTokens: 4096,
           }),
         generationInvalidOutputError,
       );

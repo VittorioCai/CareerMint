@@ -16,6 +16,9 @@ describe("interview preparation schemas", () => {
       "why this role",
     );
     expect(normalizeQuestionPrompt("WHY THIS ROLE？")).toBe("why this role");
+    expect(
+      normalizeQuestionPrompt("\uFEFF Ｆｕｌｌ\u0085 ROADMAP？ \uFEFF"),
+    ).toBe("full roadmap");
   });
 
   it("requires an application for job-specific questions", () => {

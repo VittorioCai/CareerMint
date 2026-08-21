@@ -7,6 +7,10 @@ import type {
   ResumeGenerationInput,
   ResumeSuggestionOutput,
 } from "@/features/resume-customization/schemas";
+import type {
+  InterviewQuestionGenerationInput,
+  InterviewQuestionGenerationOutput,
+} from "@/features/interview-preparation/generation-schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -30,4 +34,7 @@ export type AIProvider = {
   generateResumeSuggestions(
     input: ResumeGenerationInput,
   ): Promise<AIResult<ResumeSuggestionOutput>>;
+  generateInterviewQuestions(
+    input: InterviewQuestionGenerationInput,
+  ): Promise<AIResult<InterviewQuestionGenerationOutput>>;
 };
