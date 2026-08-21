@@ -12,6 +12,12 @@ CareerMint 是一个面向海外求职的个人工作台。它把用户已有简
 - PDF.js 与 Mammoth，用于服务器端 PDF/DOCX 文字提取
 - Vitest、React Testing Library、Playwright 和 pgTAP
 
+### 扫描版 PDF OCR
+
+文字型 PDF 和 DOCX 优先走服务端原生文字解析。仅当 PDF 被判定为扫描件、原生解析返回 `resume-text-too-short` 时，浏览器才会按需加载官方百度 PP-OCRv6 Small，在本地逐页识别；最多处理 10 页，并可随时取消。模型文件会从公共源下载，但简历页面像素不会上传到第三方 OCR API。
+
+本地 OCR 不产生按次 API 费用；识别出的文字仍会在用户授权 AI 的流程中提交 CareerMint 后端，结构化事实提取仍需要 DeepSeek，且可能产生费用。没有 `DEEPSEEK_API_KEY` 时，AI 提取不可用。
+
 建议使用 Node.js 24（最低 22.13）、pnpm，以及已启动的 Docker Desktop。当前锁定的 pnpm 11.19 需要 Node.js 22.13 或更高版本。
 
 ## 本地启动
