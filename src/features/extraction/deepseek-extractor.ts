@@ -19,6 +19,12 @@ import {
   type ResumeGenerationInput,
   type ResumeSuggestionOutput,
 } from "@/features/resume-customization/schemas";
+import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
+import {
+  interviewQuestionGenerationOutputSchema,
+  type InterviewQuestionGenerationInput,
+  type InterviewQuestionGenerationOutput,
+} from "@/features/interview-preparation/generation-schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -314,6 +320,25 @@ export function createDeepSeekAIProvider(
             outputSchema: resumeSuggestionOutputSchema,
             invalidOutputError: generationInvalidOutputError,
             maxTokens: 6144,
+          }),
+        generationInvalidOutputError,
+      );
+    },
+    async generateInterviewQuestions(input: InterviewQuestionGenerationInput) {
+      const generationInvalidOutputError =
+        "interview-question-generation-invalid-output";
+      return withInvalidOutputRetry<InterviewQuestionGenerationOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: interviewQuestionGenerationInstructions,
+            userContent: [
+              `<job_description>\n${input.jdText}\n</job_description>`,
+              `<job_requirements>\n${JSON.stringify(input.requirements)}\n</job_requirements>`,
+              `<common_question_prompts>\n${JSON.stringify(input.commonPrompts)}\n</common_question_prompts>`,
+            ].join("\n"),
+            outputSchema: interviewQuestionGenerationOutputSchema,
+            invalidOutputError: generationInvalidOutputError,
+            maxTokens: 4096,
           }),
         generationInvalidOutputError,
       );

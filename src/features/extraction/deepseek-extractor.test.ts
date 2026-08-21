@@ -6,6 +6,7 @@ import { createDeepSeekAIProvider } from "./deepseek-extractor";
 import { resumeExtractionInstructions } from "./prompt";
 import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
 import { resumeCustomizationInstructions } from "@/features/resume-customization/prompt";
+import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -233,6 +234,7 @@ describe("DeepSeek JD analyzer", () => {
     );
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
+
 });
 
 describe("DeepSeek resume customizer", () => {
@@ -311,5 +313,119 @@ describe("DeepSeek resume customizer", () => {
       "resume-generation-invalid-output",
     );
     expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe("DeepSeek interview question generator", () => {
+  const input = {
+    jdText: "Advanced SQL is required for funnel analysis.",
+    requirements: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        category: "skill",
+        text: "Advanced SQL",
+        sourceExcerpt: "Advanced SQL is required for funnel analysis.",
+        priority: "core",
+      },
+    ],
+    commonPrompts: ["Why this role?"],
+  };
+  const output = {
+    questions: [
+      {
+        category: "function",
+        prompt: "How would you improve funnel analysis for this role?",
+        sourceExcerpt: "Advanced SQL is required for funnel analysis.",
+        relevanceReason: "It explores the role's SQL requirement.",
+      },
+    ],
+  };
+
+  it("uses JSON mode, disabled thinking, fixed prompt, narrow input, and metadata", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.generateInterviewQuestions(input);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({
+      response_format: { type: "json_object" },
+      thinking: { type: "disabled" },
+      stream: false,
+      max_tokens: 4096,
+    });
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: interviewQuestionGenerationInstructions,
+    });
+    expect(body.messages[1].content).toContain(
+      `<job_description>\n${input.jdText}\n</job_description>`,
+    );
+    expect(body.messages[1].content).toContain(input.requirements[0].id);
+    expect(body.messages[1].content).toContain("Why this role?");
+    expect(body.messages[1].content).not.toContain("confirmed_career_facts");
+    expect(body.messages[1].content).not.toContain("resume_document");
+    expect(result).toMatchObject({
+      data: output,
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      requestId: "request-123",
+      usage: {
+        inputCacheHitTokens: 10,
+        inputCacheMissTokens: 20,
+        outputTokens: 30,
+      },
+    });
+  });
+
+  it.each([
+    ["malformed JSON", '{"questions":['],
+    ["invalid provider schema", '{"questions":[{"category":"common"}]}'],
+  ])("retries %s exactly once", async (_case, invalidContent) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(successResponse(invalidContent))
+      .mockResolvedValueOnce(successResponse(JSON.stringify(output)));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.generateInterviewQuestions(input)).resolves.toMatchObject({
+      data: output,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns a stable error after a second invalid output", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"questions":['));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.generateInterviewQuestions(input)).rejects.toThrow(
+      "interview-question-generation-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not retry schema-valid output for grounding decisions", async () => {
+    const schemaValidButUngrounded = {
+      questions: [
+        {
+          ...output.questions[0],
+          sourceExcerpt: "This evidence is not in the supplied JD.",
+        },
+      ],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(schemaValidButUngrounded)));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.generateInterviewQuestions(input)).resolves.toMatchObject({
+      data: schemaValidButUngrounded,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
