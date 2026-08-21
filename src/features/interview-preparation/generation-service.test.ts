@@ -173,6 +173,30 @@ describe("interview question generation service", () => {
     expect(JSON.stringify(dependencies.runs.fail.mock.calls)).not.toContain(jdText);
   });
 
+  it("maps sanitizer ZodError to the fixed invalid-output failure without leaking validation details", async () => {
+    const dependencies = fakes();
+    dependencies.provider.generateInterviewQuestions.mockResolvedValue({
+      ...aiResult,
+      data: { questions: [{ category: "function", prompt: "too short" }] },
+    });
+    const service = createInterviewQuestionGenerationService(dependencies);
+
+    await expect(service.run(baseInput)).resolves.toMatchObject({
+      status: "failed",
+    });
+
+    expect(dependencies.runs.fail).toHaveBeenCalledExactlyOnceWith({
+      runId,
+      errorCode: "interview-question-generation-invalid-output",
+      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      requestId: "request-123",
+    });
+    const failurePayload = JSON.stringify(dependencies.runs.fail.mock.calls);
+    expect(failurePayload).not.toContain(jdText);
+    expect(failurePayload).not.toContain("issues");
+    expect(failurePayload).not.toContain("too short");
+  });
+
   it("passes partial valid output and its rejected count to completion", async () => {
     const dependencies = fakes();
     dependencies.provider.generateInterviewQuestions.mockResolvedValue({

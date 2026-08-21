@@ -104,6 +104,12 @@ export type InterviewQuestionGenerationServiceDependencies = {
 const safeErrorMessage = "岗位面试题生成失败，请稍后重试。";
 
 function safeFailure(error: unknown) {
+  if (error instanceof ZodError) {
+    return {
+      errorCode: "interview-question-generation-invalid-output",
+      errorMessage: safeErrorMessage,
+    };
+  }
   const code = error instanceof Error ? error.message : "";
   if (code === "deepseek-api-key-missing" || code === "ai-provider-authentication-failed") {
     return {
@@ -111,10 +117,7 @@ function safeFailure(error: unknown) {
       errorMessage: safeErrorMessage,
     };
   }
-  if (
-    code === "interview-question-generation-invalid-output" ||
-    error instanceof ZodError
-  ) {
+  if (code === "interview-question-generation-invalid-output") {
     return {
       errorCode: code,
       errorMessage: safeErrorMessage,
