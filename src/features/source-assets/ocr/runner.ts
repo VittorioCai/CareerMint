@@ -83,6 +83,7 @@ export async function runScannedPdfOcr(
       onProgress?.({ phase: "recognizing", page, totalPages: document.numPages });
 
       const image = await document.renderPage(page, signal);
+      let pageError: unknown;
       try {
         throwIfAborted(signal);
         const recognized = await dependencies.ocr.recognize(image, signal);
@@ -93,13 +94,17 @@ export async function runScannedPdfOcr(
             .map((item) => item.text.trim())
             .join("\n"),
         );
+      } catch (error) {
+        pageError = error;
       } finally {
         try {
           await image.release();
         } catch (error) {
           cleanupErrors.push(error);
+          if (!pageError) pageError = error;
         }
       }
+      if (pageError) throw pageError;
     }
 
     throwIfAborted(signal);

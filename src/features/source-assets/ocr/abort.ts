@@ -7,12 +7,23 @@ export function raceWithAbort<T>(
   operation: PromiseLike<T>,
   signal?: AbortSignal,
   onAbort?: () => void | Promise<void>,
+  onLateResolve?: (value: T) => void | Promise<void>,
 ) {
   const promise = Promise.resolve(operation);
   if (!signal) return promise;
 
   return new Promise<T>((resolve, reject) => {
     let settled = false;
+    let lateResolutionAttached = false;
+
+    const consumeLateResolution = () => {
+      if (lateResolutionAttached || !onLateResolve) return;
+      lateResolutionAttached = true;
+      void promise.then(
+        (value) => Promise.resolve(onLateResolve(value)).catch(() => undefined),
+        () => undefined,
+      );
+    };
 
     const cleanUp = () => signal.removeEventListener("abort", abort);
     const rejectAborted = () => {
@@ -20,6 +31,7 @@ export function raceWithAbort<T>(
       settled = true;
       cleanUp();
       void promise.catch(() => undefined);
+      consumeLateResolution();
       try {
         void Promise.resolve(onAbort?.()).catch(() => undefined);
       } finally {

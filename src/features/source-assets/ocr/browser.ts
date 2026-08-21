@@ -56,7 +56,12 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
   return {
     numPages: document.numPages,
     async renderPage(pageNumber, signal) {
-      const page = await raceWithAbort(document.getPage(pageNumber), signal);
+      const page = await raceWithAbort(
+        document.getPage(pageNumber),
+        signal,
+        undefined,
+        (latePage) => latePage.cleanup(),
+      );
       let canvas: HTMLCanvasElement | undefined;
       let released = false;
       const release = () => {
@@ -131,6 +136,7 @@ const disposedPaddleInstances = new WeakSet<object>();
 interface PaddleCacheEntry {
   generation: number;
   promise: Promise<PaddleInstance>;
+  activeConsumers: number;
 }
 
 let paddleCacheEntry: PaddleCacheEntry | undefined;
@@ -152,6 +158,7 @@ const PADDLE_OPTIONS: Record<string, unknown> = {
 export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
   let instance: PaddleInstance | undefined;
   let entry: PaddleCacheEntry | undefined;
+  let leaseHeld = false;
 
   const disposeInstance = (candidate: PaddleInstance) => {
     if (disposedPaddleInstances.has(candidate)) return;
@@ -172,6 +179,7 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
     if (paddleCacheEntry) return paddleCacheEntry;
     const created: PaddleCacheEntry = {
       generation: ++paddleGeneration,
+      activeConsumers: 0,
       promise: Promise.resolve().then(async () => {
         const { PaddleOCR } = await options.createPaddleModule();
         return PaddleOCR.create({ ...PADDLE_OPTIONS });
@@ -185,28 +193,42 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
     return created;
   };
 
+  const releaseLease = (candidate: PaddleCacheEntry, candidateInstance?: PaddleInstance) => {
+    if (!leaseHeld || entry !== candidate) return;
+    leaseHeld = false;
+    candidate.activeConsumers -= 1;
+    if (candidate.activeConsumers > 0) return;
+    clearEntry(candidate);
+    if (candidateInstance) {
+      disposeInstance(candidateInstance);
+      return;
+    }
+    void candidate.promise
+      .then((resolved) => {
+        if (candidate.activeConsumers === 0) disposeInstance(resolved);
+      })
+      .catch(() => undefined);
+  };
+
   return {
     async initialize(signal?: AbortSignal) {
       const candidate = getEntry();
       entry = candidate;
+      if (!leaseHeld) {
+        candidate.activeConsumers += 1;
+        leaseHeld = true;
+      }
       try {
         instance = await raceWithAbort(candidate.promise, signal, () => {
-          void candidate.promise.then(disposeInstance).catch(() => undefined);
-          clearEntry(candidate);
+          releaseLease(candidate);
         });
         await raceWithAbort(instance.initialize(), signal, () => {
-          clearEntry(candidate);
-          disposeInstance(instance!);
+          releaseLease(candidate, instance);
           instance = undefined;
         });
       } catch (error) {
-        clearEntry(candidate);
-        if (instance) {
-          disposeInstance(instance);
-          instance = undefined;
-        } else {
-          void candidate.promise.then(disposeInstance).catch(() => undefined);
-        }
+        releaseLease(candidate, instance);
+        instance = undefined;
         throw error;
       }
     },
@@ -216,14 +238,12 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
       }
       try {
         const result = await raceWithAbort(instance.predict(image.source), signal, () => {
-          clearEntry(entry!);
-          disposeInstance(instance!);
+          releaseLease(entry!, instance);
           instance = undefined;
         });
         return result[0] ?? { items: [] };
       } catch (error) {
-        clearEntry(entry);
-        if (instance) disposeInstance(instance);
+        releaseLease(entry, instance);
         instance = undefined;
         throw error;
       }

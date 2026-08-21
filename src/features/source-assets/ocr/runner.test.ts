@@ -183,6 +183,41 @@ describe("runScannedPdfOcr", () => {
     expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
   });
 
+  it("stops before the next page when a successful page release fails", async () => {
+    const dependencies = makeDependencies({
+      pages: [
+        [{ text: LONG_TEXT, score: 1 }],
+        [{ text: LONG_TEXT, score: 1 }],
+      ],
+    });
+    vi.mocked(dependencies.images[0].release).mockRejectedValueOnce(new Error("release failed"));
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
+      "release failed",
+    );
+    expect(dependencies.document.renderPage).toHaveBeenCalledOnce();
+    expect(dependencies.document.destroy).toHaveBeenCalledOnce();
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("stops after a failed page even when that page release also fails", async () => {
+    const dependencies = makeDependencies({
+      pages: [
+        [{ text: LONG_TEXT, score: 1 }],
+        [{ text: LONG_TEXT, score: 1 }],
+      ],
+    });
+    vi.mocked(dependencies.ocr.recognize).mockRejectedValueOnce(new Error("recognition failed"));
+    vi.mocked(dependencies.images[0].release).mockRejectedValueOnce(new Error("release failed"));
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
+      "recognition failed",
+    );
+    expect(dependencies.document.renderPage).toHaveBeenCalledOnce();
+    expect(dependencies.document.destroy).toHaveBeenCalledOnce();
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
   it("allows model initialization to be retried after a failure", async () => {
     const dependencies = makeDependencies({ pages: [[{ text: LONG_TEXT, score: 1 }]] });
     vi.mocked(dependencies.ocr.initialize)

@@ -199,6 +199,38 @@ describe("createBrowserPdfAdapter", () => {
     expect(cancel).toHaveBeenCalledOnce();
     expect(cleanup).toHaveBeenCalledOnce();
   });
+
+  it("cleans up a page that resolves after getPage was aborted", async () => {
+    const controller = new AbortController();
+    const cleanup = vi.fn();
+    let resolvePage!: (page: object) => void;
+    const pagePromise = new Promise<object>((resolve) => {
+      resolvePage = resolve;
+    });
+    const page = makePdfJsPage({
+      getViewport: () => ({ width: 100, height: 100 }),
+      cleanup,
+    });
+    const pdfjs = {
+      getDocument: vi.fn(() => ({
+        promise: Promise.resolve({
+          numPages: 1,
+          getPage: vi.fn(() => pagePromise),
+          destroy: vi.fn(),
+        }),
+        destroy: vi.fn(),
+      })),
+      GlobalWorkerOptions: { workerSrc: "" },
+    };
+    const document = await createBrowserPdfAdapter(pdfjs).open(new Uint8Array());
+    const rendering = document.renderPage(1, controller.signal);
+
+    controller.abort();
+    await expect(rendering).rejects.toMatchObject({ name: "AbortError" });
+    resolvePage(page);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
 });
 
 describe("browser PaddleOCR aborts", () => {
@@ -288,5 +320,75 @@ describe("browser PaddleOCR aborts", () => {
     await secondAdapter.initialize();
     await expect(secondAdapter.recognize(image)).resolves.toEqual({ items: [] });
     expect(create).toHaveBeenCalledTimes(2);
+  });
+
+  it("keeps a shared model alive when one consumer aborts initialization", async () => {
+    const controller = new AbortController();
+    let resolveInitialize!: () => void;
+    const initializeGate = new Promise<void>((resolve) => {
+      resolveInitialize = resolve;
+    });
+    const dispose = vi.fn(async () => undefined);
+    const instance = {
+      initialize: vi.fn(() => initializeGate),
+      predict: vi.fn(async () => [{ items: [] }]),
+      dispose,
+    };
+    const create = vi.fn(async () => instance);
+    const firstAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const secondAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const first = firstAdapter.initialize(controller.signal);
+    const second = secondAdapter.initialize();
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    controller.abort();
+    await expect(first).rejects.toMatchObject({ name: "AbortError" });
+    expect(dispose).not.toHaveBeenCalled();
+    resolveInitialize();
+    await expect(second).resolves.toBeUndefined();
+    expect(dispose).not.toHaveBeenCalled();
+  });
+
+  it("does not dispose a shared model when one active recognizer fails", async () => {
+    let resolveSecond!: (value: Array<{ items: never[] }>) => void;
+    const secondPrediction = new Promise<Array<{ items: never[] }>>((resolve) => {
+      resolveSecond = resolve;
+    });
+    const dispose = vi.fn(async () => undefined);
+    const instance = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi
+        .fn()
+        .mockRejectedValueOnce(new Error("fatal predict"))
+        .mockReturnValueOnce(secondPrediction),
+      dispose,
+    };
+    const create = vi.fn(async () => instance);
+    const firstAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const secondAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const image = {
+      page: 1,
+      width: 1,
+      height: 1,
+      source: document.createElement("canvas"),
+      release: vi.fn(),
+    };
+    await Promise.all([firstAdapter.initialize(), secondAdapter.initialize()]);
+
+    const first = firstAdapter.recognize(image);
+    const second = secondAdapter.recognize(image);
+    await expect(first).rejects.toThrow("fatal predict");
+    expect(dispose).not.toHaveBeenCalled();
+    resolveSecond([{ items: [] }]);
+    await expect(second).resolves.toEqual({ items: [] });
+    expect(dispose).not.toHaveBeenCalled();
   });
 });
