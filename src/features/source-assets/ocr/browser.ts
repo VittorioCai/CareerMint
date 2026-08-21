@@ -50,31 +50,37 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
     numPages: document.numPages,
     async renderPage(pageNumber) {
       const page = await document.getPage(pageNumber);
-      const initialViewport = page.getViewport({ scale: BASE_SCALE });
-      const longestSide = Math.max(initialViewport.width, initialViewport.height);
-      const scale =
-        longestSide > MAX_LONGEST_SIDE
-          ? BASE_SCALE * (MAX_LONGEST_SIDE / longestSide)
-          : BASE_SCALE;
-      const viewport = page.getViewport({ scale });
-      const canvas = globalThis.document.createElement("canvas");
-      canvas.width = Math.ceil(viewport.width);
-      canvas.height = Math.ceil(viewport.height);
-      const context = canvas.getContext("2d");
-      if (!context) {
-        page.cleanup();
-        canvas.width = 0;
-        canvas.height = 0;
-        throw new Error("resume-ocr-unavailable");
-      }
-
+      let canvas: HTMLCanvasElement | undefined;
       let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        try {
+          page.cleanup();
+        } finally {
+          if (canvas) {
+            canvas.width = 0;
+            canvas.height = 0;
+          }
+        }
+      };
+
       try {
+        const initialViewport = page.getViewport({ scale: BASE_SCALE });
+        const longestSide = Math.max(initialViewport.width, initialViewport.height);
+        const scale =
+          longestSide > MAX_LONGEST_SIDE
+            ? BASE_SCALE * (MAX_LONGEST_SIDE / longestSide)
+            : BASE_SCALE;
+        const viewport = page.getViewport({ scale });
+        canvas = globalThis.document.createElement("canvas");
+        canvas.width = Math.max(1, Math.min(MAX_LONGEST_SIDE, Math.ceil(viewport.width)));
+        canvas.height = Math.max(1, Math.min(MAX_LONGEST_SIDE, Math.ceil(viewport.height)));
+        const context = canvas.getContext("2d");
+        if (!context) throw new Error("resume-ocr-unavailable");
         await page.render({ canvasContext: context, viewport }).promise;
       } catch (error) {
-        page.cleanup();
-        canvas.width = 0;
-        canvas.height = 0;
+        release();
         throw error;
       }
 
@@ -82,13 +88,7 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
         page: pageNumber,
         width: canvas.width,
         height: canvas.height,
-        release() {
-          if (released) return;
-          released = true;
-          page.cleanup();
-          canvas.width = 0;
-          canvas.height = 0;
-        },
+        release,
       };
       // Canvas is intentionally exposed as a non-enumerable property so the
       // runner's OCR adapter can pass it without widening the test contract.
