@@ -9,6 +9,7 @@ import type {
 import { verifyCandidateEvidence } from "./evidence";
 import type { AIProvider, AIUsage } from "./provider";
 import type { ExtractedFact } from "./schemas";
+import { normalizeResumeText } from "@/features/source-assets/parsers";
 
 export type { ExtractedFact } from "./schemas";
 
@@ -110,8 +111,10 @@ export function createResumeExtractionService(
           "extracting",
           null,
         );
-        let resumeText = input.sourceText;
-        if (resumeText === undefined) {
+        let resumeText: string;
+        if (input.sourceText !== undefined) {
+          resumeText = normalizeResumeText(input.sourceText);
+        } else {
           const source = await dependencies.storage.download(
             input.asset.storagePath,
           );

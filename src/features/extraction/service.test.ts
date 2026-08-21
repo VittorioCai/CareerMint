@@ -266,4 +266,63 @@ describe("resume extraction service", () => {
     expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(ocrText);
     expect(failed.status).toBe("failed");
   });
+
+  it("normalizes supplied OCR text before provider and evidence processing", async () => {
+    const supported = fact(
+      "Improved checkout conversion by 18% through funnel analysis.",
+    );
+    const fakes = createFakes([supported]);
+    const rawOCRText =
+      " Product Analyst\r\n  Improved checkout conversion by 18% through funnel analysis.  ";
+    const normalizedOCRText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const service = createResumeExtractionService({ ...fakes });
+
+    const completed = await service.run({
+      userId,
+      job,
+      asset,
+      sourceText: rawOCRText,
+    });
+
+    expect(fakes.storage.download).not.toHaveBeenCalled();
+    expect(fakes.parser).not.toHaveBeenCalled();
+    expect(fakes.provider.extractResumeFacts).toHaveBeenCalledWith(
+      normalizedOCRText,
+    );
+    expect(fakes.jobs.succeedJob).toHaveBeenCalledOnce();
+    expect(completed.status).toBe("succeeded");
+  });
+
+  it.each([
+    ["blank", "   \r\n   ", "resume-text-too-short"],
+    ["too long", "x".repeat(100_001), "resume-text-too-long"],
+  ])(
+    "safely fails invalid supplied OCR text (%s) without storage or provider calls",
+    async (_name, invalidOCRText, errorCode) => {
+      const fakes = createFakes([]);
+      const service = createResumeExtractionService({ ...fakes });
+
+      const failed = await service.run({
+        userId,
+        job,
+        asset,
+        sourceText: invalidOCRText,
+      });
+
+      expect(fakes.storage.download).not.toHaveBeenCalled();
+      expect(fakes.parser).not.toHaveBeenCalled();
+      expect(fakes.provider.extractResumeFacts).not.toHaveBeenCalled();
+      expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+        jobId,
+        assetId,
+        errorCode,
+        errorMessage: "简历处理失败，请稍后重试。",
+      });
+      expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(
+        invalidOCRText,
+      );
+      expect(failed.status).toBe("failed");
+    },
+  );
 });

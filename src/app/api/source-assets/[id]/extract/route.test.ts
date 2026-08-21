@@ -87,6 +87,68 @@ describe("POST /api/source-assets/[id]/extract", () => {
     expect(fakes.provider.extractResumeFacts).not.toHaveBeenCalled();
   });
 
+  it("checks authentication before parsing malformed OCR JSON", async () => {
+    const fakes = createFakes();
+    fakes.getCurrentUser.mockResolvedValue(null);
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(401);
+    expect(fakes.getOwnedAsset).not.toHaveBeenCalled();
+    expect(fakes.getAIProcessingConsentAt).not.toHaveBeenCalled();
+    expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runExtraction).not.toHaveBeenCalled();
+  });
+
+  it("checks asset ownership before parsing malformed OCR JSON", async () => {
+    const fakes = createFakes();
+    fakes.getOwnedAsset.mockResolvedValue(null);
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(404);
+    expect(fakes.getAIProcessingConsentAt).not.toHaveBeenCalled();
+    expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runExtraction).not.toHaveBeenCalled();
+  });
+
+  it("checks AI consent before parsing malformed OCR JSON", async () => {
+    const fakes = createFakes();
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{",
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(403);
+    expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runExtraction).not.toHaveBeenCalled();
+  });
+
   it("enters normal idempotent processing after consent", async () => {
     const fakes = createFakes();
     fakes.getAIProcessingConsentAt.mockResolvedValue(
@@ -216,6 +278,32 @@ describe("POST /api/source-assets/[id]/extract", () => {
       expect.not.objectContaining({ sourceText: expect.anything() }),
     );
   });
+
+  it.each([40, 100_000])(
+    "accepts OCR text at the exact %i-character boundary",
+    async (length) => {
+      const fakes = createFakes();
+      fakes.getAIProcessingConsentAt.mockResolvedValue(
+        "2026-08-14T00:00:00.000Z",
+      );
+      const ocrText = "x".repeat(length);
+      const post = createSourceAssetExtractPostHandler(fakes);
+
+      const response = await post(
+        new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ ocrText }),
+        }),
+        context(),
+      );
+
+      expect(response.status).toBe(200);
+      expect(fakes.runExtraction).toHaveBeenCalledWith(
+        expect.objectContaining({ sourceText: ocrText }),
+      );
+    },
+  );
 
   it.each(["running", "succeeded"] as const)(
     "returns an existing %s job without rerunning",
