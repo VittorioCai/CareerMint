@@ -128,6 +128,45 @@ describe("InterviewQuestionGenerationControl", () => {
     );
   });
 
+  it("hydrates newly generated candidates from refreshed server props without a second POST", async () => {
+    const request = vi.fn().mockResolvedValue(
+      Response.json({ runId, status: "succeeded", reused: false, errorCode: null }),
+    );
+    const refresh = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <InterviewQuestionGenerationControl
+        applicationId={applicationId}
+        initialRun={null}
+        initialCandidates={[]}
+        acceptCandidates={acceptAction}
+        rejectCandidates={rejectAction}
+        request={request}
+        refresh={refresh}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "生成岗位增量题" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(request).toHaveBeenCalledOnce();
+
+    rerender(
+      <InterviewQuestionGenerationControl
+        applicationId={applicationId}
+        initialRun={run}
+        initialCandidates={[candidate]}
+        acceptCandidates={acceptAction}
+        rejectCandidates={rejectAction}
+        request={request}
+        refresh={refresh}
+      />,
+    );
+
+    expect(screen.getByText(candidate.prompt)).toBeVisible();
+    expect(screen.getByRole("checkbox", { name: candidate.prompt })).toBeEnabled();
+    expect(request).toHaveBeenCalledOnce();
+  });
+
   it("accepts and rejects only checked pending candidates", async () => {
     const user = userEvent.setup();
     cleanup();
@@ -150,6 +189,7 @@ describe("InterviewQuestionGenerationControl", () => {
     const acceptedForm = acceptAction.mock.calls[0][0] as FormData;
     expect(acceptedForm.get("applicationId")).toBe(applicationId);
     expect(acceptedForm.getAll("candidateIds")).toEqual([candidateId]);
+    expect(screen.getByText("已加入题库")).toBeVisible();
 
     cleanup();
     render(
@@ -165,6 +205,30 @@ describe("InterviewQuestionGenerationControl", () => {
     await user.click(screen.getByRole("checkbox", { name: /How would you prioritize/ }));
     await user.click(screen.getByRole("button", { name: "暂不加入" }));
     await waitFor(() => expect(rejectAction).toHaveBeenCalled());
+    expect(screen.getByText("已跳过")).toBeVisible();
+  });
+
+  it("does not mark every selected candidate rejected when the RPC count is partial", async () => {
+    const user = userEvent.setup();
+    const refresh = vi.fn();
+    const partialReject = vi.fn().mockResolvedValue({ ok: true, rejectedCount: 0 });
+    render(
+      <InterviewQuestionGenerationControl
+        applicationId={applicationId}
+        initialRun={run}
+        initialCandidates={[candidate]}
+        acceptCandidates={acceptAction}
+        rejectCandidates={partialReject}
+        request={vi.fn()}
+        refresh={refresh}
+      />,
+    );
+
+    await user.click(screen.getByRole("checkbox", { name: candidate.prompt }));
+    await user.click(screen.getByRole("button", { name: "暂不加入" }));
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(screen.getByText("待决定")).toBeVisible();
+    expect(screen.getByText(/状态已刷新/)).toBeVisible();
   });
 
   it("shows consent, reused, duplicate, failure, and cost states safely", async () => {

@@ -15,6 +15,10 @@ type BoundAction = (
   formData: FormData,
 ) => Promise<InterviewGenerationActionState>;
 
+type CandidateOverride = Partial<
+  Pick<InterviewQuestionGenerationCandidateRecord, "status" | "questionId">
+>;
+
 const failureMessages: Record<string, string> = {
   "interview-question-generation-unavailable": "AI 暂未配置，岗位资料已保留。",
   "interview-question-generation-invalid-output": "AI 返回内容未通过安全校验，请重新尝试。",
@@ -72,10 +76,16 @@ export function InterviewQuestionGenerationControl({
   const router = useRouter();
   const [busy, setBusy] = useState<"generate" | "accept" | "reject" | null>(null);
   const run = initialRun;
-  const [candidates, setCandidates] = useState(initialCandidates);
+  const [candidateOverrides, setCandidateOverrides] = useState<
+    Record<string, CandidateOverride>
+  >({});
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const candidates = initialCandidates.map((candidate) => ({
+    ...candidate,
+    ...candidateOverrides[candidate.id],
+  }));
 
   async function generate() {
     if (busy || consentRequired) return;
@@ -140,20 +150,20 @@ export function InterviewQuestionGenerationControl({
       const newCount = result.accepted.filter((item) => item.disposition === "new").length;
       const reusedCount = result.accepted.filter((item) => item.disposition === "reused").length;
       const duplicateCount = result.accepted.filter((item) => item.disposition === "duplicate-common").length;
-      const decisions = new Map(
-        result.accepted.map((item) => [item.candidateId, item]),
-      );
-      setCandidates((current) =>
-        current.map((candidate) => {
-          const decision = decisions.get(candidate.id);
-          if (!decision) return candidate;
-          return {
-            ...candidate,
-            status: decision.disposition === "duplicate-common" ? "rejected" : "accepted",
-            questionId: decision.questionId ?? candidate.questionId,
+      setCandidateOverrides((current) => {
+        const next = { ...current };
+        for (const decision of result.accepted) {
+          next[decision.candidateId] = {
+            ...next[decision.candidateId],
+            status:
+              decision.disposition === "duplicate-common"
+                ? "rejected"
+                : "accepted",
+            questionId: decision.questionId,
           };
-        }),
-      );
+        }
+        return next;
+      });
       setSelected(new Set());
       setSuccess(`已处理 ${result.accepted.length} 道：新增 ${newCount}，复用 ${reusedCount}，通用题重复 ${duplicateCount}。`);
       (refresh ?? router.refresh)();
@@ -179,11 +189,22 @@ export function InterviewQuestionGenerationControl({
         setError("暂时无法跳过候选题，请稍后重试。");
         return;
       }
-      setCandidates((current) =>
-        current.map((candidate) =>
-          selected.has(candidate.id) ? { ...candidate, status: "rejected" } : candidate,
-        ),
-      );
+      if (result.rejectedCount !== selected.size) {
+        setSelected(new Set());
+        setSuccess("候选状态已刷新，请重新确认当前列表。");
+        (refresh ?? router.refresh)();
+        return;
+      }
+      setCandidateOverrides((current) => {
+        const next = { ...current };
+        for (const candidateId of selected) {
+          next[candidateId] = {
+            ...next[candidateId],
+            status: "rejected",
+          };
+        }
+        return next;
+      });
       setSelected(new Set());
       setSuccess(`已跳过 ${result.rejectedCount} 道候选题。`);
       (refresh ?? router.refresh)();
