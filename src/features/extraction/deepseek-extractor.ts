@@ -105,6 +105,60 @@ function mapUsage(
   };
 }
 
+const monthYearDatePattern = /^(0[1-9]|1[0-2])\/(\d{4})$/;
+
+function normalizeResumeDate(value: unknown) {
+  if (typeof value !== "string") return value;
+
+  const trimmed = value.trim();
+  if (/^(present|current|now)$/i.test(trimmed)) return null;
+
+  const monthYear = monthYearDatePattern.exec(trimmed);
+  if (monthYear) return `${monthYear[2]}-${monthYear[1]}`;
+
+  return value;
+}
+
+function normalizeResumeExtractionDates(value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const record = value as { facts?: unknown };
+  if (!Array.isArray(record.facts)) return value;
+
+  return {
+    ...record,
+    facts: record.facts.map((fact) => {
+      if (!fact || typeof fact !== "object" || Array.isArray(fact)) {
+        return fact;
+      }
+
+      const factRecord = fact as { data?: unknown };
+      if (
+        !factRecord.data ||
+        typeof factRecord.data !== "object" ||
+        Array.isArray(factRecord.data)
+      ) {
+        return fact;
+      }
+
+      const data = factRecord.data as {
+        startDate?: unknown;
+        endDate?: unknown;
+      };
+      return {
+        ...factRecord,
+        data: {
+          ...data,
+          startDate: normalizeResumeDate(data.startDate),
+          endDate: normalizeResumeDate(data.endDate),
+        },
+      };
+    }),
+  };
+}
+
 function httpError(status: number) {
   if (status === 401) return "ai-provider-authentication-failed";
   if (status === 429) return "ai-provider-rate-limited";
@@ -155,12 +209,14 @@ export function createDeepSeekAIProvider(
     outputSchema,
     invalidOutputError,
     maxTokens,
+    preprocess,
   }: {
     systemInstructions: string;
     userContent: string;
     outputSchema: z.ZodType<Output>;
     invalidOutputError: string;
     maxTokens: number;
+    preprocess?: (value: unknown) => unknown;
   }): Promise<AIResult<Output>> {
     const startedAt = performance.now();
     let status: number | null = null;
@@ -213,7 +269,9 @@ export function createDeepSeekAIProvider(
         throw new AdapterError(invalidOutputError, true);
       }
 
-      const extraction = outputSchema.safeParse(rawExtraction);
+      const extraction = outputSchema.safeParse(
+        preprocess ? preprocess(rawExtraction) : rawExtraction,
+      );
       if (!extraction.success) {
         throw new AdapterError(invalidOutputError, true);
       }
@@ -290,6 +348,7 @@ export function createDeepSeekAIProvider(
             outputSchema: resumeExtractionSchema,
             invalidOutputError,
             maxTokens: 4096,
+            preprocess: normalizeResumeExtractionDates,
           }),
         invalidOutputError,
       );
