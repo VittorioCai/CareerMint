@@ -111,7 +111,7 @@ export const POST = createSourceAssetExtractPostHandler({
   getAIProcessingConsentAt,
   createOrGetJob,
   providerFactory: configuredProvider,
-  async runExtraction({ userId, job, asset, provider }) {
+  async runExtraction({ userId, job, asset, provider, sourceText }) {
     const now = new Date();
     return createResumeExtractionService({
       jobs: { claimJob, getOwnedJob, succeedJob, failJob },
@@ -121,6 +121,6 @@ export const POST = createSourceAssetExtractPostHandler({
       provider,
       priceSchedule: configuredPriceSchedule(now),
       clock: () => now,
-    }).run({ userId, job, asset });
+    }).run({ userId, job, asset, sourceText });
   },
 });

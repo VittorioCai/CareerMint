@@ -9,6 +9,7 @@ import type {
 import { verifyCandidateEvidence } from "./evidence";
 import type { AIProvider, AIUsage } from "./provider";
 import type { ExtractedFact } from "./schemas";
+import { normalizeResumeText } from "@/features/source-assets/parsers";
 
 export type { ExtractedFact } from "./schemas";
 
@@ -91,6 +92,7 @@ export function createResumeExtractionService(
       userId: string;
       job: ProcessingJob;
       asset: ResumeExtractionAsset;
+      sourceText?: string;
     }): Promise<ProcessingJob> {
       const claimed = await dependencies.jobs.claimJob(input.job.id);
       if (!claimed) {
@@ -109,21 +111,26 @@ export function createResumeExtractionService(
           "extracting",
           null,
         );
-        const source = await dependencies.storage.download(
-          input.asset.storagePath,
-        );
-        const sourceText = await dependencies.parser(
-          Buffer.from(await source.arrayBuffer()),
-          input.asset.contentType,
-        );
+        let resumeText: string;
+        if (input.sourceText !== undefined) {
+          resumeText = normalizeResumeText(input.sourceText);
+        } else {
+          const source = await dependencies.storage.download(
+            input.asset.storagePath,
+          );
+          resumeText = await dependencies.parser(
+            Buffer.from(await source.arrayBuffer()),
+            input.asset.contentType,
+          );
+        }
         const aiResult = await dependencies.provider.extractResumeFacts(
-          sourceText,
+          resumeText,
         );
         const acceptedFacts: ExtractedFact[] = [];
         let rejectedCount = 0;
 
         for (const candidate of aiResult.data.facts) {
-          if (verifyCandidateEvidence(sourceText, candidate.sourceExcerpt)) {
+          if (verifyCandidateEvidence(resumeText, candidate.sourceExcerpt)) {
             acceptedFacts.push(candidate);
           } else {
             rejectedCount += 1;

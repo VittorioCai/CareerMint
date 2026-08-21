@@ -1,9 +1,12 @@
 // @vitest-environment node
 
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { ExtractedFact } from "./service";
 import { createResumeExtractionService } from "./service";
+import { extractResumeText } from "@/features/source-assets/parsers";
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const jobId = "33333333-3333-4333-8333-333333333333";
@@ -120,6 +123,26 @@ const syntheticSchedule = {
 };
 
 describe("resume extraction service", () => {
+  it("preserves resume-text-too-short from the real scanned PDF parser", async () => {
+    const fakes = createFakes([]);
+    const scannedPdf = await readFile("tests/fixtures/resume-scanned.pdf");
+    fakes.storage.download.mockResolvedValue(new Blob([scannedPdf]));
+    fakes.parser.mockImplementation((buffer, contentType) => {
+      expect(contentType).toBe("application/pdf");
+      return extractResumeText(buffer, contentType);
+    });
+    const service = createResumeExtractionService({ ...fakes });
+
+    const failed = await service.run({ userId, job, asset });
+    expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+      jobId,
+      assetId,
+      errorCode: "resume-text-too-short",
+      errorMessage: "简历处理失败，请稍后重试。",
+    });
+    expect(failed.errorCode).toBe("resume-text-too-short");
+  });
+
   it("claims once, rejects unsupported evidence, and persists safe metadata", async () => {
     const supported = fact(
       "Improved checkout conversion by 18% through funnel analysis.",
@@ -220,4 +243,109 @@ describe("resume extraction service", () => {
     );
     expect(failed.status).toBe("failed");
   });
+
+  it("uses supplied OCR text without downloading or parsing, while checking evidence", async () => {
+    const supported = fact(
+      "Improved checkout conversion by 18% through funnel analysis.",
+    );
+    const invented = fact("Invented achievement not present in the resume.");
+    const fakes = createFakes([supported, invented]);
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const service = createResumeExtractionService({
+      ...fakes,
+      priceSchedule: syntheticSchedule,
+      clock: () => new Date("2026-08-14T12:00:00.000Z"),
+    });
+
+    const completed = await service.run({ userId, job, asset, sourceText: ocrText });
+
+    expect(fakes.storage.download).not.toHaveBeenCalled();
+    expect(fakes.parser).not.toHaveBeenCalled();
+    expect(fakes.provider.extractResumeFacts).toHaveBeenCalledWith(ocrText);
+    expect(fakes.jobs.succeedJob).toHaveBeenCalledOnce();
+    expect(completed.result?.acceptedCount).toBe(1);
+    expect(completed.result?.rejectedCount).toBe(1);
+    expect(JSON.stringify(completed.result)).not.toContain(ocrText);
+  });
+
+  it("sanitizes OCR processing errors without persisting source text", async () => {
+    const fakes = createFakes([]);
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    fakes.provider.extractResumeFacts.mockRejectedValue(
+      new Error(`provider failed: ${ocrText}`),
+    );
+    const service = createResumeExtractionService({ ...fakes });
+
+    const failed = await service.run({ userId, job, asset, sourceText: ocrText });
+
+    expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+      jobId,
+      assetId,
+      errorCode: "resume-extraction-failed",
+      errorMessage: "简历处理失败，请稍后重试。",
+    });
+    expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(ocrText);
+    expect(failed.status).toBe("failed");
+  });
+
+  it("normalizes supplied OCR text before provider and evidence processing", async () => {
+    const supported = fact(
+      "Improved checkout conversion by 18% through funnel analysis.",
+    );
+    const fakes = createFakes([supported]);
+    const rawOCRText =
+      " Product Analyst\r\n  Improved checkout conversion by 18% through funnel analysis.  ";
+    const normalizedOCRText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const service = createResumeExtractionService({ ...fakes });
+
+    const completed = await service.run({
+      userId,
+      job,
+      asset,
+      sourceText: rawOCRText,
+    });
+
+    expect(fakes.storage.download).not.toHaveBeenCalled();
+    expect(fakes.parser).not.toHaveBeenCalled();
+    expect(fakes.provider.extractResumeFacts).toHaveBeenCalledWith(
+      normalizedOCRText,
+    );
+    expect(fakes.jobs.succeedJob).toHaveBeenCalledOnce();
+    expect(completed.status).toBe("succeeded");
+  });
+
+  it.each([
+    ["blank", "   \r\n   ", "resume-text-too-short"],
+    ["too long", "x".repeat(100_001), "resume-text-too-long"],
+  ])(
+    "safely fails invalid supplied OCR text (%s) without storage or provider calls",
+    async (_name, invalidOCRText, errorCode) => {
+      const fakes = createFakes([]);
+      const service = createResumeExtractionService({ ...fakes });
+
+      const failed = await service.run({
+        userId,
+        job,
+        asset,
+        sourceText: invalidOCRText,
+      });
+
+      expect(fakes.storage.download).not.toHaveBeenCalled();
+      expect(fakes.parser).not.toHaveBeenCalled();
+      expect(fakes.provider.extractResumeFacts).not.toHaveBeenCalled();
+      expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+        jobId,
+        assetId,
+        errorCode,
+        errorMessage: "简历处理失败，请稍后重试。",
+      });
+      expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(
+        invalidOCRText,
+      );
+      expect(failed.status).toBe("failed");
+    },
+  );
 });
