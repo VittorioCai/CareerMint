@@ -114,6 +114,109 @@ describe("POST /api/source-assets/[id]/extract", () => {
     expect(fakes.provider.extractResumeFacts).toHaveBeenCalledOnce();
   });
 
+  it("accepts valid OCR text with a versioned OCR idempotency key", async () => {
+    const fakes = createFakes();
+    fakes.getAIProcessingConsentAt.mockResolvedValue(
+      "2026-08-14T00:00:00.000Z",
+    );
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ocrText }),
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    const responseBody = await response.text();
+    expect(responseBody).not.toContain(ocrText);
+    expect(fakes.createOrGetJob).toHaveBeenCalledWith(
+      assetId,
+      `source-asset:${assetId}:resume-extract:ocr:v1`,
+    );
+    expect(fakes.runExtraction).toHaveBeenCalledWith(
+      expect.objectContaining({ sourceText: ocrText }),
+    );
+  });
+
+  it.each([
+    ["malformed JSON", "{", "application/json"],
+    ["non-string OCR text", JSON.stringify({ ocrText: 42 }), "application/json"],
+    ["short OCR text", JSON.stringify({ ocrText: "too short" }), "application/json"],
+    [
+      "long OCR text",
+      JSON.stringify({ ocrText: "x".repeat(100_001) }),
+      "application/json",
+    ],
+  ])(
+    "rejects %s before creating a job or provider",
+    async (_name, body, contentType) => {
+      const fakes = createFakes();
+      fakes.getAIProcessingConsentAt.mockResolvedValue(
+        "2026-08-14T00:00:00.000Z",
+      );
+      const post = createSourceAssetExtractPostHandler(fakes);
+
+      const response = await post(
+        new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+          method: "POST",
+          headers: { "content-type": contentType },
+          body,
+        }),
+        context(),
+      );
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toEqual({
+        error: "invalid-ocr-text",
+      });
+      expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+      expect(fakes.providerFactory).not.toHaveBeenCalled();
+      expect(fakes.runExtraction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("treats an empty or non-JSON request as legacy extraction", async () => {
+    const fakes = createFakes();
+    fakes.getAIProcessingConsentAt.mockResolvedValue(
+      "2026-08-14T00:00:00.000Z",
+    );
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    for (const request of [
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+      }),
+      new Request(`http://localhost/api/source-assets/${assetId}/extract`, {
+        method: "POST",
+        headers: { "content-type": "text/plain" },
+        body: "not JSON",
+      }),
+    ]) {
+      const response = await post(request, context());
+      expect(response.status).toBe(200);
+    }
+
+    expect(fakes.createOrGetJob).toHaveBeenNthCalledWith(
+      1,
+      assetId,
+      `source-asset:${assetId}:resume-extract:v1`,
+    );
+    expect(fakes.createOrGetJob).toHaveBeenNthCalledWith(
+      2,
+      assetId,
+      `source-asset:${assetId}:resume-extract:v1`,
+    );
+    expect(fakes.runExtraction).toHaveBeenCalledWith(
+      expect.not.objectContaining({ sourceText: expect.anything() }),
+    );
+  });
+
   it.each(["running", "succeeded"] as const)(
     "returns an existing %s job without rerunning",
     async (status) => {

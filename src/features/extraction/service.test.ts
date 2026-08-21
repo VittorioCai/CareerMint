@@ -220,4 +220,50 @@ describe("resume extraction service", () => {
     );
     expect(failed.status).toBe("failed");
   });
+
+  it("uses supplied OCR text without downloading or parsing, while checking evidence", async () => {
+    const supported = fact(
+      "Improved checkout conversion by 18% through funnel analysis.",
+    );
+    const invented = fact("Invented achievement not present in the resume.");
+    const fakes = createFakes([supported, invented]);
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const service = createResumeExtractionService({
+      ...fakes,
+      priceSchedule: syntheticSchedule,
+      clock: () => new Date("2026-08-14T12:00:00.000Z"),
+    });
+
+    const completed = await service.run({ userId, job, asset, sourceText: ocrText });
+
+    expect(fakes.storage.download).not.toHaveBeenCalled();
+    expect(fakes.parser).not.toHaveBeenCalled();
+    expect(fakes.provider.extractResumeFacts).toHaveBeenCalledWith(ocrText);
+    expect(fakes.jobs.succeedJob).toHaveBeenCalledOnce();
+    expect(completed.result?.acceptedCount).toBe(1);
+    expect(completed.result?.rejectedCount).toBe(1);
+    expect(JSON.stringify(completed.result)).not.toContain(ocrText);
+  });
+
+  it("sanitizes OCR processing errors without persisting source text", async () => {
+    const fakes = createFakes([]);
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    fakes.provider.extractResumeFacts.mockRejectedValue(
+      new Error(`provider failed: ${ocrText}`),
+    );
+    const service = createResumeExtractionService({ ...fakes });
+
+    const failed = await service.run({ userId, job, asset, sourceText: ocrText });
+
+    expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+      jobId,
+      assetId,
+      errorCode: "resume-extraction-failed",
+      errorMessage: "简历处理失败，请稍后重试。",
+    });
+    expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(ocrText);
+    expect(failed.status).toBe("failed");
+  });
 });

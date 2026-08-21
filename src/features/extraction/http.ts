@@ -6,6 +6,7 @@ import type {
   ProcessingJob,
 } from "@/features/jobs/repository";
 import { sourceAssetIdSchema } from "@/features/source-assets/schemas";
+import { normalizeResumeText } from "@/features/source-assets/parsers";
 
 export type SourceAssetExtractPostDependencies = {
   getCurrentUser(): Promise<{ id: string } | null>;
@@ -24,14 +25,64 @@ export type SourceAssetExtractPostDependencies = {
     job: ProcessingJob;
     asset: ResumeExtractionAsset;
     provider: Pick<AIProvider, "extractResumeFacts">;
+    sourceText?: string;
   }): Promise<ProcessingJob>;
 };
+
+class InvalidOCRTextError extends Error {
+  constructor() {
+    super("invalid-ocr-text");
+    this.name = "InvalidOCRTextError";
+  }
+}
+
+async function readOptionalOCRText(request: Request) {
+  const contentType = request.headers.get("content-type")?.split(";", 1)[0]
+    .trim()
+    .toLowerCase();
+  if (contentType !== "application/json") return undefined;
+
+  const body = await request.text();
+  if (!body.trim()) return undefined;
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(body);
+  } catch {
+    throw new InvalidOCRTextError();
+  }
+
+  if (
+    typeof parsed !== "object" ||
+    parsed === null ||
+    Array.isArray(parsed) ||
+    !Object.prototype.hasOwnProperty.call(parsed, "ocrText")
+  ) {
+    return undefined;
+  }
+
+  const ocrText = (parsed as { ocrText?: unknown }).ocrText;
+  if (typeof ocrText !== "string") throw new InvalidOCRTextError();
+
+  try {
+    return normalizeResumeText(ocrText);
+  } catch (error) {
+    if (
+      error instanceof Error &&
+      (error.message === "resume-text-too-short" ||
+        error.message === "resume-text-too-long")
+    ) {
+      throw new InvalidOCRTextError();
+    }
+    throw error;
+  }
+}
 
 export function createSourceAssetExtractPostHandler(
   dependencies: SourceAssetExtractPostDependencies,
 ) {
   return async function post(
-    _request: Request,
+    request: Request,
     context: { params: Promise<{ id: string }> },
   ) {
     const user = await dependencies.getCurrentUser();
@@ -63,7 +114,19 @@ export function createSourceAssetExtractPostHandler(
         );
       }
 
-      const idempotencyKey = `source-asset:${asset.id}:resume-extract:v1`;
+      let sourceText: string | undefined;
+      try {
+        sourceText = await readOptionalOCRText(request);
+      } catch (error) {
+        if (error instanceof InvalidOCRTextError) {
+          return Response.json({ error: "invalid-ocr-text" }, { status: 400 });
+        }
+        throw error;
+      }
+
+      const idempotencyKey = sourceText
+        ? `source-asset:${asset.id}:resume-extract:ocr:v1`
+        : `source-asset:${asset.id}:resume-extract:v1`;
       const job = await dependencies.createOrGetJob(
         asset.id,
         idempotencyKey,
@@ -77,6 +140,7 @@ export function createSourceAssetExtractPostHandler(
         job,
         asset,
         provider: dependencies.providerFactory(),
+        ...(sourceText === undefined ? {} : { sourceText }),
       });
       return Response.json({ jobId: completed.id, status: completed.status });
     } catch {
