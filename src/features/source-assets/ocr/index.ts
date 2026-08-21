@@ -11,6 +11,7 @@ export {
 } from "./runner";
 
 import type { ScannedPdfOcrOptions } from "./types";
+import { raceWithAbort } from "./abort";
 import { createBrowserOcrAdapter, createBrowserPdfAdapter } from "./browser";
 import { runScannedPdfOcr } from "./runner";
 
@@ -33,6 +34,7 @@ export async function extractScannedPdfText(
   options: ScannedPdfOcrOptions = {},
 ) {
   try {
+    const data = new Uint8Array(await raceWithAbort(file.arrayBuffer(), options.signal));
     const [pdfjs, paddle] = await Promise.all([
       import("pdfjs-dist/build/pdf.mjs"),
       import("@paddleocr/paddleocr-js"),
@@ -46,7 +48,7 @@ export async function extractScannedPdfText(
       ocr: createBrowserOcrAdapter({ createPaddleModule: async () => paddle }),
     };
     return await runScannedPdfOcr(
-      new Uint8Array(await file.arrayBuffer()),
+      data,
       dependencies,
       options,
     );

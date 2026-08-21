@@ -59,12 +59,12 @@ describe("createBrowserOcrAdapter", () => {
 
 function makePdfJsPage(page: {
   getViewport: (options: { scale: number }) => { width: number; height: number };
-  render?: () => { promise: Promise<void> };
+  render?: () => { promise: Promise<void>; cancel?: () => void };
   cleanup: ReturnType<typeof vi.fn>;
 }) {
   return {
     getViewport: vi.fn(page.getViewport),
-    render: page.render ?? vi.fn(() => ({ promise: Promise.resolve() })),
+    render: page.render ?? vi.fn(() => ({ promise: Promise.resolve(), cancel: vi.fn() })),
     cleanup: page.cleanup,
   };
 }
@@ -86,6 +86,14 @@ function makePdfJs(page: object) {
 
 describe("createBrowserPdfAdapter", () => {
   afterEach(() => vi.restoreAllMocks());
+
+  async function expectAbortQuickly<T>(promise: Promise<T>, controller: AbortController) {
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("abort timed out")), 100);
+    });
+    controller.abort();
+    await expect(Promise.race([promise, timeout])).rejects.toMatchObject({ name: "AbortError" });
+  }
 
   it("cleans up a page when viewport setup throws", async () => {
     const cleanup = vi.fn();
@@ -151,5 +159,134 @@ describe("createBrowserPdfAdapter", () => {
 
     await expect(document.renderPage(1)).rejects.toThrow("render failed");
     expect(cleanup).toHaveBeenCalledOnce();
+  });
+
+  it("aborts PDF loading promptly and destroys the loading task", async () => {
+    const controller = new AbortController();
+    const destroy = vi.fn();
+    const pdfjs = {
+      getDocument: vi.fn(() => ({
+        promise: new Promise<never>(() => undefined),
+        destroy,
+      })),
+      GlobalWorkerOptions: { workerSrc: "" },
+    };
+
+    await expectAbortQuickly(
+      createBrowserPdfAdapter(pdfjs).open(new Uint8Array(), controller.signal),
+      controller,
+    );
+    expect(destroy).toHaveBeenCalledOnce();
+  });
+
+  it("aborts PDF rendering promptly and cancels the render task", async () => {
+    const controller = new AbortController();
+    const cancel = vi.fn();
+    const cleanup = vi.fn();
+    const page = makePdfJsPage({
+      getViewport: () => ({ width: 100, height: 100 }),
+      render: vi.fn(() => ({ promise: new Promise<never>(() => undefined), cancel })),
+      cleanup,
+    });
+    vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue(
+      {} as CanvasRenderingContext2D,
+    );
+    const document = await createBrowserPdfAdapter(makePdfJs(page)).open(new Uint8Array());
+
+    const rendering = document.renderPage(1, controller.signal);
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    await expectAbortQuickly(rendering, controller);
+    expect(cancel).toHaveBeenCalledOnce();
+    expect(cleanup).toHaveBeenCalledOnce();
+  });
+});
+
+describe("browser PaddleOCR aborts", () => {
+  beforeEach(() => resetBrowserOcrModelForTests());
+  afterEach(() => resetBrowserOcrModelForTests());
+
+  it("aborts model initialization promptly", async () => {
+    const controller = new AbortController();
+    const create = vi.fn(() => new Promise<never>(() => undefined));
+    const adapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("abort timed out")), 100);
+    });
+
+    controller.abort();
+    await expect(Promise.race([adapter.initialize(controller.signal), timeout])).rejects.toMatchObject({
+      name: "AbortError",
+    });
+  });
+
+  it("aborts prediction promptly and disposes the current model", async () => {
+    const controller = new AbortController();
+    const dispose = vi.fn(async () => undefined);
+    const instance = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(() => new Promise<never>(() => undefined)),
+      dispose,
+    };
+    const create = vi.fn(async () => instance);
+    const adapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    await adapter.initialize();
+    const image = {
+      page: 1,
+      width: 1,
+      height: 1,
+      source: document.createElement("canvas"),
+      release: vi.fn(),
+    };
+    const timeout = new Promise<never>((_, reject) => {
+      setTimeout(() => reject(new Error("abort timed out")), 100);
+    });
+
+    controller.abort();
+    await expect(Promise.race([adapter.recognize(image, controller.signal), timeout])).rejects.toMatchObject({
+      name: "AbortError",
+    });
+    expect(dispose).toHaveBeenCalledOnce();
+  });
+
+  it("clears a failed model generation before the next adapter initializes", async () => {
+    const disposeFirst = vi.fn(async () => undefined);
+    const disposeSecond = vi.fn(async () => undefined);
+    const first = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(async () => {
+        throw new Error("fatal predict");
+      }),
+      dispose: disposeFirst,
+    };
+    const second = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(async () => [{ items: [] }]),
+      dispose: disposeSecond,
+    };
+    const create = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const firstAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const secondAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const image = {
+      page: 1,
+      width: 1,
+      height: 1,
+      source: document.createElement("canvas"),
+      release: vi.fn(),
+    };
+
+    await firstAdapter.initialize();
+    await expect(firstAdapter.recognize(image)).rejects.toThrow("fatal predict");
+    expect(disposeFirst).toHaveBeenCalledOnce();
+    await secondAdapter.initialize();
+    await expect(secondAdapter.recognize(image)).resolves.toEqual({ items: [] });
+    expect(create).toHaveBeenCalledTimes(2);
   });
 });

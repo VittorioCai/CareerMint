@@ -1,23 +1,25 @@
 import { normalizeResumeText } from "../parsers/normalize";
+import { createAbortError } from "./abort";
 import type { ScannedPdfOcrOptions } from "./types";
 
 export type { OcrProgress, ScannedPdfOcrOptions } from "./types";
 
-export interface PdfPageImage {
+export interface PdfPageImage<TSource = unknown> {
   page: number;
   width: number;
   height: number;
+  source: TSource;
   release: () => void | Promise<void>;
 }
 
 export interface PdfDocumentAdapter {
   numPages: number;
-  renderPage: (page: number) => Promise<PdfPageImage>;
+  renderPage: (page: number, signal?: AbortSignal) => Promise<PdfPageImage>;
   destroy: () => void | Promise<void>;
 }
 
 export interface PdfAdapter {
-  open: (data: Uint8Array) => Promise<PdfDocumentAdapter>;
+  open: (data: Uint8Array, signal?: AbortSignal) => Promise<PdfDocumentAdapter>;
 }
 
 export interface OcrRecognitionItem {
@@ -26,8 +28,11 @@ export interface OcrRecognitionItem {
 }
 
 export interface OcrAdapter {
-  initialize: () => void | Promise<void>;
-  recognize: (image: PdfPageImage) => Promise<{ items: OcrRecognitionItem[] }>;
+  initialize: (signal?: AbortSignal) => void | Promise<void>;
+  recognize: (
+    image: PdfPageImage,
+    signal?: AbortSignal,
+  ) => Promise<{ items: OcrRecognitionItem[] }>;
   dispose: () => void | Promise<void>;
 }
 
@@ -37,15 +42,11 @@ export interface OcrRunnerDependencies {
 }
 
 function abortError() {
-  return new DOMException("The OCR operation was aborted.", "AbortError");
+  return createAbortError();
 }
 
 function throwIfAborted(signal?: AbortSignal) {
   if (signal?.aborted) throw abortError();
-}
-
-async function disposeResource(resource: void | Promise<void>) {
-  await resource;
 }
 
 /**
@@ -61,8 +62,11 @@ export async function runScannedPdfOcr(
   throwIfAborted(signal);
 
   let document: PdfDocumentAdapter | undefined;
+  let primaryError: unknown;
+  let result: string | undefined;
+  const cleanupErrors: unknown[] = [];
   try {
-    document = await dependencies.pdf.open(data);
+    document = await dependencies.pdf.open(data, signal);
     throwIfAborted(signal);
 
     if (document.numPages > 10) {
@@ -70,7 +74,7 @@ export async function runScannedPdfOcr(
     }
 
     onProgress?.({ phase: "loading-model" });
-    await dependencies.ocr.initialize();
+    await dependencies.ocr.initialize(signal);
     throwIfAborted(signal);
 
     const pageText: string[] = [];
@@ -78,26 +82,49 @@ export async function runScannedPdfOcr(
       throwIfAborted(signal);
       onProgress?.({ phase: "recognizing", page, totalPages: document.numPages });
 
-      const image = await document.renderPage(page);
+      const image = await document.renderPage(page, signal);
       try {
         throwIfAborted(signal);
-        const result = await dependencies.ocr.recognize(image);
+        const recognized = await dependencies.ocr.recognize(image, signal);
         throwIfAborted(signal);
         pageText.push(
-          result.items
+          recognized.items
             .filter((item) => item.score >= 0.35 && item.text.trim().length > 0)
             .map((item) => item.text.trim())
             .join("\n"),
         );
       } finally {
-        await disposeResource(image.release());
+        try {
+          await image.release();
+        } catch (error) {
+          cleanupErrors.push(error);
+        }
       }
     }
 
     throwIfAborted(signal);
-    return normalizeResumeText(pageText.join("\n"));
-  } finally {
-    if (document) await disposeResource(document.destroy());
-    await disposeResource(dependencies.ocr.dispose());
+    result = normalizeResumeText(pageText.join("\n"));
+  } catch (error) {
+    primaryError = error;
   }
+
+  if (document) {
+    try {
+      await document.destroy();
+    } catch (error) {
+      cleanupErrors.push(error);
+    }
+  }
+  try {
+    await dependencies.ocr.dispose();
+  } catch (error) {
+    cleanupErrors.push(error);
+  }
+
+  if (primaryError) throw primaryError;
+  if (cleanupErrors.length > 0) throw cleanupErrors[0];
+  if (result === undefined) {
+    throw new Error("resume-ocr-unavailable");
+  }
+  return result;
 }

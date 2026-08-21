@@ -20,11 +20,12 @@ function makeDependencies({
 }: {
   pages?: Array<Array<{ text: string; score: number }>>;
   onRecognize?: (page: number) => void;
-} = {}): OcrRunnerDependencies & { document: PdfDocumentAdapter } {
+} = {}): OcrRunnerDependencies & { document: PdfDocumentAdapter; images: PdfPageImage[] } {
   const images: PdfPageImage[] = pages.map((_, index) => ({
     page: index + 1,
     width: 100,
     height: 100,
+    source: { page: index + 1 },
     release: vi.fn(),
   }));
   const document: PdfDocumentAdapter = {
@@ -46,6 +47,7 @@ function makeDependencies({
       dispose: vi.fn(),
     },
     document,
+    images,
   };
 }
 
@@ -141,6 +143,41 @@ describe("runScannedPdfOcr", () => {
 
     await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
       "recognition failed",
+    );
+    expect(dependencies.document.destroy).toHaveBeenCalledOnce();
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("preserves a short-text error when PDF cleanup also fails", async () => {
+    const dependencies = makeDependencies({ pages: [[{ text: "short", score: 1 }]] });
+    vi.mocked(dependencies.document.destroy).mockRejectedValueOnce(new Error("destroy failed"));
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
+      "resume-text-too-short",
+    );
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("preserves a recognition error when image cleanup fails", async () => {
+    const dependencies = makeDependencies();
+    vi.mocked(dependencies.ocr.recognize).mockRejectedValueOnce(new Error("recognition failed"));
+    vi.mocked(dependencies.images[0].release).mockRejectedValueOnce(new Error("release failed"));
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
+      "recognition failed",
+    );
+    expect(dependencies.document.destroy).toHaveBeenCalledOnce();
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
+  it("reports a cleanup error when OCR succeeds but cleanup fails", async () => {
+    const dependencies = makeDependencies({ pages: [[{ text: LONG_TEXT, score: 1 }]] });
+    vi.mocked(dependencies.images[0].release).mockRejectedValueOnce(new Error("release failed"));
+    vi.mocked(dependencies.document.destroy).mockRejectedValueOnce(new Error("destroy failed"));
+    vi.mocked(dependencies.ocr.dispose).mockRejectedValueOnce(new Error("dispose failed"));
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toThrow(
+      "release failed",
     );
     expect(dependencies.document.destroy).toHaveBeenCalledOnce();
     expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();

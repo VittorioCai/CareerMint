@@ -1,11 +1,12 @@
 import type { PdfAdapter, PdfDocumentAdapter, PdfPageImage } from "./runner";
+import { raceWithAbort } from "./abort";
 
 interface PdfJsPage {
   getViewport: (options: { scale: number }) => { width: number; height: number };
   render: (options: {
     canvasContext: CanvasRenderingContext2D;
     viewport: { width: number; height: number };
-  }) => { promise: Promise<void> };
+  }) => { promise: Promise<void>; cancel: () => void };
   cleanup: () => void;
 }
 
@@ -30,13 +31,19 @@ const MAX_LONGEST_SIDE = 2_400;
 
 export function createBrowserPdfAdapter(pdfjs: PdfJsModule): PdfAdapter {
   return {
-    async open(data) {
+    async open(data, signal) {
       const loadingTask = pdfjs.getDocument({ data });
+      let destroyed = false;
+      const destroyLoadingTask = () => {
+        if (destroyed) return;
+        destroyed = true;
+        return loadingTask.destroy();
+      };
       let document: PdfJsDocument;
       try {
-        document = (await loadingTask.promise) as PdfJsDocument;
+        document = (await raceWithAbort(loadingTask.promise, signal, destroyLoadingTask)) as PdfJsDocument;
       } catch (error) {
-        await Promise.resolve(loadingTask.destroy()).catch(() => undefined);
+        await Promise.resolve(destroyLoadingTask()).catch(() => undefined);
         throw error;
       }
 
@@ -48,8 +55,8 @@ export function createBrowserPdfAdapter(pdfjs: PdfJsModule): PdfAdapter {
 function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
   return {
     numPages: document.numPages,
-    async renderPage(pageNumber) {
-      const page = await document.getPage(pageNumber);
+    async renderPage(pageNumber, signal) {
+      const page = await raceWithAbort(document.getPage(pageNumber), signal);
       let canvas: HTMLCanvasElement | undefined;
       let released = false;
       const release = () => {
@@ -78,7 +85,8 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
         canvas.height = Math.max(1, Math.min(MAX_LONGEST_SIDE, Math.ceil(viewport.height)));
         const context = canvas.getContext("2d");
         if (!context) throw new Error("resume-ocr-unavailable");
-        await page.render({ canvasContext: context, viewport }).promise;
+        const renderTask = page.render({ canvasContext: context, viewport });
+        await raceWithAbort(renderTask.promise, signal, () => renderTask.cancel());
       } catch (error) {
         release();
         throw error;
@@ -88,11 +96,9 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
         page: pageNumber,
         width: canvas.width,
         height: canvas.height,
+        source: canvas,
         release,
       };
-      // Canvas is intentionally exposed as a non-enumerable property so the
-      // runner's OCR adapter can pass it without widening the test contract.
-      Object.defineProperty(image, "canvas", { value: canvas });
       return image;
     },
     async destroy() {
@@ -119,12 +125,21 @@ type PaddleInstance = Awaited<ReturnType<BrowserOcrAdapterOptions["createPaddleM
   ? Awaited<Result>
   : never;
 
-let paddleInstancePromise: Promise<PaddleInstance> | undefined;
+let paddleGeneration = 0;
+const disposedPaddleInstances = new WeakSet<object>();
+
+interface PaddleCacheEntry {
+  generation: number;
+  promise: Promise<PaddleInstance>;
+}
+
+let paddleCacheEntry: PaddleCacheEntry | undefined;
 
 const PADDLE_OPTIONS: Record<string, unknown> = {
   textDetectionModelName: "PP-OCRv6_small_det",
   textRecognitionModelName: "PP-OCRv6_small_rec",
   worker: true,
+  initialize: false,
   ortOptions: {
     backend: "wasm",
     wasmPaths: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/",
@@ -136,34 +151,92 @@ const PADDLE_OPTIONS: Record<string, unknown> = {
 
 export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
   let instance: PaddleInstance | undefined;
+  let entry: PaddleCacheEntry | undefined;
+
+  const disposeInstance = (candidate: PaddleInstance) => {
+    if (disposedPaddleInstances.has(candidate)) return;
+    disposedPaddleInstances.add(candidate);
+    void Promise.resolve(candidate.dispose()).catch(() => undefined);
+  };
+
+  const clearEntry = (candidate: PaddleCacheEntry) => {
+    if (
+      paddleCacheEntry === candidate &&
+      paddleCacheEntry.generation === candidate.generation
+    ) {
+      paddleCacheEntry = undefined;
+    }
+  };
+
+  const getEntry = () => {
+    if (paddleCacheEntry) return paddleCacheEntry;
+    const created: PaddleCacheEntry = {
+      generation: ++paddleGeneration,
+      promise: Promise.resolve().then(async () => {
+        const { PaddleOCR } = await options.createPaddleModule();
+        return PaddleOCR.create({ ...PADDLE_OPTIONS });
+      }),
+    };
+    created.promise = created.promise.catch((error) => {
+      clearEntry(created);
+      throw error;
+    });
+    paddleCacheEntry = created;
+    return created;
+  };
 
   return {
-    async initialize() {
-      if (!paddleInstancePromise) {
-        paddleInstancePromise = options
-          .createPaddleModule()
-          .then(({ PaddleOCR }) => PaddleOCR.create({ ...PADDLE_OPTIONS }))
-          .catch((error) => {
-            paddleInstancePromise = undefined;
-            throw error;
-          });
+    async initialize(signal?: AbortSignal) {
+      const candidate = getEntry();
+      entry = candidate;
+      try {
+        instance = await raceWithAbort(candidate.promise, signal, () => {
+          void candidate.promise.then(disposeInstance).catch(() => undefined);
+          clearEntry(candidate);
+        });
+        await raceWithAbort(instance.initialize(), signal, () => {
+          clearEntry(candidate);
+          disposeInstance(instance!);
+          instance = undefined;
+        });
+      } catch (error) {
+        clearEntry(candidate);
+        if (instance) {
+          disposeInstance(instance);
+          instance = undefined;
+        } else {
+          void candidate.promise.then(disposeInstance).catch(() => undefined);
+        }
+        throw error;
       }
-      instance = await paddleInstancePromise;
     },
-    async recognize(image: PdfPageImage) {
-      if (!instance) throw new Error("resume-ocr-unavailable");
-      const result = await instance.predict((image as PdfPageImage & { canvas: HTMLCanvasElement }).canvas);
-      return result[0] ?? { items: [] };
+    async recognize(image: PdfPageImage, signal?: AbortSignal) {
+      if (!instance || !entry || !(image.source instanceof HTMLCanvasElement)) {
+        throw new Error("resume-ocr-unavailable");
+      }
+      try {
+        const result = await raceWithAbort(instance.predict(image.source), signal, () => {
+          clearEntry(entry!);
+          disposeInstance(instance!);
+          instance = undefined;
+        });
+        return result[0] ?? { items: [] };
+      } catch (error) {
+        clearEntry(entry);
+        if (instance) disposeInstance(instance);
+        instance = undefined;
+        throw error;
+      }
     },
     async dispose() {
       // Keep initialized models alive for the next user action. The worker and
-      // model are deliberately shared through paddleInstancePromise.
+      // model are deliberately shared through the module-level cache entry.
     },
   };
 }
 
 export function resetBrowserOcrModelForTests() {
-  paddleInstancePromise = undefined;
+  paddleCacheEntry = undefined;
 }
 
 export { PADDLE_OPTIONS };
