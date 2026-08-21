@@ -11,6 +11,7 @@ import type { InterviewQuestionGenerationRun } from "./generation-service";
 const applicationIdSchema = z.uuid();
 export const interviewQuestionGenerationSchemaVersion =
   "interview-question-generation-v1";
+export const interviewQuestionGenerationLeaseMs = 2 * 60 * 1000;
 
 export type InterviewQuestionGenerationPostDependencies = {
   getCurrentUser(): Promise<{ id: string } | null>;
@@ -33,15 +34,30 @@ export type InterviewQuestionGenerationPostDependencies = {
   }): Promise<InterviewQuestionGenerationRun>;
   providerConfig: { provider: string; model: string };
   providerFactory(): Pick<AIProvider, "generateInterviewQuestions">;
+  clock?: () => Date;
   runGeneration(input: {
     userId: string;
     run: InterviewQuestionGenerationRun;
     application: Pick<Application, "id" | "userId" | "jdText">;
     requirements: InterviewQuestionGenerationRequirement[];
     commonPrompts: string[];
-    provider: Pick<AIProvider, "generateInterviewQuestions">;
+    providerFactory: () => Pick<AIProvider, "generateInterviewQuestions">;
   }): Promise<InterviewQuestionGenerationRun>;
 };
+
+export function isFreshInterviewQuestionGenerationRun(
+  run: InterviewQuestionGenerationRun,
+  now: Date,
+) {
+  if (run.status !== "running") return false;
+  const updatedAt = Date.parse(run.updatedAt);
+  const nowMs = now.getTime();
+  return (
+    Number.isFinite(updatedAt) &&
+    Number.isFinite(nowMs) &&
+    updatedAt > nowMs - interviewQuestionGenerationLeaseMs
+  );
+}
 
 export function buildInterviewQuestionGenerationInputHash(input: {
   jdText: string;
@@ -126,7 +142,13 @@ export function createInterviewQuestionGenerationPostHandler(
         schemaVersion: interviewQuestionGenerationSchemaVersion,
         ...dependencies.providerConfig,
       });
-      if (run.status === "running" || run.status === "succeeded") {
+      if (
+        run.status === "succeeded" ||
+        isFreshInterviewQuestionGenerationRun(
+          run,
+          dependencies.clock?.() ?? new Date(),
+        )
+      ) {
         return Response.json({
           runId: run.id,
           status: run.status,
@@ -141,7 +163,7 @@ export function createInterviewQuestionGenerationPostHandler(
         application,
         requirements,
         commonPrompts,
-        provider: dependencies.providerFactory(),
+        providerFactory: dependencies.providerFactory,
       });
       return Response.json({
         runId: completed.id,

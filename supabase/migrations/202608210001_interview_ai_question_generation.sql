@@ -248,7 +248,13 @@ begin
       completed_at = null
   where id = target_run_id
     and user_id = current_user_id
-    and status in ('queued', 'failed');
+    and (
+      status in ('queued', 'failed')
+      or (
+        status = 'running'
+        and updated_at < now() - interval '2 minutes'
+      )
+    );
 
   get diagnostics changed_count = row_count;
   return changed_count = 1;

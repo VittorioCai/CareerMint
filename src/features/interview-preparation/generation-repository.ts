@@ -24,6 +24,26 @@ type CandidateRow =
 
 const runStatusSchema = z.enum(["queued", "running", "succeeded", "failed"]);
 const candidateStatusSchema = z.enum(["pending", "accepted", "rejected"]);
+const acceptanceDispositionSchema = z.enum([
+  "new",
+  "reused",
+  "duplicate-common",
+]);
+const acceptanceRowSchema = z
+  .object({
+    candidate_id: z.uuid(),
+    disposition: acceptanceDispositionSchema,
+    question_id: z.uuid().nullable(),
+  })
+  .strict()
+  .superRefine((row, context) => {
+    if (row.disposition === "duplicate-common" && row.question_id !== null) {
+      context.addIssue({ code: "custom", path: ["question_id"] });
+    }
+    if (row.disposition !== "duplicate-common" && row.question_id === null) {
+      context.addIssue({ code: "custom", path: ["question_id"] });
+    }
+  });
 const runResultSchema = z.object({
   acceptedCandidateCount: z.number().int().nonnegative(),
   rejectedCandidateCount: z.number().int().nonnegative(),
@@ -55,6 +75,12 @@ export class InterviewQuestionGenerationRepositoryError extends Error {
     this.name = "InterviewQuestionGenerationRepositoryError";
   }
 }
+
+export type InterviewQuestionCandidateAcceptance = {
+  candidateId: string;
+  disposition: "new" | "reused" | "duplicate-common";
+  questionId: string | null;
+};
 
 function stableError(error: { code?: string } | null) {
   if (error?.code === "P0002" || error?.code === "PGRST116") {
@@ -89,6 +115,7 @@ function toRun(row: RunRow): InterviewQuestionGenerationRun {
     errorCode: row.error_code,
     errorMessage: row.error_message,
     requestId: row.request_id,
+    updatedAt: row.updated_at,
     createdAt: row.created_at,
   };
 }
@@ -245,10 +272,20 @@ async function accept(input: {
       target_candidate_ids: input.candidateIds,
     },
   );
-  if (error) {
+  if (error || data == null) {
     throw new InterviewQuestionGenerationRepositoryError(stableError(error));
   }
-  return data ?? [];
+  const parsed = z.array(acceptanceRowSchema).safeParse(data);
+  if (!parsed.success) {
+    throw new InterviewQuestionGenerationRepositoryError(
+      "interview-question-generation-storage-error",
+    );
+  }
+  return parsed.data.map((row): InterviewQuestionCandidateAcceptance => ({
+    candidateId: row.candidate_id,
+    disposition: row.disposition,
+    questionId: row.question_id,
+  }));
 }
 
 async function reject(input: { runId: string; candidateIds: string[] }) {
@@ -260,7 +297,7 @@ async function reject(input: { runId: string; candidateIds: string[] }) {
       target_candidate_ids: input.candidateIds,
     },
   );
-  if (error) {
+  if (error || data == null || !Number.isInteger(data) || data < 0) {
     throw new InterviewQuestionGenerationRepositoryError(stableError(error));
   }
   return data;

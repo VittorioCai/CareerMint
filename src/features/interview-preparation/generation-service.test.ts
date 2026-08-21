@@ -24,6 +24,7 @@ const run = {
   errorCode: null,
   errorMessage: null,
   requestId: null,
+  updatedAt: "2026-08-21T12:00:00.000Z",
   createdAt: "2026-08-21T12:00:00.000Z",
 };
 
@@ -66,7 +67,11 @@ const schedule = {
 function fakes() {
   const runs = {
     claim: vi.fn().mockResolvedValue(true),
-    getOwned: vi.fn().mockResolvedValue(run),
+    getOwned: vi.fn().mockResolvedValue({
+      ...run,
+      status: "running" as const,
+      attemptCount: 1,
+    }),
     complete: vi.fn().mockImplementation(async (input) => ({
       ...run,
       status: "succeeded" as const,
@@ -83,10 +88,12 @@ function fakes() {
       status: "failed" as const,
       errorCode: input.errorCode,
       errorMessage: input.errorMessage,
+      updatedAt: "2026-08-21T12:00:00.000Z",
     })),
   };
   const provider = { generateInterviewQuestions: vi.fn().mockResolvedValue(aiResult) };
-  return { runs, provider };
+  const providerFactory = vi.fn().mockReturnValue(provider);
+  return { runs, provider, providerFactory };
 }
 
 const baseInput = {
@@ -110,6 +117,7 @@ describe("interview question generation service", () => {
     const dependencies = fakes();
     const service = createInterviewQuestionGenerationService({
       ...dependencies,
+      providerFactory: dependencies.providerFactory,
       priceSchedule: schedule,
       clock: () => new Date("2026-08-21T12:00:00.000Z"),
     });
@@ -230,5 +238,115 @@ describe("interview question generation service", () => {
       requestId: null,
     });
     expect(JSON.stringify(dependencies.runs.fail.mock.calls)).not.toContain(jdText);
+  });
+
+  it("trims and allowlists request ids before complete", async () => {
+    const dependencies = fakes();
+    dependencies.provider.generateInterviewQuestions.mockResolvedValue({
+      ...aiResult,
+      requestId: "  request-123  ",
+    });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await service.run(baseInput);
+
+    expect(dependencies.runs.complete).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: "request-123" }),
+    );
+  });
+
+  it("drops unsafe request ids before a safe failure", async () => {
+    const dependencies = fakes();
+    dependencies.provider.generateInterviewQuestions.mockResolvedValue({
+      ...aiResult,
+      requestId: ` ${"x".repeat(201)} `,
+      data: { questions: [{ ...candidate, sourceExcerpt: "Invented" }] },
+    });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await service.run(baseInput);
+
+    expect(dependencies.runs.fail).toHaveBeenCalledWith(
+      expect.objectContaining({ requestId: null }),
+    );
+  });
+
+  it("returns succeeded when completion committed but its response was lost", async () => {
+    const dependencies = fakes();
+    dependencies.runs.complete.mockRejectedValue(new Error("response-lost"));
+    dependencies.runs.getOwned
+      .mockResolvedValueOnce({ ...run, status: "running", attemptCount: 1 })
+      .mockResolvedValueOnce({ ...run, status: "succeeded", attemptCount: 1 });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await expect(service.run(baseInput)).resolves.toMatchObject({
+      status: "succeeded",
+    });
+    expect(dependencies.runs.fail).not.toHaveBeenCalled();
+  });
+
+  it("returns failed when failure committed but its response was lost", async () => {
+    const dependencies = fakes();
+    dependencies.provider.generateInterviewQuestions.mockRejectedValue(
+      new Error("provider-down"),
+    );
+    dependencies.runs.fail.mockRejectedValue(new Error("response-lost"));
+    dependencies.runs.getOwned
+      .mockResolvedValueOnce({ ...run, status: "running", attemptCount: 1 })
+      .mockResolvedValueOnce({ ...run, status: "failed", attemptCount: 1 });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await expect(service.run(baseInput)).resolves.toMatchObject({
+      status: "failed",
+    });
+  });
+
+  it("does not construct a provider for a superseded claim", async () => {
+    const dependencies = fakes();
+    dependencies.runs.getOwned.mockResolvedValue({
+      ...run,
+      status: "running",
+      attemptCount: 2,
+    });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await service.run(baseInput);
+
+    expect(dependencies.providerFactory).not.toHaveBeenCalled();
+    expect(dependencies.provider.generateInterviewQuestions).not.toHaveBeenCalled();
+  });
+
+  it("turns provider factory failure into one safe failure", async () => {
+    const dependencies = fakes();
+    dependencies.providerFactory.mockImplementation(() => {
+      throw new Error("factory failed: secret provider response");
+    });
+    const service = createInterviewQuestionGenerationService({
+      ...dependencies,
+      providerFactory: dependencies.providerFactory,
+    });
+
+    await expect(service.run(baseInput)).resolves.toMatchObject({ status: "failed" });
+    expect(dependencies.runs.fail).toHaveBeenCalledExactlyOnceWith({
+      runId,
+      errorCode: "interview-question-generation-provider-error",
+      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      requestId: null,
+    });
   });
 });

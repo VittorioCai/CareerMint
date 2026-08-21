@@ -38,6 +38,7 @@ const run = {
   errorCode: null,
   errorMessage: null,
   requestId: null,
+  updatedAt: "2026-08-21T12:00:00.000Z",
   createdAt: "2026-08-21T12:00:00.000Z",
 };
 
@@ -52,6 +53,7 @@ function deps() {
     providerConfig: { provider: "deepseek", model: "deepseek-v4-flash" },
     providerFactory: vi.fn().mockReturnValue({ generateInterviewQuestions: vi.fn() }),
     runGeneration: vi.fn().mockResolvedValue({ ...run, status: "succeeded" as const }),
+    clock: vi.fn(() => new Date("2026-08-21T12:01:00.000Z")),
   };
 }
 
@@ -107,7 +109,7 @@ describe("interview question generation HTTP boundary", () => {
     expect(dependencies.createOrGetRun).not.toHaveBeenCalled();
   });
 
-  it("reuses running and succeeded runs without constructing a provider", async () => {
+  it("reuses fresh running and succeeded runs without constructing a provider", async () => {
     const dependencies = deps();
     dependencies.createOrGetRun.mockResolvedValue({ ...run, status: "running" });
     const post = createInterviewQuestionGenerationPostHandler(dependencies);
@@ -135,9 +137,16 @@ describe("interview question generation HTTP boundary", () => {
       model: "deepseek-v4-flash",
     });
     expect(dependencies.runGeneration).toHaveBeenCalledWith(
-      expect.objectContaining({ userId, run, application, requirements, commonPrompts: ["Tell me about yourself"] }),
+      expect.objectContaining({
+        userId,
+        run,
+        application,
+        requirements,
+        commonPrompts: ["Tell me about yourself"],
+        providerFactory: dependencies.providerFactory,
+      }),
     );
-    expect(dependencies.providerFactory).toHaveBeenCalledOnce();
+    expect(dependencies.providerFactory).not.toHaveBeenCalled();
     await expect(response.json()).resolves.toMatchObject({ runId, reused: false });
   });
 
@@ -152,5 +161,34 @@ describe("interview question generation HTTP boundary", () => {
     const body = await response.text();
     expect(body).toContain("interview-question-generation-request-failed");
     expect(body).not.toContain(application.jdText);
+  });
+
+  it("does not reuse a stale running run", async () => {
+    const dependencies = deps();
+    dependencies.createOrGetRun.mockResolvedValue({
+      ...run,
+      status: "running",
+      updatedAt: "2026-08-21T11:57:00.000Z",
+    });
+    const post = createInterviewQuestionGenerationPostHandler(dependencies);
+
+    const response = await post(new Request("http://test"), context());
+
+    expect(response.status).toBe(200);
+    expect(dependencies.runGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({ providerFactory: dependencies.providerFactory }),
+    );
+    expect(dependencies.providerFactory).not.toHaveBeenCalled();
+  });
+
+  it("keeps provider construction inside generation orchestration", async () => {
+    const dependencies = deps();
+    const post = createInterviewQuestionGenerationPostHandler(dependencies);
+
+    await post(new Request("http://test"), context());
+
+    const invocation = dependencies.runGeneration.mock.calls[0][0];
+    expect(invocation.providerFactory).toBe(dependencies.providerFactory);
+    expect(dependencies.providerFactory).not.toHaveBeenCalled();
   });
 });

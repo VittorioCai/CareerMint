@@ -1167,7 +1167,8 @@ export type Database = {
         Returns: {
           candidate_id: string
           disposition: string
-          question_id: string
+          // The duplicate-common disposition intentionally returns no question.
+          question_id: string | null
         }[]
       }
       add_interview_question: {

@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(72);
+select plan(75);
 
 select has_table(
   'public', 'interview_question_generation_runs',
@@ -168,6 +168,27 @@ select results_eq(
   $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
   array[false],
   'running generation cannot be claimed twice'
+);
+
+set local role postgres;
+update public.interview_question_generation_runs
+set updated_at = now() - interval '3 minutes'
+where id = current_setting('test.run_id')::uuid;
+set local role authenticated;
+select results_eq(
+  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  array[true],
+  'stale running generation can be explicitly reclaimed'
+);
+select results_eq(
+  $$select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid$$,
+  array[2],
+  'stale reclaim increments the generation attempt'
+);
+select results_eq(
+  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  array[false],
+  'freshly reclaimed running generation cannot be claimed again'
 );
 
 select throws_ok(

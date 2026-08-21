@@ -11,59 +11,36 @@ import {
 import { createInterviewQuestionGenerationPostHandler } from "@/features/interview-preparation/generation-http";
 import { interviewQuestionGenerationRepository } from "@/features/interview-preparation/generation-repository";
 import { createInterviewQuestionGenerationService } from "@/features/interview-preparation/generation-service";
+import {
+  createFakeInterviewQuestionProvider,
+  selectInterviewQuestionProviderConfiguration,
+} from "@/features/interview-preparation/generation-fake";
 import { getCurrentUser } from "@/lib/auth/require-user";
 import { getServerEnv } from "@/lib/env/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-function fakeProvider(): Pick<AIProvider, "generateInterviewQuestions"> {
-  return {
-    async generateInterviewQuestions(input) {
-      const sourceExcerpt = input.jdText.trim().slice(0, 240);
-      const requirement = input.requirements[0];
-      return {
-        data: {
-          questions: sourceExcerpt
-            ? [
-                {
-                  category:
-                    requirement?.category === "industry"
-                      ? "industry"
-                      : "job_specific",
-                  prompt: "How would you prepare for this role's priorities?",
-                  sourceExcerpt,
-                  relevanceReason:
-                    "This preparation question is grounded in the supplied job description.",
-                },
-              ]
-            : [],
-        },
-        provider: "fake",
-        model: "fake-interview-question-generator-v1",
-        requestId: null,
-        usage: {
-          inputCacheHitTokens: 0,
-          inputCacheMissTokens: 0,
-          outputTokens: 0,
-        },
-      };
-    },
-  };
-}
-
 function providerConfiguration() {
   const env = getServerEnv();
-  if (env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production") {
-    return { provider: "fake", model: "fake-interview-question-generator-v1" };
-  }
-  return { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
+  return selectInterviewQuestionProviderConfiguration({
+    fakeExtractor: env.E2E_FAKE_EXTRACTOR === "1",
+    production: process.env.NODE_ENV === "production",
+    provider: env.AI_TEXT_PROVIDER,
+    model: env.AI_TEXT_MODEL,
+  });
 }
 
 function configuredProvider(): Pick<AIProvider, "generateInterviewQuestions"> {
   const env = getServerEnv();
-  if (env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production") {
-    return fakeProvider();
+  const config = selectInterviewQuestionProviderConfiguration({
+    fakeExtractor: env.E2E_FAKE_EXTRACTOR === "1",
+    production: process.env.NODE_ENV === "production",
+    provider: env.AI_TEXT_PROVIDER,
+    model: env.AI_TEXT_MODEL,
+  });
+  if (config.provider === "fake") {
+    return createFakeInterviewQuestionProvider();
   }
   return {
     generateInterviewQuestions(input) {
@@ -127,12 +104,12 @@ export const POST = createInterviewQuestionGenerationPostHandler({
     application,
     requirements,
     commonPrompts,
-    provider,
+    providerFactory,
   }) {
     const now = new Date();
     return createInterviewQuestionGenerationService({
       runs: interviewQuestionGenerationRepository,
-      provider,
+      providerFactory,
       priceSchedule: configuredPriceSchedule(now),
       clock: () => now,
     }).run({
@@ -144,4 +121,3 @@ export const POST = createInterviewQuestionGenerationPostHandler({
     });
   },
 });
-
