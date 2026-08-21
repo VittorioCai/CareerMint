@@ -152,6 +152,64 @@ describe("DeepSeek resume extractor", () => {
     expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 
+  it("normalizes provider month/year and current dates", async () => {
+    const providerExtraction = {
+      ...extraction,
+      facts: [
+        {
+          ...extraction.facts[0],
+          data: {
+            ...extraction.facts[0].data,
+            startDate: "09/2023",
+            endDate: "Present",
+          },
+        },
+      ],
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(providerExtraction)));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.extractResumeFacts(resumeText)).resolves.toMatchObject({
+      data: {
+        facts: [
+          {
+            data: {
+              startDate: "2023-09",
+              endDate: null,
+            },
+          },
+        ],
+      },
+    });
+  });
+
+  it("keeps unsupported provider date formats invalid", async () => {
+    const providerExtraction = {
+      ...extraction,
+      facts: [
+        {
+          ...extraction.facts[0],
+          data: {
+            ...extraction.facts[0].data,
+            startDate: "2023/09",
+            endDate: "Spring 2023",
+          },
+        },
+      ],
+    };
+    const fetchImpl = vi.fn<typeof fetch>().mockImplementation(async () =>
+      successResponse(JSON.stringify(providerExtraction)),
+    );
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.extractResumeFacts(resumeText)).rejects.toThrow(
+      "resume-extraction-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
   it("returns a stable error after a second invalid output", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
