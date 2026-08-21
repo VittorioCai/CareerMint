@@ -391,4 +391,68 @@ describe("browser PaddleOCR aborts", () => {
     await expect(second).resolves.toEqual({ items: [] });
     expect(dispose).not.toHaveBeenCalled();
   });
+
+  it("releases a healthy consumer lease without disposing the shared model", async () => {
+    const instance = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(async () => [{ items: [] }]),
+      dispose: vi.fn(async () => undefined),
+    };
+    const create = vi.fn(async () => instance);
+    const firstAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const secondAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+
+    await firstAdapter.initialize();
+    await firstAdapter.dispose();
+    await secondAdapter.initialize();
+
+    expect(create).toHaveBeenCalledOnce();
+    expect(instance.dispose).not.toHaveBeenCalled();
+  });
+
+  it("invalidates a fatal generation and disposes it after the last consumer leaves", async () => {
+    const first = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(async () => {
+        throw new Error("fatal predict");
+      }),
+      dispose: vi.fn(async () => undefined),
+    };
+    const second = {
+      initialize: vi.fn(async () => undefined),
+      predict: vi.fn(async () => [{ items: [] }]),
+      dispose: vi.fn(async () => undefined),
+    };
+    const create = vi.fn().mockResolvedValueOnce(first).mockResolvedValueOnce(second);
+    const firstAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const secondAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    const image = {
+      page: 1,
+      width: 1,
+      height: 1,
+      source: document.createElement("canvas"),
+      release: vi.fn(),
+    };
+    await Promise.all([firstAdapter.initialize(), secondAdapter.initialize()]);
+
+    await expect(firstAdapter.recognize(image)).rejects.toThrow("fatal predict");
+    expect(first.dispose).not.toHaveBeenCalled();
+    await secondAdapter.dispose();
+    expect(first.dispose).toHaveBeenCalledOnce();
+
+    const retryAdapter = createBrowserOcrAdapter({
+      createPaddleModule: async () => ({ PaddleOCR: { create } }),
+    });
+    await retryAdapter.initialize();
+    expect(create).toHaveBeenCalledTimes(2);
+    expect(second.dispose).not.toHaveBeenCalled();
+  });
 });

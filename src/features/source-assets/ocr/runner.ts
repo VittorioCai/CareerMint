@@ -63,6 +63,7 @@ export async function runScannedPdfOcr(
 
   let document: PdfDocumentAdapter | undefined;
   let primaryError: unknown;
+  let hasPrimaryError = false;
   let result: string | undefined;
   const cleanupErrors: unknown[] = [];
   try {
@@ -84,6 +85,7 @@ export async function runScannedPdfOcr(
 
       const image = await document.renderPage(page, signal);
       let pageError: unknown;
+      let hasPageError = false;
       try {
         throwIfAborted(signal);
         const recognized = await dependencies.ocr.recognize(image, signal);
@@ -96,21 +98,26 @@ export async function runScannedPdfOcr(
         );
       } catch (error) {
         pageError = error;
+        hasPageError = true;
       } finally {
         try {
           await image.release();
         } catch (error) {
           cleanupErrors.push(error);
-          if (!pageError) pageError = error;
+          if (!hasPageError) {
+            pageError = error;
+            hasPageError = true;
+          }
         }
       }
-      if (pageError) throw pageError;
+      if (hasPageError) throw pageError;
     }
 
     throwIfAborted(signal);
     result = normalizeResumeText(pageText.join("\n"));
   } catch (error) {
     primaryError = error;
+    hasPrimaryError = true;
   }
 
   if (document) {
@@ -126,7 +133,7 @@ export async function runScannedPdfOcr(
     cleanupErrors.push(error);
   }
 
-  if (primaryError) throw primaryError;
+  if (hasPrimaryError) throw primaryError;
   if (cleanupErrors.length > 0) throw cleanupErrors[0];
   if (result === undefined) {
     throw new Error("resume-ocr-unavailable");

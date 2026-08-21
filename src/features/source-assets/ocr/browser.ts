@@ -137,6 +137,8 @@ interface PaddleCacheEntry {
   generation: number;
   promise: Promise<PaddleInstance>;
   activeConsumers: number;
+  invalidated: boolean;
+  instance?: PaddleInstance;
 }
 
 let paddleCacheEntry: PaddleCacheEntry | undefined;
@@ -180,12 +182,18 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
     const created: PaddleCacheEntry = {
       generation: ++paddleGeneration,
       activeConsumers: 0,
+      invalidated: false,
       promise: Promise.resolve().then(async () => {
         const { PaddleOCR } = await options.createPaddleModule();
         return PaddleOCR.create({ ...PADDLE_OPTIONS });
       }),
     };
+    created.promise = created.promise.then((resolved) => {
+      created.instance = resolved;
+      return resolved;
+    });
     created.promise = created.promise.catch((error) => {
+      created.invalidated = true;
       clearEntry(created);
       throw error;
     });
@@ -193,21 +201,31 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
     return created;
   };
 
-  const releaseLease = (candidate: PaddleCacheEntry, candidateInstance?: PaddleInstance) => {
-    if (!leaseHeld || entry !== candidate) return;
-    leaseHeld = false;
-    candidate.activeConsumers -= 1;
-    if (candidate.activeConsumers > 0) return;
-    clearEntry(candidate);
-    if (candidateInstance) {
-      disposeInstance(candidateInstance);
+  const disposeEntryWhenReady = (candidate: PaddleCacheEntry) => {
+    if (!candidate.invalidated || candidate.activeConsumers > 0) return;
+    if (candidate.instance) {
+      disposeInstance(candidate.instance);
       return;
     }
     void candidate.promise
       .then((resolved) => {
+        candidate.instance = resolved;
         if (candidate.activeConsumers === 0) disposeInstance(resolved);
       })
       .catch(() => undefined);
+  };
+
+  const invalidateEntry = (candidate: PaddleCacheEntry) => {
+    candidate.invalidated = true;
+    clearEntry(candidate);
+    disposeEntryWhenReady(candidate);
+  };
+
+  const releaseLease = (candidate: PaddleCacheEntry) => {
+    if (!leaseHeld || entry !== candidate) return;
+    leaseHeld = false;
+    candidate.activeConsumers -= 1;
+    disposeEntryWhenReady(candidate);
   };
 
   return {
@@ -220,14 +238,17 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
       }
       try {
         instance = await raceWithAbort(candidate.promise, signal, () => {
+          invalidateEntry(candidate);
           releaseLease(candidate);
         });
         await raceWithAbort(instance.initialize(), signal, () => {
-          releaseLease(candidate, instance);
+          invalidateEntry(candidate);
+          releaseLease(candidate);
           instance = undefined;
         });
       } catch (error) {
-        releaseLease(candidate, instance);
+        invalidateEntry(candidate);
+        releaseLease(candidate);
         instance = undefined;
         throw error;
       }
@@ -238,19 +259,20 @@ export function createBrowserOcrAdapter(options: BrowserOcrAdapterOptions) {
       }
       try {
         const result = await raceWithAbort(instance.predict(image.source), signal, () => {
-          releaseLease(entry!, instance);
+          invalidateEntry(entry!);
+          releaseLease(entry!);
           instance = undefined;
         });
         return result[0] ?? { items: [] };
       } catch (error) {
-        releaseLease(entry, instance);
+        invalidateEntry(entry);
+        releaseLease(entry);
         instance = undefined;
         throw error;
       }
     },
     async dispose() {
-      // Keep initialized models alive for the next user action. The worker and
-      // model are deliberately shared through the module-level cache entry.
+      if (entry) releaseLease(entry);
     },
   };
 }

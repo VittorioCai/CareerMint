@@ -218,6 +218,29 @@ describe("runScannedPdfOcr", () => {
     expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
   });
 
+  it.each([
+    ["recognition undefined", undefined, "recognize"],
+    ["recognition null", null, "recognize"],
+    ["release null", null, "release"],
+  ])("stops on a falsy %s page error", async (_label, error, source) => {
+    const dependencies = makeDependencies({
+      pages: [
+        [{ text: LONG_TEXT, score: 1 }],
+        [{ text: LONG_TEXT, score: 1 }],
+      ],
+    });
+    if (source === "recognize") {
+      vi.mocked(dependencies.ocr.recognize).mockRejectedValueOnce(error);
+    } else {
+      vi.mocked(dependencies.images[0].release).mockRejectedValueOnce(error);
+    }
+
+    await expect(runScannedPdfOcr(new Uint8Array(), dependencies)).rejects.toBe(error);
+    expect(dependencies.document.renderPage).toHaveBeenCalledOnce();
+    expect(dependencies.document.destroy).toHaveBeenCalledOnce();
+    expect(dependencies.ocr.dispose).toHaveBeenCalledOnce();
+  });
+
   it("allows model initialization to be retried after a failure", async () => {
     const dependencies = makeDependencies({ pages: [[{ text: LONG_TEXT, score: 1 }]] });
     vi.mocked(dependencies.ocr.initialize)
