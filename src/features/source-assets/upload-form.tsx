@@ -2,6 +2,8 @@
 
 import { type FormEvent, useRef, useState } from "react";
 
+import type { OcrProgress, ScannedPdfOcrOptions } from "./ocr";
+
 type UploadResult = { id: string; originalName: string };
 
 type UploadFormProps = {
@@ -10,6 +12,15 @@ type UploadFormProps = {
   beforeExtract?: () => Promise<void>;
   request?: typeof fetch;
   pollIntervalMs?: number;
+  ocrPdf?: (file: File, options?: ScannedPdfOcrOptions) => Promise<string>;
+};
+
+const defaultOcrPdf = async (
+  file: File,
+  options?: ScannedPdfOcrOptions,
+) => {
+  const { extractScannedPdfText } = await import("./ocr");
+  return extractScannedPdfText(file, options);
 };
 
 const errorCopy: Record<string, string> = {
@@ -22,6 +33,12 @@ const errorCopy: Record<string, string> = {
   unauthorized: "登录已失效，请重新登录。",
   "upload-failed": "上传没有完成，请重试。",
   "resume-extraction-request-failed": "分析暂时没有完成，请重新尝试。",
+  "resume-text-too-short": "简历文字太少，无法完成分析。",
+  "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
+  "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
+  "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
+  "ai-provider-authentication-failed": "AI 服务授权暂时失效，请稍后重试。",
+  AbortError: "已取消本地识别，可重新尝试。",
 };
 
 async function responseBody(response: Response): Promise<Record<string, unknown>> {
@@ -39,19 +56,50 @@ function wait(milliseconds: number) {
   return new Promise((resolve) => setTimeout(resolve, milliseconds));
 }
 
+function errorCode(caught: unknown) {
+  if (
+    (caught instanceof DOMException && caught.name === "AbortError") ||
+    (caught instanceof Error && caught.name === "AbortError")
+  ) {
+    return "AbortError";
+  }
+  return caught instanceof Error ? caught.message : "";
+}
+
+function isPdf(file: File) {
+  return file.type === "application/pdf";
+}
+
+type ExtractionOutcome = "succeeded" | "consent";
+
+class ExtractionFailure extends Error {
+  constructor(
+    message: string,
+    readonly hasErrorCode = false,
+  ) {
+    super(message);
+    this.name = "ExtractionFailure";
+  }
+}
+
 export function UploadForm({
   onUploaded = () => undefined,
   onExtractionComplete,
   beforeExtract,
   request = fetch,
   pollIntervalMs = 1_000,
+  ocrPdf = defaultOcrPdf,
 }: UploadFormProps) {
   const inputRef = useRef<HTMLInputElement>(null);
+  const selectedFileRef = useRef<File | null>(null);
+  const cachedOcrTextRef = useRef<string | null>(null);
+  const ocrAbortControllerRef = useRef<AbortController | null>(null);
   const [asset, setAsset] = useState<UploadResult | null>(null);
   const [phase, setPhase] = useState<
-    "idle" | "uploading" | "extracting" | "succeeded" | "failed" | "consent"
+    "idle" | "uploading" | "extracting" | "ocr" | "succeeded" | "failed" | "consent"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
 
   async function pollJob(jobId: string) {
     for (let attempt = 0; attempt < 60; attempt += 1) {
@@ -61,62 +109,156 @@ export function UploadForm({
         cache: "no-store",
       });
       const body = await responseBody(response);
-      if (!response.ok) throw new Error("resume-extraction-request-failed");
-      if (body.status === "succeeded") return;
       if (body.status === "failed") {
-        throw new Error(
+        throw new ExtractionFailure(
           typeof body.errorCode === "string"
             ? body.errorCode
             : "resume-extraction-request-failed",
+          typeof body.errorCode === "string",
         );
       }
+      if (!response.ok) throw new Error("resume-extraction-request-failed");
+      if (body.status === "succeeded") return;
     }
     throw new Error("resume-extraction-request-failed");
   }
 
-  async function extract(savedAsset: UploadResult) {
-    setPhase("extracting");
-    setError(null);
-    try {
-      await beforeExtract?.();
-      const response = await request(
-        `/api/source-assets/${savedAsset.id}/extract`,
-        { method: "POST" },
-      );
-      const body = await responseBody(response);
-      if (
-        response.status === 403 &&
-        body.error === "ai-processing-consent-required"
-      ) {
-        setPhase("consent");
-        setError(
-          "文件已保存在你的私有空间。授权 AI 文字分析后可继续，不需要重新上传。",
-        );
-        return;
-      }
-      if (!response.ok || typeof body.status !== "string") {
-        throw new Error(
-          typeof body.error === "string"
+  async function submitExtraction(
+    savedAsset: UploadResult,
+    ocrText?: string,
+  ): Promise<ExtractionOutcome> {
+    const response = await request(
+      `/api/source-assets/${savedAsset.id}/extract`,
+      ocrText === undefined
+        ? { method: "POST" }
+        : {
+            method: "POST",
+            headers: { "content-type": "application/json" },
+            body: JSON.stringify({ ocrText }),
+          },
+    );
+    const body = await responseBody(response);
+    if (
+      response.status === 403 &&
+      body.error === "ai-processing-consent-required"
+    ) {
+      return "consent";
+    }
+    if (body.status === "failed") {
+      throw new ExtractionFailure(
+        typeof body.errorCode === "string"
+          ? body.errorCode
+          : typeof body.error === "string"
             ? body.error
             : "resume-extraction-request-failed",
-        );
-      }
-      if (body.status === "failed") {
+        typeof body.errorCode === "string",
+      );
+    }
+    if (!response.ok || typeof body.status !== "string") {
+      throw new Error(
+        typeof body.error === "string"
+          ? body.error
+          : "resume-extraction-request-failed",
+      );
+    }
+    if (body.status !== "succeeded") {
+      if (typeof body.jobId !== "string") {
         throw new Error("resume-extraction-request-failed");
       }
-      if (body.status !== "succeeded") {
-        if (typeof body.jobId !== "string") {
-          throw new Error("resume-extraction-request-failed");
-        }
-        await pollJob(body.jobId);
+      await pollJob(body.jobId);
+    }
+    return "succeeded";
+  }
+
+  function showConsent() {
+    setPhase("consent");
+    setError(
+      "文件已保存在你的私有空间。授权 AI 文字分析后可继续，不需要重新上传。",
+    );
+  }
+
+  async function runOcrAndSubmit(savedAsset: UploadResult, file: File) {
+    const cachedText = cachedOcrTextRef.current;
+    if (cachedText !== null) {
+      return submitExtraction(savedAsset, cachedText);
+    }
+
+    const controller = new AbortController();
+    ocrAbortControllerRef.current = controller;
+    setPhase("ocr");
+    setOcrProgress(null);
+    try {
+      const ocrText = await ocrPdf(file, {
+        signal: controller.signal,
+        onProgress: (progress) => setOcrProgress(progress),
+      });
+      if (controller.signal.aborted) {
+        const aborted = new Error("AbortError");
+        aborted.name = "AbortError";
+        throw aborted;
       }
-      setPhase("succeeded");
-      onExtractionComplete?.();
+      cachedOcrTextRef.current = ocrText;
+      return await submitExtraction(savedAsset, ocrText);
+    } finally {
+      if (ocrAbortControllerRef.current === controller) {
+        ocrAbortControllerRef.current = null;
+      }
+    }
+  }
+
+  async function extract(
+    savedAsset: UploadResult,
+    file = selectedFileRef.current,
+  ) {
+    setPhase("extracting");
+    setError(null);
+    setOcrProgress(null);
+    try {
+      await beforeExtract?.();
+      const cachedText = cachedOcrTextRef.current;
+      if (cachedText !== null) {
+        const outcome = await submitExtraction(savedAsset, cachedText);
+        if (outcome === "consent") showConsent();
+        else {
+          setPhase("succeeded");
+          onExtractionComplete?.();
+        }
+        return;
+      }
+      let outcome: ExtractionOutcome;
+      try {
+        outcome = await submitExtraction(savedAsset);
+      } catch (caught) {
+        if (
+          caught instanceof ExtractionFailure &&
+          caught.hasErrorCode &&
+          caught.message === "resume-text-too-short" &&
+          file !== null &&
+          isPdf(file)
+        ) {
+          outcome = await runOcrAndSubmit(savedAsset, file);
+        } else {
+          throw caught;
+        }
+      }
+      if (outcome === "consent") {
+        showConsent();
+      } else {
+        setPhase("succeeded");
+        onExtractionComplete?.();
+      }
     } catch (caught) {
-      const code = caught instanceof Error ? caught.message : "";
+      const code = errorCode(caught);
       setPhase("failed");
       setError(errorCopy[code] ?? "分析暂时没有完成，请重新尝试。");
     }
+  }
+
+  function cancelOcr() {
+    ocrAbortControllerRef.current?.abort();
+    setPhase("failed");
+    setOcrProgress(null);
+    setError(errorCopy.AbortError);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -127,6 +269,7 @@ export function UploadForm({
       return;
     }
 
+    selectedFileRef.current = file;
     setPhase("uploading");
     setError(null);
     const body = new FormData();
@@ -153,7 +296,7 @@ export function UploadForm({
       };
       setAsset(savedAsset);
       onUploaded(savedAsset);
-      await extract(savedAsset);
+      await extract(savedAsset, file);
     } catch (caught) {
       const code = caught instanceof Error ? caught.message : "";
       setPhase("failed");
@@ -161,7 +304,7 @@ export function UploadForm({
     }
   }
 
-  const busy = phase === "uploading" || phase === "extracting";
+  const busy = phase === "uploading" || phase === "extracting" || phase === "ocr";
 
   return (
     <form
@@ -200,9 +343,30 @@ export function UploadForm({
       {busy ? (
         <div className="mt-4" aria-live="polite">
           <p className="text-sm font-black">
-            {phase === "uploading" ? "正在安全上传…" : "正在分析，离开页面也不会丢失任务…"}
+            {phase === "uploading"
+              ? "正在安全上传…"
+              : phase === "ocr"
+                ? ocrProgress?.phase === "loading-model"
+                  ? "正在加载本地识别模型…"
+                  : ocrProgress?.phase === "recognizing"
+                    ? `正在本地识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
+                    : "正在准备本地识别…"
+                : "正在分析，离开页面也不会丢失任务…"}
           </p>
-          <progress className="mt-2 h-2 w-full accent-[var(--coral)]" />
+          <progress
+            className="mt-2 h-2 w-full accent-[var(--coral)]"
+            max={ocrProgress?.phase === "recognizing" ? ocrProgress.totalPages : 1}
+            value={ocrProgress?.phase === "recognizing" ? ocrProgress.page : 0}
+          />
+          {phase === "ocr" ? (
+            <button
+              type="button"
+              className="button-secondary mt-3 min-h-10 px-4 text-sm font-black"
+              onClick={cancelOcr}
+            >
+              取消本地识别
+            </button>
+          ) : null}
         </div>
       ) : null}
 

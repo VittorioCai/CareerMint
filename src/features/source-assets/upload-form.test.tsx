@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { UploadForm } from "./upload-form";
+import type { ScannedPdfOcrOptions } from "./ocr";
 
 const assetId = "11111111-1111-4111-8111-111111111111";
 const jobId = "33333333-3333-4333-8333-333333333333";
@@ -110,5 +111,218 @@ describe("UploadForm", () => {
       request.mock.calls.filter(([url]) => url === "/api/source-assets"),
     ).toHaveLength(1);
     await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+  });
+
+  it("falls back to injected OCR after a polled PDF too-short failure and submits OCR text", async () => {
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    let resolveOcr!: (text: string) => void;
+    const ocrResult = new Promise<string>((resolve) => {
+      resolveOcr = resolve;
+    });
+    const ocrPdf = vi.fn(async (_file: File, options?: ScannedPdfOcrOptions) => {
+      options?.onProgress?.({ phase: "loading-model" });
+      options?.onProgress?.({ phase: "recognizing", page: 2, totalPages: 3 });
+      return ocrResult;
+    });
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: assetId, originalName: "resume.pdf" }, 201),
+      )
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: jobId, status: "failed", errorCode: "resume-text-too-short" }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(jsonResponse({ id: jobId, status: "succeeded", result: {} }));
+
+    const user = userEvent.setup();
+    render(
+      <UploadForm
+        request={request as typeof fetch}
+        ocrPdf={ocrPdf}
+        pollIntervalMs={0}
+      />,
+    );
+    const input = screen.getByLabelText("上传现有简历");
+    await user.upload(
+      input,
+      new File(["%PDF synthetic"], "resume.pdf", { type: "application/pdf" }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并开始建档" }));
+
+    expect(await screen.findByText("正在本地识别扫描版简历（第 2/3 页）")).toBeVisible();
+    expect(screen.getByRole("progressbar")).toHaveAttribute("max", "3");
+    expect(screen.getByRole("progressbar")).toHaveAttribute("value", "2");
+    resolveOcr(ocrText);
+    await screen.findByText("简历分析完成");
+
+    expect(ocrPdf).toHaveBeenCalledTimes(1);
+    expect(request).toHaveBeenNthCalledWith(
+      4,
+      `/api/source-assets/${assetId}/extract`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ocrText }),
+      },
+    );
+  });
+
+  it("retries a failed OCR submission with cached text without re-running OCR or uploading", async () => {
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const ocrPdf = vi.fn().mockResolvedValue(ocrText);
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: assetId, originalName: "resume.pdf" }, 201),
+      )
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: jobId, status: "failed", errorCode: "resume-text-too-short" }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ error: "resume-extraction-request-failed" }, 500))
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(jsonResponse({ id: jobId, status: "succeeded", result: {} }));
+
+    const user = userEvent.setup();
+    render(
+      <UploadForm
+        request={request as typeof fetch}
+        ocrPdf={ocrPdf}
+        pollIntervalMs={0}
+      />,
+    );
+    const input = screen.getByLabelText("上传现有简历");
+    await user.upload(
+      input,
+      new File(["%PDF synthetic"], "resume.pdf", { type: "application/pdf" }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并开始建档" }));
+
+    await screen.findByRole("button", { name: "重新尝试" });
+    await user.click(screen.getByRole("button", { name: "重新尝试" }));
+    await screen.findByText("简历分析完成");
+
+    expect(ocrPdf).toHaveBeenCalledTimes(1);
+    expect(request.mock.calls.filter(([url]) => url === "/api/source-assets")).toHaveLength(1);
+    expect(request.mock.calls[4]).toEqual([
+      `/api/source-assets/${assetId}/extract`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ ocrText }),
+      },
+    ]);
+  });
+
+  it("aborts local OCR on cancel without submitting OCR JSON", async () => {
+    const ocrPdf = vi.fn(
+      (_file: File, options?: { signal?: AbortSignal }) =>
+        new Promise<string>((_, reject) => {
+          options?.signal?.addEventListener("abort", () => {
+            reject(new DOMException("The operation was aborted", "AbortError"));
+          });
+        }),
+    );
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: assetId, originalName: "resume.pdf" }, 201),
+      )
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(
+        jsonResponse({ id: jobId, status: "failed", errorCode: "resume-text-too-short" }),
+      );
+
+    const user = userEvent.setup();
+    render(
+      <UploadForm
+        request={request as typeof fetch}
+        ocrPdf={ocrPdf}
+        pollIntervalMs={0}
+      />,
+    );
+    await user.upload(
+      screen.getByLabelText("上传现有简历"),
+      new File(["%PDF synthetic"], "resume.pdf", { type: "application/pdf" }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并开始建档" }));
+
+    const cancel = await screen.findByRole("button", { name: "取消本地识别" });
+    await user.click(cancel);
+    expect(await screen.findByText("已取消本地识别，可重新尝试。")) .toBeVisible();
+    expect(request).not.toHaveBeenCalledWith(
+      `/api/source-assets/${assetId}/extract`,
+      expect.objectContaining({ headers: { "content-type": "application/json" } }),
+    );
+  });
+
+  it.each([
+    ["DOCX", "resume.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"],
+    ["AI provider", "resume.pdf", "application/pdf"],
+  ])("does not run OCR for %s failures", async (label, fileName, type) => {
+    const ocrPdf = vi.fn().mockResolvedValue("never used");
+    const errorCode = label === "DOCX" ? "resume-text-too-short" : "ai-provider-authentication-failed";
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: assetId, originalName: fileName }, 201),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ status: "failed", errorCode }),
+      );
+
+    const user = userEvent.setup();
+    render(
+      <UploadForm
+        request={request as typeof fetch}
+        ocrPdf={ocrPdf}
+        pollIntervalMs={0}
+      />,
+    );
+    await user.upload(
+      screen.getByLabelText("上传现有简历"),
+      new File(["synthetic"], fileName, { type }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并开始建档" }));
+
+    await screen.findByRole("alert");
+    expect(ocrPdf).not.toHaveBeenCalled();
+  });
+
+  it("falls back to OCR when the immediate extraction response is failed with a too-short error code", async () => {
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const ocrPdf = vi.fn().mockResolvedValue(ocrText);
+    const request = vi
+      .fn()
+      .mockResolvedValueOnce(
+        jsonResponse({ id: assetId, originalName: "resume.pdf" }, 201),
+      )
+      .mockResolvedValueOnce(
+        jsonResponse({ status: "failed", errorCode: "resume-text-too-short" }),
+      )
+      .mockResolvedValueOnce(jsonResponse({ jobId, status: "running" }))
+      .mockResolvedValueOnce(jsonResponse({ id: jobId, status: "succeeded", result: {} }));
+
+    const user = userEvent.setup();
+    render(
+      <UploadForm
+        request={request as typeof fetch}
+        ocrPdf={ocrPdf}
+        pollIntervalMs={0}
+      />,
+    );
+    await user.upload(
+      screen.getByLabelText("上传现有简历"),
+      new File(["%PDF synthetic"], "resume.pdf", { type: "application/pdf" }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并开始建档" }));
+
+    await screen.findByText("简历分析完成");
+    expect(ocrPdf).toHaveBeenCalledTimes(1);
   });
 });
