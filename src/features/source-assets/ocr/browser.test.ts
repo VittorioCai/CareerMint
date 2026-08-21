@@ -179,6 +179,26 @@ describe("createBrowserPdfAdapter", () => {
     expect(destroy).toHaveBeenCalledOnce();
   });
 
+  it("destroys the PDF.js loading task for a v6 document proxy", async () => {
+    const loadingTaskDestroy = vi.fn(async () => undefined);
+    const pdfjs = {
+      getDocument: vi.fn(() => ({
+        promise: Promise.resolve({
+          numPages: 1,
+          getPage: vi.fn(),
+          loadingTask: { destroy: loadingTaskDestroy },
+        }),
+        destroy: vi.fn(),
+      })),
+      GlobalWorkerOptions: { workerSrc: "" },
+    };
+
+    const document = await createBrowserPdfAdapter(pdfjs).open(new Uint8Array());
+    await document.destroy();
+
+    expect(loadingTaskDestroy).toHaveBeenCalledOnce();
+  });
+
   it("aborts PDF rendering promptly and cancels the render task", async () => {
     const controller = new AbortController();
     const cancel = vi.fn();

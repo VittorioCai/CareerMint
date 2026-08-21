@@ -1,4 +1,12 @@
 import { getDocument } from "pdfjs-dist/legacy/build/pdf.mjs";
+import { WorkerMessageHandler } from "pdfjs-dist/legacy/build/pdf.worker.mjs";
+
+type PdfjsWorkerGlobal = typeof globalThis & {
+  pdfjsWorker?: { WorkerMessageHandler: typeof WorkerMessageHandler };
+};
+
+const pdfjsGlobal = globalThis as PdfjsWorkerGlobal;
+pdfjsGlobal.pdfjsWorker ??= { WorkerMessageHandler };
 
 export async function extractPdfText(buffer: Buffer) {
   const loadingTask = getDocument({

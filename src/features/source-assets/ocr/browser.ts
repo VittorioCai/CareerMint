@@ -13,7 +13,8 @@ interface PdfJsPage {
 interface PdfJsDocument {
   numPages: number;
   getPage: (page: number) => Promise<PdfJsPage>;
-  destroy: () => void | Promise<void>;
+  loadingTask?: { destroy: () => void | Promise<void> };
+  destroy?: () => void | Promise<void>;
 }
 
 interface PdfJsLoadingTask {
@@ -107,7 +108,11 @@ function createDocumentAdapter(document: PdfJsDocument): PdfDocumentAdapter {
       return image;
     },
     async destroy() {
-      await document.destroy();
+      if (document.loadingTask) {
+        await document.loadingTask.destroy();
+      } else {
+        await document.destroy?.();
+      }
     },
   };
 }

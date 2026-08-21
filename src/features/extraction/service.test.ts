@@ -1,9 +1,12 @@
 // @vitest-environment node
 
+import { readFile } from "node:fs/promises";
+
 import { describe, expect, it, vi } from "vitest";
 
 import type { ExtractedFact } from "./service";
 import { createResumeExtractionService } from "./service";
+import { extractResumeText } from "@/features/source-assets/parsers";
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const jobId = "33333333-3333-4333-8333-333333333333";
@@ -120,6 +123,26 @@ const syntheticSchedule = {
 };
 
 describe("resume extraction service", () => {
+  it("preserves resume-text-too-short from the real scanned PDF parser", async () => {
+    const fakes = createFakes([]);
+    const scannedPdf = await readFile("tests/fixtures/resume-scanned.pdf");
+    fakes.storage.download.mockResolvedValue(new Blob([scannedPdf]));
+    fakes.parser.mockImplementation((buffer, contentType) => {
+      expect(contentType).toBe("application/pdf");
+      return extractResumeText(buffer, contentType);
+    });
+    const service = createResumeExtractionService({ ...fakes });
+
+    const failed = await service.run({ userId, job, asset });
+    expect(fakes.jobs.failJob).toHaveBeenCalledWith({
+      jobId,
+      assetId,
+      errorCode: "resume-text-too-short",
+      errorMessage: "简历处理失败，请稍后重试。",
+    });
+    expect(failed.errorCode).toBe("resume-text-too-short");
+  });
+
   it("claims once, rejects unsupported evidence, and persists safe metadata", async () => {
     const supported = fact(
       "Improved checkout conversion by 18% through funnel analysis.",

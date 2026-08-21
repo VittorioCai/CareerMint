@@ -278,6 +278,13 @@ test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
   const modelRequests: string[] = [];
   const sourceUploads: string[] = [];
   const extractionPosts: Array<{ url: string; body: string | null }> = [];
+  const extractionResponses: Array<{ status: number; body: string }> = [];
+  const browserDiagnostics: string[] = [];
+  const summarize = (value: string) => value.replace(/\s+/g, " ").slice(0, 300);
+  const summarizeUrl = (value: string) => {
+    const url = new URL(value);
+    return `${url.origin}${url.pathname}`;
+  };
   page.on("request", (requestEvent) => {
     const url = requestEvent.url();
     if (/paddle-model-ecology|onnxruntime-web|PP-OCR|\.onnx/i.test(url)) {
@@ -291,28 +298,64 @@ test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
       extractionPosts.push({ url, body: requestEvent.postData() });
     }
   });
+  page.on("response", async (responseEvent) => {
+    const url = responseEvent.url();
+    if (
+      responseEvent.status() >= 400 &&
+      /paddle-model|onnxruntime|PP-OCR|pdf\.worker|pdf\.mjs/i.test(url)
+    ) {
+      browserDiagnostics.push(
+        `resource-response: ${summarizeUrl(url)} status=${responseEvent.status()}`,
+      );
+    }
+    if (!/\/api\/source-assets\/[^/]+\/extract$/.test(new URL(url).pathname)) {
+      return;
+    }
+    let body = "<response-body-unavailable>";
+    try {
+      body = await responseEvent.text();
+    } catch {
+      // Keep a diagnostic marker so a missing response body is still reported.
+    }
+    extractionResponses.push({ status: responseEvent.status(), body });
+  });
+  page.on("pageerror", (error) => {
+    browserDiagnostics.push(`pageerror: ${summarize(error.message)}`);
+  });
+  page.on("console", (message) => {
+    if (message.type() === "error" || message.type() === "warning") {
+      browserDiagnostics.push(`${message.type()}: ${summarize(message.text())}`);
+    }
+  });
+  page.on("requestfailed", (requestEvent) => {
+    const failure = requestEvent.failure()?.errorText ?? "unknown-request-failure";
+    browserDiagnostics.push(
+      `requestfailed: ${summarizeUrl(requestEvent.url())} ${summarize(failure)}`,
+    );
+  });
 
   try {
     // The ordinary text-PDF path must finish without importing PaddleOCR or
     // requesting its model assets. This also proves the default E2E path keeps
     // OCR entirely out of the browser until the native parser reports too-short.
     createdUserIds.push(await createAccountAndReachOnboarding(page, context, admin));
-  await page
-    .getByLabel("上传现有简历")
-    .setInputFiles("tests/fixtures/resume-en.pdf");
-  await page.getByRole("button", { name: "上传并开始建档" }).click();
-  await expect(page.getByText(/文件已保存在你的私有空间/)).toBeVisible();
-  expect(modelRequests).toEqual([]);
+    await page
+      .getByLabel("上传现有简历")
+      .setInputFiles("tests/fixtures/resume-en.pdf");
+    await page.getByRole("button", { name: "上传并开始建档" }).click();
+    await expect(page.getByText(/文件已保存在你的私有空间/)).toBeVisible();
+    expect(modelRequests).toEqual([]);
     // Use a fresh account because onboarding intentionally disables re-upload
     // after the first source is saved. The second account exercises the real
     // scanned-PDF fallback and its idempotent OCR submission.
     modelRequests.length = 0;
     sourceUploads.length = 0;
     extractionPosts.length = 0;
+    extractionResponses.length = 0;
     createdUserIds.push(await createAccountAndReachOnboarding(page, context, admin));
-  await page
-    .getByLabel("允许系统将提取后的简历文字发送给 AI 服务进行分析")
-    .check();
+    await page
+      .getByLabel("允许系统将提取后的简历文字发送给 AI 服务进行分析")
+      .check();
 
   await page.evaluate(() => {
     const snapshots: string[] = [];
@@ -323,41 +366,58 @@ test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
     }, 20);
   });
 
-  await page
-    .getByLabel("上传现有简历")
-    .setInputFiles("tests/fixtures/resume-scanned.pdf");
-  await page.getByRole("button", { name: "上传并开始建档" }).click();
-  await expect(page.getByRole("button", { name: "取消本地识别" })).toBeVisible({
-    timeout: 120_000,
-  });
-  await expect.poll(
-    () => extractionPosts.filter(({ body }) => body === null).length,
-    { timeout: 30_000 },
-  ).toBeGreaterThanOrEqual(1);
+    await page
+      .getByLabel("上传现有简历")
+      .setInputFiles("tests/fixtures/resume-scanned.pdf");
+    await page.getByRole("button", { name: "上传并开始建档" }).click();
+    await expect
+      .poll(
+        () => extractionResponses.map(({ status, body }) => `${status}: ${body}`).join("\n"),
+        { timeout: 30_000 },
+      )
+      .toMatch(/"errorCode"\s*:\s*"resume-text-too-short"/);
+    await expect(page.getByRole("button", { name: "取消本地识别" })).toBeVisible({
+      timeout: 120_000,
+    });
 
-  await page.getByRole("button", { name: "取消本地识别" }).click();
-  await expect(page.getByText("已取消本地识别，可重新尝试。")).toBeVisible();
-  expect(sourceUploads).toHaveLength(1);
-  expect(
-    extractionPosts.filter(({ body }) => body?.includes('"ocrText"')),
-  ).toHaveLength(0);
+    await page.getByRole("button", { name: "取消本地识别" }).click();
+    await expect(page.getByText("已取消本地识别，可重新尝试。")).toBeVisible();
+    expect(sourceUploads).toHaveLength(1);
+    expect(
+      extractionPosts.filter(({ body }) => body?.includes('"ocrText"')),
+    ).toHaveLength(0);
 
-  await page.getByRole("button", { name: "重新尝试" }).click();
-  await expect.poll(() => sourceUploads.length, { timeout: 30_000 }).toBe(1);
-  await expect(page.getByText("简历分析完成")).toBeVisible({ timeout: 240_000 });
+    await page.getByRole("button", { name: "重新尝试" }).click();
+    await expect.poll(() => sourceUploads.length, { timeout: 30_000 }).toBe(1);
+    await expect(page.getByText("已取消本地识别，可重新尝试。")).toBeHidden({
+      timeout: 5_000,
+    });
+    const completion = page
+      .getByText("简历分析完成")
+      .waitFor({ state: "visible", timeout: 240_000 })
+      .then(() => "succeeded" as const);
+    const ocrFailure = page
+      .getByText("本地识别暂时不可用，请重试或上传文字版简历。", { exact: true })
+      .waitFor({ state: "visible", timeout: 240_000 })
+      .then(() => {
+        throw new Error(
+          `browser OCR failed: resume-ocr-unavailable; diagnostics=${browserDiagnostics.join(" | ")}`,
+        );
+      });
+    await Promise.race([completion, ocrFailure]);
 
-  const ocrPosts = extractionPosts.filter(({ body }) => body?.includes('"ocrText"'));
-  expect(ocrPosts).toHaveLength(1);
-  expect(modelRequests.length).toBeGreaterThan(0);
-  expect(modelRequests.some((url) => /paddle-model-ecology|PP-OCR/i.test(url))).toBe(true);
-  const snapshots = await page.evaluate(
-    () => (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots ?? [],
-  );
-  expect(snapshots.some((text) => text.includes("正在本地识别扫描版简历（第 2/2 页）"))).toBe(true);
+    const ocrPosts = extractionPosts.filter(({ body }) => body?.includes('"ocrText"'));
+    expect(ocrPosts).toHaveLength(1);
+    expect(modelRequests.length).toBeGreaterThan(0);
+    expect(modelRequests.some((url) => /paddle-model-ecology|PP-OCR/i.test(url))).toBe(true);
+    const snapshots = await page.evaluate(
+      () => (window as Window & { __ocrSnapshots?: string[] }).__ocrSnapshots ?? [],
+    );
+    expect(snapshots.some((text) => text.includes("正在本地识别扫描版简历（第 2/2 页）"))).toBe(true);
 
-  await page.getByRole("button", { name: "继续核对事实" }).click();
-  await page.getByRole("button", { name: "进入工作台" }).click();
-  await expect(page).toHaveURL(/\/app/);
+    await page.getByRole("button", { name: "继续核对事实" }).click();
+    await page.getByRole("button", { name: "进入工作台" }).click();
+    await expect(page).toHaveURL(/\/app/);
   } finally {
     for (const userId of createdUserIds) {
       await admin.auth.admin.deleteUser(userId);
