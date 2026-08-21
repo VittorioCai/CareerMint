@@ -20,9 +20,10 @@ describe("interview generation fake provider", () => {
     expect(excerpt).not.toContain("tail");
   });
 
-  it("returns fake metadata matching the JD-derived excerpt", async () => {
+  it("returns two distinct JD-grounded candidates with zero token usage", async () => {
     const provider = createFakeInterviewQuestionProvider();
-    const jdText = "😀".repeat(240) + " unsupported tail";
+    const jdText =
+      "Lead product discovery, partner with engineering, define strategy, and measure customer outcomes across international markets.";
 
     const result = await provider.generateInterviewQuestions({
       jdText,
@@ -32,9 +33,16 @@ describe("interview generation fake provider", () => {
 
     expect(result.provider).toBe("fake");
     expect(result.model).toBe("fake-interview-question-generator-v1");
-    expect(result.data.questions[0]?.sourceExcerpt).toBe(
-      "😀".repeat(240),
-    );
+    expect(result.data.questions).toHaveLength(2);
+    expect(new Set(result.data.questions.map((question) => question.prompt)).size).toBe(2);
+    expect(new Set(result.data.questions.map((question) => question.sourceExcerpt)).size).toBe(1);
+    expect(result.data.questions.every((question) => question.sourceExcerpt === jdText)).toBe(true);
+    expect(result.data.questions.every((question) => question.relevanceReason.length > 0)).toBe(true);
+    expect(result.usage).toEqual({
+      inputCacheHitTokens: 0,
+      inputCacheMissTokens: 0,
+      outputTokens: 0,
+    });
   });
 
   it("keeps the fake provider disabled in production", () => {
