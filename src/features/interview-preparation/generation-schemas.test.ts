@@ -199,4 +199,32 @@ describe("interview question generation schemas", () => {
       }),
     ).toThrow("interview-question-generation-invalid-output");
   });
+
+  it("rejects canonical keys longer than 500 after NFKC expansion", () => {
+    const expandedPrompt = "ﬃ".repeat(500);
+    const sanitized = sanitizeInterviewQuestionGeneration({
+      jdText,
+      requirements,
+      commonPrompts: [],
+      output: {
+        questions: [candidate({ prompt: expandedPrompt }), candidate()],
+      },
+    });
+
+    expect(sanitized.questions).toEqual([candidate()]);
+    expect(sanitized.rejectedQuestionCount).toBe(1);
+  });
+
+  it("raises the stable invalid-output error when every canonical key is too long", () => {
+    expect(() =>
+      sanitizeInterviewQuestionGeneration({
+        jdText,
+        requirements,
+        commonPrompts: [],
+        output: {
+          questions: [candidate({ prompt: "ﬃ".repeat(500) })],
+        },
+      }),
+    ).toThrow("interview-question-generation-invalid-output");
+  });
 });

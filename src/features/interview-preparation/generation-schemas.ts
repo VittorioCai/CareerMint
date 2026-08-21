@@ -98,8 +98,10 @@ export function sanitizeInterviewQuestionGeneration(
 
   for (const candidate of parsed.questions) {
     const canonicalKey = normalizeQuestionPrompt(candidate.prompt);
+    const canonicalLength = unicodeCodePointLength(canonicalKey);
     if (
-      canonicalKey.length === 0 ||
+      canonicalLength < 1 ||
+      canonicalLength > 500 ||
       commonCanonicalKeys.has(canonicalKey) ||
       seenCanonicalKeys.has(canonicalKey) ||
       !excerptIsGrounded(normalizedJd, candidate.sourceExcerpt)
