@@ -126,6 +126,9 @@ describe("interview preparation components", () => {
         addQuestion={addQuestion}
       />,
     );
+    expect(screen.getByText("手动加入题库").closest("form")).toHaveClass(
+      "self-start",
+    );
 
     await user.type(
       screen.getByLabelText("核心问题"),

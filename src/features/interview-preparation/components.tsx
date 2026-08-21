@@ -86,7 +86,7 @@ export function NewInterviewQuestionForm({
   return (
     <form
       onSubmit={submit}
-      className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]"
+      className="self-start rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
