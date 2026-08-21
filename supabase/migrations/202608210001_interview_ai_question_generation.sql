@@ -665,6 +665,9 @@ begin
   end loop;
 
   -- Candidate locks are always acquired in UUID order.
+  -- Process canonical keys in the same order as the pre-lock pass. Candidate
+  -- rows are already locked in UUID order above, so this order prevents two
+  -- multi-canonical accept calls from taking question locks in opposite order.
   for candidate in
     select *
     from public.interview_question_candidates
@@ -701,17 +704,44 @@ begin
       and application_id = target_application_id
       and user_id = current_user_id
       and status = 'pending'
-    order by id
+    order by canonical_key, id
   loop
     existing_question := null;
+    created_question := null;
     select * into existing_question
     from public.interview_questions
     where user_id = current_user_id
       and canonical_key = candidate.canonical_key
     for update;
 
-    if existing_question.id is not null
-      and existing_question.category = 'common' then
+    if existing_question.id is null then
+      insert into public.interview_questions (
+        user_id, category, canonical_key, prompt, source
+      ) values (
+        current_user_id, candidate.category, candidate.canonical_key,
+        candidate.prompt, 'ai'
+      )
+      on conflict (user_id, canonical_key) do nothing
+      returning * into created_question;
+
+      if created_question.id is null then
+        select * into existing_question
+        from public.interview_questions
+        where user_id = current_user_id
+          and canonical_key = candidate.canonical_key
+        for update;
+      else
+        existing_question := created_question;
+      end if;
+    end if;
+
+    -- Re-check the final row after the insert/fallback. A concurrent common
+    -- question must never be treated as a generated one, and a concurrent
+    -- non-common winner is a reuse rather than a new question.
+    if existing_question.id is null then
+      raise exception 'interview-question-not-found' using errcode = 'P0002';
+    end if;
+    if existing_question.category = 'common' then
       update public.interview_question_candidates
       set status = 'rejected', updated_at = now()
       where id = candidate.id;
@@ -735,27 +765,9 @@ begin
       continue;
     end if;
 
-    if existing_question.id is null then
-      insert into public.interview_questions (
-        user_id, category, canonical_key, prompt, source
-      ) values (
-        current_user_id, candidate.category, candidate.canonical_key,
-        candidate.prompt, 'ai'
-      )
-      on conflict (user_id, canonical_key) do nothing
-      returning * into created_question;
-
-      if created_question.id is null then
-        select * into created_question
-        from public.interview_questions
-        where user_id = current_user_id
-          and canonical_key = candidate.canonical_key
-        for update;
-      end if;
-      existing_question := created_question;
+    if created_question.id is not null then
       disposition := 'new';
     else
-      existing_question := existing_question;
       disposition := 'reused';
     end if;
 
@@ -775,9 +787,15 @@ begin
       candidate.relevance_reason, candidate.source_excerpt
     )
     on conflict on constraint application_interview_questions_pkey do update
-    set predicted = excluded.predicted,
-        relevance_reason = excluded.relevance_reason,
-        source_excerpt = excluded.source_excerpt;
+    set predicted = public.application_interview_questions.predicted,
+        relevance_reason = coalesce(
+          public.application_interview_questions.relevance_reason,
+          excluded.relevance_reason
+        ),
+        source_excerpt = coalesce(
+          public.application_interview_questions.source_excerpt,
+          excluded.source_excerpt
+        );
 
     update public.interview_question_candidates
     set status = 'accepted', question_id = existing_question.id, updated_at = now()

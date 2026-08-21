@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(67);
+select plan(70);
 
 select has_table(
   'public', 'interview_question_generation_runs',
@@ -609,6 +609,17 @@ select results_eq(
   'allowlisted failure stores only the fixed safe message'
 );
 
+-- Simulate a user-edited existing link. Acceptance must not overwrite any
+-- existing presentation or evidence fields.
+set local role postgres;
+update public.application_interview_questions
+set predicted = false,
+    relevance_reason = 'Custom user reason',
+    source_excerpt = 'Existing evidence'
+where application_id = current_setting('test.generation_app_id')::uuid
+  and question_id = current_setting('test.existing_question_id')::uuid;
+set local role authenticated;
+
 select results_eq(
   $sql$
     select accepted.disposition
@@ -629,6 +640,14 @@ select results_eq(
   'accept returns reuse and new-question dispositions'
 );
 select results_eq(
+  $$select predicted::text || ':' || relevance_reason || ':' || source_excerpt
+    from public.application_interview_questions
+    where application_id = current_setting('test.generation_app_id')::uuid
+      and question_id = current_setting('test.existing_question_id')::uuid$$,
+  array['false:Custom user reason:Existing evidence'::text],
+  'accept preserves existing predicted, reason, and evidence fields'
+);
+select results_eq(
   $$select count(*)::bigint from public.interview_questions
     where source = 'ai' and prompt in (
       'How would you explain product tradeoffs?',
@@ -646,6 +665,50 @@ select results_eq(
   $$select count(*)::bigint from public.application_interview_questions where source_excerpt is not null$$,
   array[3::bigint],
   'new accepted questions receive predicted source-backed links'
+);
+
+-- A pre-existing non-common link with missing evidence receives the new JD
+-- evidence, while the prior fixture above retained its non-null evidence.
+select set_config('test.missing_excerpt_run_id', (
+  select id::text from public.create_or_get_interview_question_generation(
+    current_setting('test.generation_app_id')::uuid,
+    repeat('4', 64), 'interview-questions-v1', 'fake', 'fake-v1'
+  )
+), true);
+select public.claim_interview_question_generation(current_setting('test.missing_excerpt_run_id')::uuid);
+select public.add_interview_question(
+  'How do you handle stakeholder tradeoffs?', 'function',
+  current_setting('test.generation_app_id')::uuid, null
+);
+select public.complete_interview_question_generation(
+  current_setting('test.missing_excerpt_run_id')::uuid,
+  jsonb_build_array(jsonb_build_object(
+    'category','function', 'prompt','How do you handle stakeholder tradeoffs?',
+    'sourceExcerpt','Lead product discovery',
+    'relevanceReason','The role requires stakeholder judgment.'
+  )), 0,
+  '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+  null, 'req-missing-excerpt'
+);
+select results_eq(
+  $sql$
+    select disposition from public.accept_interview_question_candidates(
+      current_setting('test.generation_app_id')::uuid,
+      array(select id from public.interview_question_candidates
+        where run_id = current_setting('test.missing_excerpt_run_id')::uuid)
+    )
+  $sql$,
+  array['reused'::text],
+  'pre-existing non-common question uses the reuse fallback'
+);
+select results_eq(
+  $$select source_excerpt || ':' || relevance_reason
+    from public.application_interview_questions link
+    join public.interview_questions question on question.id = link.question_id
+    where link.application_id = current_setting('test.generation_app_id')::uuid
+      and question.canonical_key = 'how do you handle stakeholder tradeoffs'$$,
+  array['Lead product discovery:The role requires stakeholder judgment.'::text],
+  'accept fills missing evidence and reason without replacing existing values'
 );
 select is(
   (select source_excerpt from public.application_interview_questions link
