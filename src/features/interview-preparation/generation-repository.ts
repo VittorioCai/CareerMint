@@ -84,6 +84,7 @@ export type InterviewQuestionCandidateAcceptance = {
 
 export type InterviewQuestionGenerationExportCandidate =
   InterviewQuestionGenerationCandidateRecord & {
+    userId: string;
     canonicalKey: string;
     createdAt: string;
     updatedAt: string;
@@ -159,6 +160,7 @@ function toExportCandidate(
 ): InterviewQuestionGenerationExportCandidate {
   return {
     ...toCandidate(row),
+    userId: row.user_id,
     canonicalKey: row.canonical_key,
     createdAt: row.created_at,
     updatedAt: row.updated_at,

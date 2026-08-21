@@ -32,10 +32,7 @@ export async function GET() {
       listInterviewQuestions: interviewPreparationRepository.list,
       listInterviewGenerationRuns: interviewQuestionGenerationRepository.listRuns,
       listInterviewGenerationCandidates:
-        async (userId) =>
-          (await interviewQuestionGenerationRepository.listAllCandidates(userId)).map(
-            (candidate) => ({ ...candidate, userId }),
-          ),
+        interviewQuestionGenerationRepository.listAllCandidates,
       download: downloadSource,
     });
     const date = new Date().toISOString().slice(0, 10);

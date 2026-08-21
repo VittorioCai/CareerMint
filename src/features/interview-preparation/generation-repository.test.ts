@@ -99,6 +99,7 @@ describe("interview question generation review repository", () => {
       {
         id: candidateId,
         runId: runRow.id,
+        userId: runRow.user_id,
         canonicalKey: candidateRow.canonical_key,
         createdAt: candidateRow.created_at,
         updatedAt: candidateRow.updated_at,

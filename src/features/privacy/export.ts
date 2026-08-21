@@ -21,7 +21,7 @@ type InterviewGenerationRunExportRecord = OwnedRecord & {
   updatedAt: string;
 };
 type InterviewGenerationCandidateExportRecord = {
-  userId?: string;
+  userId: string;
   id: string;
   runId: string;
   applicationId: string;
