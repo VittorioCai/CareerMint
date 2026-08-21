@@ -138,7 +138,7 @@ Expose createOrGet, claim, getOwned, listCandidates, complete, fail, accept, and
 
 - [ ] Step 4: Implement stable hash and API wiring
 
-buildInterviewQuestionGenerationInputHash hashes a stable object containing schema version, provider/model, full JD, requirements sorted by ID with structured fields, and normalized-sorted common prompts. The route uses Node runtime and existing consent/env/price helpers. E2E_FAKE_EXTRACTOR=1 outside production selects a deterministic fake provider whose excerpt comes from the supplied JD; production selects DeepSeek. A running/succeeded run returns reused=true without provider invocation.
+buildInterviewQuestionGenerationInputHash hashes a stable object containing schema version, provider/model, full JD, requirements sorted by ID with structured fields, and normalized-sorted common prompts. The route uses Node runtime and existing consent/env/price helpers. E2E_FAKE_EXTRACTOR=1 outside production selects a deterministic fake provider whose excerpt comes from the supplied JD; production selects DeepSeek. A succeeded or fresh running run returns reused=true without provider invocation; a stale running run is reclaimed by the database lease and may invoke the provider only after the new attempt is verified.
 
 - [ ] Step 5: Regenerate types and verify
 
