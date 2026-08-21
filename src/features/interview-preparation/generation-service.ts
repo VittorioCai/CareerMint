@@ -66,6 +66,7 @@ export type InterviewQuestionGenerationCandidateRecord =
 
 export type CompleteInterviewQuestionGenerationInput = {
   runId: string;
+  expectedAttemptCount: number;
   candidates: InterviewQuestionGenerationCandidate[];
   rejectedCandidateCount: number;
   aiUsage: InterviewQuestionGenerationAI;
@@ -75,6 +76,7 @@ export type CompleteInterviewQuestionGenerationInput = {
 
 export type FailInterviewQuestionGenerationInput = {
   runId: string;
+  expectedAttemptCount: number;
   errorCode: string;
   errorMessage: string;
   requestId: string | null;
@@ -85,7 +87,11 @@ export type InterviewQuestionGenerationRequirements =
 
 export type InterviewQuestionGenerationServiceDependencies = {
   runs: {
-    claim(runId: string): Promise<boolean>;
+    claim(
+      runId: string,
+      expectedAttemptCount: number,
+      expectedStatus: Exclude<InterviewQuestionGenerationRunStatus, "succeeded">,
+    ): Promise<boolean>;
     getOwned(
       userId: string,
       runId: string,
@@ -100,6 +106,11 @@ export type InterviewQuestionGenerationServiceDependencies = {
   providerFactory(): Pick<AIProvider, "generateInterviewQuestions">;
   priceSchedule?: AIPriceSchedule;
   clock?: () => Date;
+};
+
+export type InterviewQuestionGenerationServiceResult = {
+  run: InterviewQuestionGenerationRun;
+  reused: boolean;
 };
 
 const safeErrorMessage = "岗位面试题生成失败，请稍后重试。";
@@ -152,19 +163,88 @@ async function failWithRecovery(
   userId: string,
   input: FailInterviewQuestionGenerationInput,
 ) {
+  const write = async () => dependencies.runs.fail(input);
   try {
-    return await dependencies.runs.fail(input);
+    return { run: await write(), reused: false };
   } catch {
+    let current: InterviewQuestionGenerationRun | null;
     try {
-      const current = await dependencies.runs.getOwned(
-        userId,
-        input.runId,
-      );
-      if (current && isTerminal(current)) return current;
+      current = await dependencies.runs.getOwned(userId, input.runId);
     } catch {
-      // Keep storage failures stable and source-free.
+      throw storageFailure();
     }
-    throw storageFailure();
+    if (
+      current &&
+      (isTerminal(current) || current.attemptCount !== input.expectedAttemptCount)
+    ) {
+      return { run: current, reused: true };
+    }
+    if (!current || current.status !== "running") throw storageFailure();
+    try {
+      return { run: await write(), reused: false };
+    } catch {
+      try {
+        current = await dependencies.runs.getOwned(userId, input.runId);
+      } catch {
+        throw storageFailure();
+      }
+      if (
+        current &&
+        (isTerminal(current) || current.attemptCount !== input.expectedAttemptCount)
+      ) {
+        return { run: current, reused: true };
+      }
+      throw storageFailure();
+    }
+  }
+}
+
+async function completeWithRecovery(
+  dependencies: InterviewQuestionGenerationServiceDependencies,
+  userId: string,
+  input: CompleteInterviewQuestionGenerationInput,
+  requestId: string | null,
+): Promise<InterviewQuestionGenerationServiceResult> {
+  const write = async () => dependencies.runs.complete(input);
+  try {
+    return { run: await write(), reused: false };
+  } catch {
+    let current: InterviewQuestionGenerationRun | null;
+    try {
+      current = await dependencies.runs.getOwned(userId, input.runId);
+    } catch {
+      throw storageFailure();
+    }
+    if (
+      current &&
+      (isTerminal(current) || current.attemptCount !== input.expectedAttemptCount)
+    ) {
+      return { run: current, reused: true };
+    }
+    if (!current || current.status !== "running") throw storageFailure();
+    try {
+      return { run: await write(), reused: false };
+    } catch {
+      try {
+        current = await dependencies.runs.getOwned(userId, input.runId);
+      } catch {
+        throw storageFailure();
+      }
+      if (
+        current &&
+        (isTerminal(current) || current.attemptCount !== input.expectedAttemptCount)
+      ) {
+        return { run: current, reused: true };
+      }
+      if (!current || current.status !== "running") throw storageFailure();
+      return failWithRecovery(dependencies, userId, {
+        runId: input.runId,
+        expectedAttemptCount: input.expectedAttemptCount,
+        errorCode: "interview-question-generation-provider-error",
+        errorMessage: safeErrorMessage,
+        requestId,
+      });
+    }
   }
 }
 
@@ -180,15 +260,22 @@ export function createInterviewQuestionGenerationService(
       application: { id: string; jdText: string };
       requirements: InterviewQuestionGenerationRequirements;
       commonPrompts: string[];
-    }): Promise<InterviewQuestionGenerationRun> {
-      const claimed = await dependencies.runs.claim(input.run.id);
+    }): Promise<InterviewQuestionGenerationServiceResult> {
+      if (input.run.status === "succeeded") {
+        return { run: input.run, reused: true };
+      }
+      const claimed = await dependencies.runs.claim(
+        input.run.id,
+        input.run.attemptCount,
+        input.run.status,
+      );
       if (!claimed) {
         const current = await dependencies.runs.getOwned(
           input.userId,
           input.run.id,
         );
         if (!current) throw new Error("interview-question-generation-not-found");
-        return current;
+        return { run: current, reused: true };
       }
 
       let claimedRun: InterviewQuestionGenerationRun | null;
@@ -204,15 +291,7 @@ export function createInterviewQuestionGenerationService(
         claimedRun.status !== "running" ||
         claimedRun.attemptCount !== expectedAttempt
       ) {
-        if (claimedRun.status === "running") {
-          return failWithRecovery(dependencies, input.userId, {
-            runId: input.run.id,
-            errorCode: "interview-question-generation-provider-error",
-            errorMessage: safeErrorMessage,
-            requestId: null,
-          });
-        }
-        return claimedRun;
+        return { run: claimedRun, reused: true };
       }
 
       let requestId: string | null = null;
@@ -242,6 +321,7 @@ export function createInterviewQuestionGenerationService(
 
         completeInput = {
           runId: input.run.id,
+          expectedAttemptCount: expectedAttempt,
           candidates: sanitized.questions,
           rejectedCandidateCount: sanitized.rejectedQuestionCount,
           aiUsage: {
@@ -259,29 +339,18 @@ export function createInterviewQuestionGenerationService(
       } catch (error) {
         return failWithRecovery(dependencies, input.userId, {
           runId: input.run.id,
+          expectedAttemptCount: expectedAttempt,
           ...safeFailure(error),
           requestId,
         });
       }
 
-      try {
-        return await dependencies.runs.complete(completeInput);
-      } catch {
-        let current: InterviewQuestionGenerationRun | null;
-        try {
-          current = await dependencies.runs.getOwned(input.userId, input.run.id);
-        } catch {
-          throw storageFailure();
-        }
-        if (current && isTerminal(current)) return current;
-        if (!current || current.status !== "running") throw storageFailure();
-        return failWithRecovery(dependencies, input.userId, {
-          runId: input.run.id,
-          errorCode: "interview-question-generation-provider-error",
-          errorMessage: safeErrorMessage,
-          requestId,
-        });
-      }
+      return completeWithRecovery(
+        dependencies,
+        input.userId,
+        completeInput,
+        requestId,
+      );
     },
   };
 }

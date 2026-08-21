@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(75);
+select plan(78);
 
 select has_table(
   'public', 'interview_question_generation_runs',
@@ -30,17 +30,17 @@ select has_function(
   'create-or-get generation RPC exists'
 );
 select has_function(
-  'public', 'claim_interview_question_generation', array['uuid'],
+  'public', 'claim_interview_question_generation', array['uuid', 'integer', 'text'],
   'claim generation RPC exists'
 );
 select has_function(
   'public', 'complete_interview_question_generation',
-  array['uuid', 'jsonb', 'integer', 'jsonb', 'jsonb', 'text'],
+  array['uuid', 'integer', 'jsonb', 'integer', 'jsonb', 'jsonb', 'text'],
   'complete generation RPC exists'
 );
 select has_function(
   'public', 'fail_interview_question_generation',
-  array['uuid', 'text', 'text', 'text'],
+  array['uuid', 'integer', 'text', 'text', 'text'],
   'fail generation RPC exists'
 );
 select has_function(
@@ -160,12 +160,20 @@ select results_eq(
 );
 
 select results_eq(
-  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  $$select public.claim_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid)
+  )$$,
   array[true],
   'owner can claim a queued generation run'
 );
 select results_eq(
-  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  $$select public.claim_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid)
+  )$$,
   array[false],
   'running generation cannot be claimed twice'
 );
@@ -176,7 +184,11 @@ set updated_at = now() - interval '3 minutes'
 where id = current_setting('test.run_id')::uuid;
 set local role authenticated;
 select results_eq(
-  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  $$select public.claim_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid)
+  )$$,
   array[true],
   'stale running generation can be explicitly reclaimed'
 );
@@ -186,9 +198,44 @@ select results_eq(
   'stale reclaim increments the generation attempt'
 );
 select results_eq(
-  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  $$select public.claim_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid)
+  )$$,
   array[false],
   'freshly reclaimed running generation cannot be claimed again'
+);
+select throws_ok(
+  $$select public.complete_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    1,
+    jsonb_build_array(jsonb_build_object(
+      'category','function', 'prompt','Old worker prompt',
+      'sourceExcerpt','Lead product discovery', 'relevanceReason','Old worker'
+    )), 0,
+    '{"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0}}'::jsonb,
+    null, 'old-worker'
+  )$$,
+  'P0002', 'interview-question-generation-not-running',
+  'a stale worker cannot complete after a newer attempt claims the run'
+);
+select throws_ok(
+  $$select public.fail_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    1,
+    'interview-question-generation-provider-error',
+    '岗位面试题生成失败，请稍后重试。', 'old-worker'
+  )$$,
+  'P0002', 'interview-question-generation-not-running',
+  'a stale worker cannot fail after a newer attempt claims the run'
+);
+select results_eq(
+  $$select status::text || ':' || attempt_count::text
+    from public.interview_question_generation_runs
+    where id = current_setting('test.run_id')::uuid$$,
+  array['running:2'::text],
+  'stale worker writes leave the newer attempt untouched'
 );
 
 select throws_ok(
@@ -238,6 +285,7 @@ select results_eq(
     select status::text
     from public.complete_interview_question_generation(
       current_setting('test.run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
       jsonb_build_array(
         jsonb_build_object('category', 'function',
           'prompt', 'HOW do you prioritize roadmap work？',
@@ -353,11 +401,16 @@ select set_config('test.ai_unknown_run_id', (
     repeat('1', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.ai_unknown_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.ai_unknown_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid)
+  );
 select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.ai_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe prompt here',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -373,6 +426,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.ai_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe prompt here',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -386,6 +440,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.ai_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe prompt here',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -401,6 +456,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.ai_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.ai_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe prompt here',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -425,11 +481,16 @@ select set_config('test.cost_unknown_run_id', (
     repeat('2', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.cost_unknown_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.cost_unknown_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid)
+  );
 select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.cost_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe cost prompt',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -446,6 +507,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.cost_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe cost prompt',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -461,6 +523,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.cost_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe cost prompt',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -477,6 +540,7 @@ select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.cost_unknown_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.cost_unknown_run_id')::uuid),
       jsonb_build_array(jsonb_build_object(
         'category','function', 'prompt','A safe cost prompt',
         'sourceExcerpt','Lead product discovery', 'relevanceReason','Grounded'
@@ -500,6 +564,7 @@ select throws_ok(
   $$
     select public.complete_interview_question_generation(
       current_setting('test.run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.run_id')::uuid),
       jsonb_build_array(
         jsonb_build_object('category','function','prompt','Seventh candidate prompt',
           'sourceExcerpt','Lead product discovery','relevanceReason','Too many')
@@ -522,11 +587,16 @@ select set_config(
     )
   ), true
 );
-select public.claim_interview_question_generation(current_setting('test.invalid_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.invalid_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.invalid_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.invalid_run_id')::uuid)
+  );
 select throws_ok(
   $$
     select public.complete_interview_question_generation(
       current_setting('test.invalid_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.invalid_run_id')::uuid),
       jsonb_build_array(
         jsonb_build_object('category','function','prompt','Grounded first prompt',
           'sourceExcerpt','Lead product discovery','relevanceReason','Grounded'),
@@ -555,11 +625,16 @@ select set_config(
     )
   ), true
 );
-select public.claim_interview_question_generation(current_setting('test.forged_key_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.forged_key_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.forged_key_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.forged_key_run_id')::uuid)
+  );
 select throws_ok(
   $$
     select public.complete_interview_question_generation(
       current_setting('test.forged_key_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.forged_key_run_id')::uuid),
       jsonb_build_array(
         jsonb_build_object('category','function','prompt','Forged key prompt',
           'canonicalKey','forged by client',
@@ -589,7 +664,11 @@ select is(
   'cross-user RLS hides another owner''s generation run'
 );
 select throws_ok(
-  $$select public.claim_interview_question_generation(current_setting('test.run_id')::uuid)$$,
+  $$select public.claim_interview_question_generation(
+    current_setting('test.run_id')::uuid,
+    2,
+    'running'
+  )$$,
   'P0002', 'interview-question-generation-not-found',
   'cross-user claim is denied'
 );
@@ -619,10 +698,15 @@ select set_config('test.fail_run_id', (
     repeat('3', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.fail_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.fail_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.fail_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.fail_run_id')::uuid)
+  );
 select throws_ok(
   $$select public.fail_interview_question_generation(
     current_setting('test.fail_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.fail_run_id')::uuid),
     'arbitrary-provider-error',
     'JD and resume contents must never be persisted',
     'req-fail'
@@ -632,6 +716,7 @@ select throws_ok(
 );
 select public.fail_interview_question_generation(
   current_setting('test.fail_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.fail_run_id')::uuid),
   'interview-question-generation-provider-error',
   'JD and resume contents must never be persisted',
   'req-fail'
@@ -710,13 +795,18 @@ select set_config('test.missing_excerpt_run_id', (
     repeat('4', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.missing_excerpt_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.missing_excerpt_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.missing_excerpt_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.missing_excerpt_run_id')::uuid)
+  );
 select public.add_interview_question(
   'How do you handle stakeholder tradeoffs?', 'function',
   current_setting('test.generation_app_id')::uuid, null
 );
 select public.complete_interview_question_generation(
   current_setting('test.missing_excerpt_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.missing_excerpt_run_id')::uuid),
   jsonb_build_array(jsonb_build_object(
     'category','function', 'prompt','How do you handle stakeholder tradeoffs?',
     'sourceExcerpt','Lead product discovery',
@@ -800,11 +890,16 @@ select set_config('test.overflow_run_id', (
     repeat('e', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.overflow_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.overflow_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.overflow_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.overflow_run_id')::uuid)
+  );
 select throws_ok(
   $sql$
     select public.complete_interview_question_generation(
       current_setting('test.overflow_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.overflow_run_id')::uuid),
       jsonb_build_array(
         jsonb_build_object('category','function','prompt','Overflow prompt one',
           'sourceExcerpt','Lead product discovery','relevanceReason','Overflow'),
@@ -842,9 +937,14 @@ select set_config('test.common_run_id', (
     repeat('f', 64), 'interview-questions-v1', 'fake', 'fake-v1'
   )
 ), true);
-select public.claim_interview_question_generation(current_setting('test.common_run_id')::uuid);
+select public.claim_interview_question_generation(
+    current_setting('test.common_run_id')::uuid,
+    (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.common_run_id')::uuid),
+    (select status::text from public.interview_question_generation_runs where id = current_setting('test.common_run_id')::uuid)
+  );
 select public.complete_interview_question_generation(
   current_setting('test.common_run_id')::uuid,
+      (select attempt_count from public.interview_question_generation_runs where id = current_setting('test.common_run_id')::uuid),
   jsonb_build_array(jsonb_build_object(
     'category','function', 'prompt','Tell me about yourself?',
     'sourceExcerpt','Lead product discovery',

@@ -124,7 +124,11 @@ describe("interview question generation service", () => {
 
     await service.run(baseInput);
 
-    expect(dependencies.runs.claim).toHaveBeenCalledExactlyOnceWith(runId);
+    expect(dependencies.runs.claim).toHaveBeenCalledExactlyOnceWith(
+      runId,
+      0,
+      "queued",
+    );
     expect(
       dependencies.runs.claim.mock.invocationCallOrder[0],
     ).toBeLessThan(
@@ -132,6 +136,7 @@ describe("interview question generation service", () => {
     );
     expect(dependencies.runs.complete).toHaveBeenCalledWith({
       runId,
+      expectedAttemptCount: 1,
       candidates: [candidate],
       rejectedCandidateCount: 0,
       aiUsage: {
@@ -157,7 +162,10 @@ describe("interview question generation service", () => {
     dependencies.runs.getOwned.mockResolvedValue({ ...run, status: "running" });
     const service = createInterviewQuestionGenerationService(dependencies);
 
-    await expect(service.run(baseInput)).resolves.toMatchObject({ status: "running" });
+    await expect(service.run(baseInput)).resolves.toMatchObject({
+      run: { status: "running" },
+      reused: true,
+    });
     expect(dependencies.provider.generateInterviewQuestions).not.toHaveBeenCalled();
   });
 
@@ -174,6 +182,7 @@ describe("interview question generation service", () => {
     expect(dependencies.provider.generateInterviewQuestions).toHaveBeenCalledTimes(1);
     expect(dependencies.runs.fail).toHaveBeenCalledExactlyOnceWith({
       runId,
+      expectedAttemptCount: 1,
       errorCode: "interview-question-generation-invalid-output",
       errorMessage: "岗位面试题生成失败，请稍后重试。",
       requestId: "request-123",
@@ -190,11 +199,12 @@ describe("interview question generation service", () => {
     const service = createInterviewQuestionGenerationService(dependencies);
 
     await expect(service.run(baseInput)).resolves.toMatchObject({
-      status: "failed",
+      run: { status: "failed" },
     });
 
     expect(dependencies.runs.fail).toHaveBeenCalledExactlyOnceWith({
       runId,
+      expectedAttemptCount: 1,
       errorCode: "interview-question-generation-invalid-output",
       errorMessage: "岗位面试题生成失败，请稍后重试。",
       requestId: "request-123",
@@ -233,6 +243,7 @@ describe("interview question generation service", () => {
 
     expect(dependencies.runs.fail).toHaveBeenCalledWith({
       runId,
+      expectedAttemptCount: 1,
       errorCode: "interview-question-generation-provider-error",
       errorMessage: "岗位面试题生成失败，请稍后重试。",
       requestId: null,
@@ -289,7 +300,7 @@ describe("interview question generation service", () => {
     });
 
     await expect(service.run(baseInput)).resolves.toMatchObject({
-      status: "succeeded",
+      run: { status: "succeeded" },
     });
     expect(dependencies.runs.fail).not.toHaveBeenCalled();
   });
@@ -309,7 +320,7 @@ describe("interview question generation service", () => {
     });
 
     await expect(service.run(baseInput)).resolves.toMatchObject({
-      status: "failed",
+      run: { status: "failed" },
     });
   });
 
@@ -341,9 +352,12 @@ describe("interview question generation service", () => {
       providerFactory: dependencies.providerFactory,
     });
 
-    await expect(service.run(baseInput)).resolves.toMatchObject({ status: "failed" });
+    await expect(service.run(baseInput)).resolves.toMatchObject({
+      run: { status: "failed" },
+    });
     expect(dependencies.runs.fail).toHaveBeenCalledExactlyOnceWith({
       runId,
+      expectedAttemptCount: 1,
       errorCode: "interview-question-generation-provider-error",
       errorMessage: "岗位面试题生成失败，请稍后重试。",
       requestId: null,

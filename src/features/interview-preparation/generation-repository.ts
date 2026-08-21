@@ -171,13 +171,21 @@ async function createOrGet(input: {
   return toRun(data);
 }
 
-async function claim(runId: string): Promise<boolean> {
+async function claim(
+  runId: string,
+  expectedAttemptCount: number,
+  expectedStatus: "queued" | "running" | "failed",
+): Promise<boolean> {
   const supabase = await createClient();
   const { data, error } = await supabase.rpc(
     "claim_interview_question_generation",
-    { target_run_id: runId },
+    {
+      target_run_id: runId,
+      expected_attempt_count: expectedAttemptCount,
+      expected_status: expectedStatus,
+    },
   );
-  if (error) {
+  if (error || data == null) {
     throw new InterviewQuestionGenerationRepositoryError(stableError(error));
   }
   return data;
@@ -228,6 +236,7 @@ async function complete(
     "complete_interview_question_generation",
     {
       target_run_id: input.runId,
+      expected_attempt_count: input.expectedAttemptCount,
       target_candidates: input.candidates as unknown as Json,
       target_rejected_candidate_count: input.rejectedCandidateCount,
       target_ai_usage: targetAiUsage,
@@ -249,6 +258,7 @@ async function fail(
     "fail_interview_question_generation",
     {
       target_run_id: input.runId,
+      expected_attempt_count: input.expectedAttemptCount,
       target_error_code: input.errorCode,
       target_error_message: input.errorMessage,
       target_request_id: input.requestId as unknown as string,

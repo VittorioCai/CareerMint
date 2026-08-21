@@ -208,7 +208,11 @@ begin
 end;
 $$;
 
-create function public.claim_interview_question_generation(target_run_id uuid)
+create function public.claim_interview_question_generation(
+  target_run_id uuid,
+  expected_attempt_count integer,
+  expected_status text
+)
 returns boolean
 language plpgsql
 security definer
@@ -221,7 +225,11 @@ begin
   if current_user_id is null then
     raise exception 'authentication-required' using errcode = '42501';
   end if;
-  if target_run_id is null then
+  if target_run_id is null
+    or expected_attempt_count is null
+    or expected_attempt_count < 0
+    or expected_status is null
+    or expected_status not in ('queued', 'running', 'failed') then
     raise exception 'invalid-interview-question-generation-input'
       using errcode = '22023';
   end if;
@@ -249,10 +257,14 @@ begin
   where id = target_run_id
     and user_id = current_user_id
     and (
-      status in ('queued', 'failed')
+      attempt_count = expected_attempt_count
+      and status = expected_status
+      and (
+        expected_status in ('queued', 'failed')
       or (
         status = 'running'
         and updated_at < now() - interval '2 minutes'
+      )
       )
     );
 
@@ -263,6 +275,7 @@ $$;
 
 create function public.complete_interview_question_generation(
   target_run_id uuid,
+  expected_attempt_count integer,
   target_candidates jsonb,
   target_rejected_candidate_count integer,
   target_ai_usage jsonb,
@@ -300,6 +313,8 @@ begin
   end if;
 
   if target_run_id is null
+    or expected_attempt_count is null
+    or expected_attempt_count < 0
     or target_candidates is null
     or target_rejected_candidate_count is null
     or target_rejected_candidate_count < 0
@@ -328,6 +343,7 @@ begin
   where id = target_run_id
     and user_id = current_user_id
     and status = 'running'
+    and attempt_count = expected_attempt_count
   for update;
 
   if owned_run.id is null then
@@ -556,7 +572,10 @@ begin
       estimated_cost = safe_estimated_cost,
       updated_at = now(),
       completed_at = now()
-  where id = owned_run.id and user_id = current_user_id
+  where id = owned_run.id
+    and user_id = current_user_id
+    and status = 'running'
+    and attempt_count = expected_attempt_count
   returning * into completed_run;
 
   return completed_run;
@@ -565,6 +584,7 @@ $$;
 
 create function public.fail_interview_question_generation(
   target_run_id uuid,
+  expected_attempt_count integer,
   target_error_code text,
   target_error_message text,
   target_request_id text
@@ -582,6 +602,8 @@ begin
     raise exception 'authentication-required' using errcode = '42501';
   end if;
   if target_run_id is null
+    or expected_attempt_count is null
+    or expected_attempt_count < 0
     or target_error_code is null
     or target_error_code not in (
       'interview-question-generation-unavailable',
@@ -602,7 +624,10 @@ begin
 
   select * into failed_run
   from public.interview_question_generation_runs
-  where id = target_run_id and user_id = current_user_id and status = 'running'
+  where id = target_run_id
+    and user_id = current_user_id
+    and status = 'running'
+    and attempt_count = expected_attempt_count
   for update;
 
   if failed_run.id is null then
@@ -618,7 +643,10 @@ begin
       request_id = nullif(btrim(target_request_id), ''),
       updated_at = now(),
       completed_at = now()
-  where id = failed_run.id and user_id = current_user_id
+  where id = failed_run.id
+    and user_id = current_user_id
+    and status = 'running'
+    and attempt_count = expected_attempt_count
   returning * into failed_run;
 
   return failed_run;
@@ -926,15 +954,15 @@ $$;
 revoke all on function public.normalize_interview_question_generation_text(text) from public;
 revoke all on function public.normalize_interview_question_prompt(text) from public;
 revoke all on function public.create_or_get_interview_question_generation(uuid, text, text, text, text) from public;
-revoke all on function public.claim_interview_question_generation(uuid) from public;
-revoke all on function public.complete_interview_question_generation(uuid, jsonb, integer, jsonb, jsonb, text) from public;
-revoke all on function public.fail_interview_question_generation(uuid, text, text, text) from public;
+revoke all on function public.claim_interview_question_generation(uuid, integer, text) from public;
+revoke all on function public.complete_interview_question_generation(uuid, integer, jsonb, integer, jsonb, jsonb, text) from public;
+revoke all on function public.fail_interview_question_generation(uuid, integer, text, text, text) from public;
 revoke all on function public.accept_interview_question_candidates(uuid, uuid[]) from public;
 revoke all on function public.reject_interview_question_candidates(uuid, uuid[]) from public;
 
 grant execute on function public.create_or_get_interview_question_generation(uuid, text, text, text, text) to authenticated;
-grant execute on function public.claim_interview_question_generation(uuid) to authenticated;
-grant execute on function public.complete_interview_question_generation(uuid, jsonb, integer, jsonb, jsonb, text) to authenticated;
-grant execute on function public.fail_interview_question_generation(uuid, text, text, text) to authenticated;
+grant execute on function public.claim_interview_question_generation(uuid, integer, text) to authenticated;
+grant execute on function public.complete_interview_question_generation(uuid, integer, jsonb, integer, jsonb, jsonb, text) to authenticated;
+grant execute on function public.fail_interview_question_generation(uuid, integer, text, text, text) to authenticated;
 grant execute on function public.accept_interview_question_candidates(uuid, uuid[]) to authenticated;
 grant execute on function public.reject_interview_question_candidates(uuid, uuid[]) to authenticated;

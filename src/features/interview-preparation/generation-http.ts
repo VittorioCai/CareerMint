@@ -6,12 +6,14 @@ import type { AIProvider } from "@/features/extraction/provider";
 import type { Application } from "@/features/applications/schemas";
 import type { InterviewQuestionGenerationRequirement } from "./generation-schemas";
 import { normalizeQuestionPrompt } from "./schemas";
-import type { InterviewQuestionGenerationRun } from "./generation-service";
+import type {
+  InterviewQuestionGenerationRun,
+  InterviewQuestionGenerationServiceResult,
+} from "./generation-service";
 
 const applicationIdSchema = z.uuid();
 export const interviewQuestionGenerationSchemaVersion =
   "interview-question-generation-v1";
-export const interviewQuestionGenerationLeaseMs = 2 * 60 * 1000;
 
 export type InterviewQuestionGenerationPostDependencies = {
   getCurrentUser(): Promise<{ id: string } | null>;
@@ -34,7 +36,6 @@ export type InterviewQuestionGenerationPostDependencies = {
   }): Promise<InterviewQuestionGenerationRun>;
   providerConfig: { provider: string; model: string };
   providerFactory(): Pick<AIProvider, "generateInterviewQuestions">;
-  clock?: () => Date;
   runGeneration(input: {
     userId: string;
     run: InterviewQuestionGenerationRun;
@@ -42,22 +43,8 @@ export type InterviewQuestionGenerationPostDependencies = {
     requirements: InterviewQuestionGenerationRequirement[];
     commonPrompts: string[];
     providerFactory: () => Pick<AIProvider, "generateInterviewQuestions">;
-  }): Promise<InterviewQuestionGenerationRun>;
+  }): Promise<InterviewQuestionGenerationServiceResult>;
 };
-
-export function isFreshInterviewQuestionGenerationRun(
-  run: InterviewQuestionGenerationRun,
-  now: Date,
-) {
-  if (run.status !== "running") return false;
-  const updatedAt = Date.parse(run.updatedAt);
-  const nowMs = now.getTime();
-  return (
-    Number.isFinite(updatedAt) &&
-    Number.isFinite(nowMs) &&
-    updatedAt > nowMs - interviewQuestionGenerationLeaseMs
-  );
-}
 
 export function buildInterviewQuestionGenerationInputHash(input: {
   jdText: string;
@@ -142,13 +129,7 @@ export function createInterviewQuestionGenerationPostHandler(
         schemaVersion: interviewQuestionGenerationSchemaVersion,
         ...dependencies.providerConfig,
       });
-      if (
-        run.status === "succeeded" ||
-        isFreshInterviewQuestionGenerationRun(
-          run,
-          dependencies.clock?.() ?? new Date(),
-        )
-      ) {
+      if (run.status === "succeeded") {
         return Response.json({
           runId: run.id,
           status: run.status,
@@ -157,7 +138,7 @@ export function createInterviewQuestionGenerationPostHandler(
         });
       }
 
-      const completed = await dependencies.runGeneration({
+      const generation = await dependencies.runGeneration({
         userId: user.id,
         run,
         application,
@@ -166,10 +147,10 @@ export function createInterviewQuestionGenerationPostHandler(
         providerFactory: dependencies.providerFactory,
       });
       return Response.json({
-        runId: completed.id,
-        status: completed.status,
-        reused: false,
-        errorCode: completed.errorCode,
+        runId: generation.run.id,
+        status: generation.run.status,
+        reused: generation.reused,
+        errorCode: generation.run.errorCode,
       });
     } catch {
       return Response.json(

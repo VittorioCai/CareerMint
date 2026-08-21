@@ -1,3 +1,5 @@
+import "server-only";
+
 import type { AIProvider } from "@/features/extraction/provider";
 
 export function selectInterviewQuestionProviderConfiguration(input: {

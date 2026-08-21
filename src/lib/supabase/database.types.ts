@@ -1251,7 +1251,11 @@ export type Database = {
         Returns: boolean
       }
       claim_interview_question_generation: {
-        Args: { target_run_id: string }
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          target_run_id: string
+        }
         Returns: boolean
       }
       claim_processing_job: {
@@ -1301,6 +1305,7 @@ export type Database = {
           target_estimated_cost: Json
           target_rejected_candidate_count: number
           target_request_id: string
+          expected_attempt_count: number
           target_run_id: string
         }
         Returns: {
@@ -1605,6 +1610,7 @@ export type Database = {
       }
       fail_interview_question_generation: {
         Args: {
+          expected_attempt_count: number
           target_error_code: string
           target_error_message: string
           target_request_id: string

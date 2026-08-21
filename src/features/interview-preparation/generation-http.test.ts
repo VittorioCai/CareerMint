@@ -52,7 +52,10 @@ function deps() {
     createOrGetRun: vi.fn().mockResolvedValue(run),
     providerConfig: { provider: "deepseek", model: "deepseek-v4-flash" },
     providerFactory: vi.fn().mockReturnValue({ generateInterviewQuestions: vi.fn() }),
-    runGeneration: vi.fn().mockResolvedValue({ ...run, status: "succeeded" as const }),
+    runGeneration: vi.fn().mockResolvedValue({
+      run: { ...run, status: "succeeded" as const },
+      reused: false,
+    }),
     clock: vi.fn(() => new Date("2026-08-21T12:01:00.000Z")),
   };
 }
@@ -109,7 +112,7 @@ describe("interview question generation HTTP boundary", () => {
     expect(dependencies.createOrGetRun).not.toHaveBeenCalled();
   });
 
-  it("reuses fresh running and succeeded runs without constructing a provider", async () => {
+  it("passes fresh running runs to the service without constructing a provider at the HTTP boundary", async () => {
     const dependencies = deps();
     dependencies.createOrGetRun.mockResolvedValue({ ...run, status: "running" });
     const post = createInterviewQuestionGenerationPostHandler(dependencies);
@@ -117,9 +120,24 @@ describe("interview question generation HTTP boundary", () => {
     const response = await post(new Request("http://test"), context());
 
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toMatchObject({ runId, reused: true });
+    await expect(response.json()).resolves.toMatchObject({ runId, reused: false });
     expect(dependencies.providerFactory).not.toHaveBeenCalled();
+    expect(dependencies.runGeneration).toHaveBeenCalledWith(
+      expect.objectContaining({ providerFactory: dependencies.providerFactory }),
+    );
+  });
+
+  it("reuses succeeded runs before invoking orchestration", async () => {
+    const dependencies = deps();
+    dependencies.createOrGetRun.mockResolvedValue({ ...run, status: "succeeded" });
+    const post = createInterviewQuestionGenerationPostHandler(dependencies);
+
+    const response = await post(new Request("http://test"), context());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ runId, reused: true });
     expect(dependencies.runGeneration).not.toHaveBeenCalled();
+    expect(dependencies.providerFactory).not.toHaveBeenCalled();
   });
 
   it("loads requirements and common prompts before creating a queued run", async () => {

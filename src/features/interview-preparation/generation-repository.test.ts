@@ -24,6 +24,14 @@ describe("interview question generation review repository", () => {
     mocks.createClient.mockResolvedValue({ rpc: mocks.rpc });
   });
 
+  it("treats a null claim response as stable storage failure", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: null });
+
+    await expect(
+      interviewQuestionGenerationRepository.claim(candidateId, 0, "queued"),
+    ).rejects.toMatchObject({ code: "interview-question-generation-storage-error" });
+  });
+
   it("strictly maps accept dispositions and nullable question ids", async () => {
     mocks.rpc.mockResolvedValue({
       data: [
