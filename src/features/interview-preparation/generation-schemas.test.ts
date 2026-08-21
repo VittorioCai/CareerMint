@@ -125,4 +125,29 @@ describe("interview question generation schemas", () => {
       }),
     ).toThrow("interview-question-generation-invalid-output");
   });
+
+  it("rejects an empty canonical key while retaining valid candidates", () => {
+    const sanitized = sanitizeInterviewQuestionGeneration({
+      jdText,
+      requirements,
+      commonPrompts: [],
+      output: {
+        questions: [candidate({ prompt: "????????" }), candidate()],
+      },
+    });
+
+    expect(sanitized.questions).toEqual([candidate()]);
+    expect(sanitized.rejectedQuestionCount).toBe(1);
+  });
+
+  it("raises the stable invalid-output error when every canonical key is empty", () => {
+    expect(() =>
+      sanitizeInterviewQuestionGeneration({
+        jdText,
+        requirements,
+        commonPrompts: [],
+        output: { questions: [candidate({ prompt: "????????" })] },
+      }),
+    ).toThrow("interview-question-generation-invalid-output");
+  });
 });

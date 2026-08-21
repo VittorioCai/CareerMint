@@ -86,6 +86,7 @@ export function sanitizeInterviewQuestionGeneration(
   for (const candidate of parsed.questions) {
     const canonicalKey = normalizeQuestionPrompt(candidate.prompt);
     if (
+      canonicalKey.length === 0 ||
       commonCanonicalKeys.has(canonicalKey) ||
       seenCanonicalKeys.has(canonicalKey) ||
       !excerptIsGrounded(jdText, candidate.sourceExcerpt)
