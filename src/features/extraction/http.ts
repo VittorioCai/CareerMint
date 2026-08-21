@@ -8,6 +8,8 @@ import type {
 import { sourceAssetIdSchema } from "@/features/source-assets/schemas";
 import { normalizeResumeText } from "@/features/source-assets/parsers";
 
+const MAX_OCR_REQUEST_BYTES = 1_048_576;
+
 export type SourceAssetExtractPostDependencies = {
   getCurrentUser(): Promise<{ id: string } | null>;
   getOwnedAsset(
@@ -36,13 +38,58 @@ class InvalidOCRTextError extends Error {
   }
 }
 
+class OCRRequestTooLargeError extends Error {
+  constructor() {
+    super("ocr-request-too-large");
+    this.name = "OCRRequestTooLargeError";
+  }
+}
+
+function rejectDeclaredOversizedRequest(request: Request) {
+  const rawContentLength = request.headers.get("content-length");
+  if (rawContentLength === null) return;
+
+  const contentLength = rawContentLength.trim();
+  if (!/^\d+$/.test(contentLength)) return;
+
+  const declaredBytes = Number(contentLength);
+  if (declaredBytes > MAX_OCR_REQUEST_BYTES) {
+    throw new OCRRequestTooLargeError();
+  }
+}
+
+async function readRequestBody(request: Request) {
+  rejectDeclaredOversizedRequest(request);
+  if (!request.body) return "";
+
+  const reader = request.body.getReader();
+  const decoder = new TextDecoder();
+  let totalBytes = 0;
+  let body = "";
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) {
+      body += decoder.decode();
+      return body;
+    }
+
+    totalBytes += value.byteLength;
+    if (totalBytes > MAX_OCR_REQUEST_BYTES) {
+      await reader.cancel().catch(() => undefined);
+      throw new OCRRequestTooLargeError();
+    }
+    body += decoder.decode(value, { stream: true });
+  }
+}
+
 async function readOptionalOCRText(request: Request) {
   const contentType = request.headers.get("content-type")?.split(";", 1)[0]
     .trim()
     .toLowerCase();
   if (contentType !== "application/json") return undefined;
 
-  const body = await request.text();
+  const body = await readRequestBody(request);
   if (!body.trim()) return undefined;
 
   let parsed: unknown;
@@ -120,6 +167,12 @@ export function createSourceAssetExtractPostHandler(
       } catch (error) {
         if (error instanceof InvalidOCRTextError) {
           return Response.json({ error: "invalid-ocr-text" }, { status: 400 });
+        }
+        if (error instanceof OCRRequestTooLargeError) {
+          return Response.json(
+            { error: "ocr-request-too-large" },
+            { status: 413 },
+          );
         }
         throw error;
       }

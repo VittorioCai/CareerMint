@@ -64,6 +64,35 @@ function context() {
   return { params: Promise.resolve({ id: assetId }) };
 }
 
+function streamingJSONRequest(body: string, contentLength?: string) {
+  const bytes = new TextEncoder().encode(body);
+  let offset = 0;
+  const stream = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (offset >= bytes.byteLength) {
+        controller.close();
+        return;
+      }
+      const nextOffset = Math.min(offset + 64 * 1024, bytes.byteLength);
+      controller.enqueue(bytes.slice(offset, nextOffset));
+      offset = nextOffset;
+    },
+  });
+  const headers = new Headers({ "content-type": "application/json" });
+  if (contentLength !== undefined) {
+    headers.set("content-length", contentLength);
+  }
+  return new Request(
+    `http://localhost/api/source-assets/${assetId}/extract`,
+    {
+      method: "POST",
+      headers,
+      body: stream,
+      duplex: "half",
+    } as RequestInit & { duplex: "half" },
+  );
+}
+
 describe("POST /api/source-assets/[id]/extract", () => {
   beforeEach(() => vi.clearAllMocks());
 
@@ -277,6 +306,80 @@ describe("POST /api/source-assets/[id]/extract", () => {
     expect(fakes.runExtraction).toHaveBeenCalledWith(
       expect.not.objectContaining({ sourceText: expect.anything() }),
     );
+  });
+
+  it("rejects a declared oversized JSON body without reading or creating work", async () => {
+    const fakes = createFakes();
+    fakes.getAIProcessingConsentAt.mockResolvedValue(
+      "2026-08-14T00:00:00.000Z",
+    );
+    const padding = "declared-size-padding";
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      streamingJSONRequest(JSON.stringify({ padding }), "1048577"),
+      context(),
+    );
+
+    expect(response.status).toBe(413);
+    const responseBody = await response.text();
+    expect(responseBody).toBe('{"error":"ocr-request-too-large"}');
+    expect(responseBody).not.toContain(padding);
+    expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runExtraction).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ["without Content-Length", undefined],
+    ["with a falsely small Content-Length", "1"],
+  ])(
+    "rejects an actual JSON body over 1 MiB %s",
+    async (_name, contentLength) => {
+      const fakes = createFakes();
+      fakes.getAIProcessingConsentAt.mockResolvedValue(
+        "2026-08-14T00:00:00.000Z",
+      );
+      const padding = "x".repeat(1_048_577);
+      const post = createSourceAssetExtractPostHandler(fakes);
+
+      const response = await post(
+        streamingJSONRequest(JSON.stringify({ padding }), contentLength),
+        context(),
+      );
+
+      expect(response.status).toBe(413);
+      const responseBody = await response.text();
+      expect(responseBody).toBe('{"error":"ocr-request-too-large"}');
+      expect(responseBody).not.toContain(padding);
+      expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+      expect(fakes.providerFactory).not.toHaveBeenCalled();
+      expect(fakes.runExtraction).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects valid OCR JSON with oversized padding before creating work", async () => {
+    const fakes = createFakes();
+    fakes.getAIProcessingConsentAt.mockResolvedValue(
+      "2026-08-14T00:00:00.000Z",
+    );
+    const ocrText =
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
+    const padding = "padding-secret-".repeat(100_000);
+    const post = createSourceAssetExtractPostHandler(fakes);
+
+    const response = await post(
+      streamingJSONRequest(JSON.stringify({ ocrText, padding })),
+      context(),
+    );
+
+    expect(response.status).toBe(413);
+    const responseBody = await response.text();
+    expect(responseBody).not.toContain(ocrText);
+    expect(responseBody).not.toContain(padding);
+    expect(fakes.createOrGetJob).not.toHaveBeenCalled();
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runExtraction).not.toHaveBeenCalled();
   });
 
   it.each([40, 100_000])(
