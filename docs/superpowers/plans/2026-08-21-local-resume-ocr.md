@@ -161,11 +161,13 @@ const ocr = await PaddleOCR.create({
   textDetectionModelName: "PP-OCRv6_small_det",
   textRecognitionModelName: "PP-OCRv6_small_rec",
   worker: true,
-  ortOptions: { backend: "wasm", numThreads: 2, simd: true },
+  ortOptions: { backend: "wasm", numThreads: 1, simd: true },
 });
 ```
 
 Render one page at a time at a bounded scale, pass the canvas or `ImageBitmap` to `predict`, keep lines with non-empty text and score at least `0.35`, and release page/canvas/bitmap resources immediately. Use a module-level promise to reuse the initialized model in the same browser session. Always normalize the final result with the existing text limits.
+
+Use one WASM thread for the MVP so the app does not require cross-origin-isolation headers or `SharedArrayBuffer`; the dedicated PaddleOCR worker still keeps inference off the UI thread.
 
 Keep PDF.js worker setup compatible with Next.js 16 by using a statically analyzable worker URL or the supported package worker asset; do not use a server import of this client module.
 
