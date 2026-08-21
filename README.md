@@ -47,7 +47,7 @@ AI_PRICE_SCHEDULE_JSON=replace-with-current-versioned-json-from-official-pricing
 E2E_FAKE_EXTRACTOR=0
 ```
 
-没有真实 `DEEPSEEK_API_KEY` 时，简历提取、JD 分析和岗位简历建议都会显示可恢复的“AI 暂不可用”状态，不会产生模型费用。单元测试和本地 E2E 使用 mock/fake provider，不会请求 DeepSeek。
+没有真实 `DEEPSEEK_API_KEY` 时，简历提取、JD 分析和岗位简历建议都会显示可恢复的“AI 暂不可用”状态，不会产生模型费用。单元测试和本地 E2E 使用 mock/fake provider，不会请求 DeepSeek；其中 `E2E_FAKE_EXTRACTOR=1` 覆盖简历提取、JD 分析、岗位简历建议和面试题生成，仅供 local/dev E2E 使用，生产环境禁用且不会调用真实 AI。
 
 ### 价格配置
 
@@ -106,7 +106,7 @@ pnpm exec supabase db lint --local --schema public --level error --fail-on error
 E2E_FAKE_EXTRACTOR=1 pnpm test:e2e
 ```
 
-`E2E_FAKE_EXTRACTOR=1` 仅在非生产环境启用确定性的简历提取、JD 分析与岗位简历建议。E2E 会创建并最终删除随机测试账户。
+`E2E_FAKE_EXTRACTOR=1` 仅在 local/dev E2E 启用确定性的简历提取、JD 分析、岗位简历建议与面试题生成；生产环境禁用，不调用真实 AI。E2E 会创建并最终删除随机测试账户。
 
 ## 视觉基线
 
