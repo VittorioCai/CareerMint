@@ -41,7 +41,7 @@ function renderSelector(
 ) {
   const setResumeSource = vi.fn().mockResolvedValue(actionResult());
   const request = vi.fn().mockResolvedValue(
-    new Response(JSON.stringify({ id: newerAssetId, originalName: "fresh.pdf" }), {
+    new Response(JSON.stringify({ id: newerAssetId, originalName: "fresh.pdf", reused: false }), {
       status: 201,
       headers: { "content-type": "application/json" },
     }),
@@ -69,7 +69,7 @@ describe("BaselineSelector", () => {
     expect(screen.getByRole("heading", { name: "本次对照简历（可选）" })).toBeVisible();
     expect(screen.getAllByText("newer-resume.pdf").length).toBeGreaterThan(0);
     expect(screen.getAllByText("older-resume.docx").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "暂时跳过，进入工作区" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "暂时跳过，去分析 JD" })).toBeVisible();
     expect(screen.getByLabelText("上传新的 PDF 或 DOCX 简历")).toHaveAttribute(
       "accept",
       expect.stringContaining(".pdf"),
@@ -88,7 +88,7 @@ describe("BaselineSelector", () => {
     expect(formData.get("applicationId")).toBe(applicationId);
     expect(formData.get("sourceAssetId")).toBe(newerAssetId);
     expect(router.replace).toHaveBeenCalledWith(
-      `/applications/${applicationId}?tab=resume`,
+      `/applications/${applicationId}?tab=jd&setup=1`,
     );
     expect(router.refresh).toHaveBeenCalledOnce();
   });
@@ -142,14 +142,71 @@ describe("BaselineSelector", () => {
     const user = userEvent.setup();
     const { setResumeSource, request } = renderSelector();
 
-    await user.click(screen.getByRole("button", { name: "暂时跳过，进入工作区" }));
+    await user.click(screen.getByRole("button", { name: "暂时跳过，去分析 JD" }));
 
     await waitFor(() => expect(setResumeSource).toHaveBeenCalledOnce());
     expect((setResumeSource.mock.calls[0][0] as FormData).get("sourceAssetId")).toBe("");
     expect(request).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith(
+      `/applications/${applicationId}?tab=jd&setup=1`,
+    );
+  });
+
+  it("keeps an established workspace on the resume tab after changing baseline", async () => {
+    const user = userEvent.setup();
+    const { setResumeSource } = renderSelector({
+      selectedAsset: assets[1],
+      setupMode: false,
+    });
+
+    await user.click(screen.getByRole("button", { name: "更换简历" }));
+    await user.click(screen.getByRole("button", { name: /选择 newer-resume\.pdf/ }));
+
+    await waitFor(() => expect(setResumeSource).toHaveBeenCalledOnce());
+    expect(router.replace).toHaveBeenCalledWith(
       `/applications/${applicationId}?tab=resume`,
     );
+  });
+
+  it("previews PDF and DOCX assets through the private endpoint", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+
+    await user.click(
+      screen.getByRole("button", { name: "预览 newer-resume.pdf" }),
+    );
+    expect(
+      screen.getByTitle("预览 newer-resume.pdf"),
+    ).toHaveAttribute(
+      "src",
+      `/api/source-assets/${newerAssetId}/preview`,
+    );
+
+    await user.click(screen.getByRole("button", { name: "关闭预览" }));
+    await user.click(
+      screen.getByRole("button", { name: "预览 older-resume.docx" }),
+    );
+    expect(screen.getByTitle("预览 older-resume.docx")).toHaveAttribute(
+      "src",
+      `/api/source-assets/${assetId}/preview`,
+    );
+  });
+
+  it("recovers focus and always offers a preview fallback", async () => {
+    const user = userEvent.setup();
+    renderSelector();
+    const trigger = screen.getByRole("button", {
+      name: "预览 newer-resume.pdf",
+    });
+
+    await user.click(trigger);
+    expect(screen.getByRole("link", { name: "打开原文件" })).toHaveAttribute(
+      "href",
+      `/api/source-assets/${newerAssetId}/download`,
+    );
+
+    await user.click(screen.getByRole("button", { name: "关闭预览" }));
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 
   it("preserves the current selection and reports specific failures", async () => {

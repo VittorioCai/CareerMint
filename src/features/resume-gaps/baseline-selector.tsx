@@ -1,7 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useRef, useState } from "react";
+import {
+  type ChangeEvent,
+  type MouseEvent,
+  useRef,
+  useState,
+} from "react";
 
 import type { ApplicationActionState } from "@/features/applications/actions";
 
@@ -70,6 +75,7 @@ export function BaselineSelector({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewAsset, setPreviewAsset] = useState<ResumeAssetOption | null>(null);
   const serverStateKey = `${setupMode ? "setup" : "ready"}:${selectedAsset?.id ?? "none"}`;
   const [optionsState, setOptionsState] = useState({
     key: serverStateKey,
@@ -80,6 +86,7 @@ export function BaselineSelector({
     file: File | null;
   }>({ key: serverStateKey, file: null });
   const inputRef = useRef<HTMLInputElement>(null);
+  const previewTriggerRef = useRef<HTMLButtonElement | null>(null);
   const showOptions =
     optionsState.key === serverStateKey
       ? optionsState.open
@@ -88,6 +95,19 @@ export function BaselineSelector({
 
   function setOptionsOpen(open: boolean) {
     setOptionsState({ key: serverStateKey, open });
+  }
+
+  function openPreview(
+    asset: ResumeAssetOption,
+    event: MouseEvent<HTMLButtonElement>,
+  ) {
+    previewTriggerRef.current = event.currentTarget;
+    setPreviewAsset(asset);
+  }
+
+  function closePreview() {
+    setPreviewAsset(null);
+    window.setTimeout(() => previewTriggerRef.current?.focus());
   }
 
   async function finishSelection(sourceAssetId: string | null): Promise<boolean> {
@@ -104,7 +124,11 @@ export function BaselineSelector({
         setError(actionErrorMessages[code] ?? actionErrorMessages["application-action-failed"]);
         return false;
       }
-      router.replace(`/applications/${applicationId}?tab=resume`);
+      router.replace(
+        setupMode
+          ? `/applications/${applicationId}?tab=jd&setup=1`
+          : `/applications/${applicationId}?tab=resume`,
+      );
       router.refresh();
       return true;
     } catch {
@@ -132,7 +156,7 @@ export function BaselineSelector({
       });
       const payload = await readResponse(response);
       if (
-        response.status !== 201 ||
+        !response.ok ||
         typeof payload.id !== "string" ||
         typeof payload.originalName !== "string"
       ) {
@@ -179,7 +203,7 @@ export function BaselineSelector({
             {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-            可先跳过，之后随时选择一份私有简历进行对照。
+            先预览并选择本次对照版本，再进入 JD 分析；也可以暂时跳过。
           </p>
         </div>
         {selectedAsset && !setupMode ? (
@@ -189,11 +213,61 @@ export function BaselineSelector({
 
       {selectedAsset ? (
         <div className="mt-5 rounded-xl border border-[var(--line)] bg-white p-4">
-          <p className="break-words text-sm font-black">{selectedAsset.originalName}</p>
-          <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
-            上传于 {formatDate(selectedAsset.createdAt)}
-          </p>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="break-words text-sm font-black">{selectedAsset.originalName}</p>
+              <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
+                上传于 {formatDate(selectedAsset.createdAt)}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="button-secondary min-h-9 px-3 text-xs font-black"
+              onClick={(event) => openPreview(selectedAsset, event)}
+            >
+              预览 {selectedAsset.originalName}
+            </button>
+          </div>
         </div>
+      ) : null}
+
+      {previewAsset ? (
+        <section
+          className="mt-5 overflow-hidden rounded-2xl border-2 border-[var(--ink)] bg-white"
+          aria-label={`简历预览：${previewAsset.originalName}`}
+        >
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--mist-blue)] px-4 py-3">
+            <div className="min-w-0">
+              <p className="break-words text-sm font-black">{previewAsset.originalName}</p>
+              <p className="mt-0.5 text-xs font-semibold text-[var(--ink-muted)]">
+                私有预览，不会调用 AI 或 OCR
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <a
+                className="button-secondary inline-flex min-h-9 items-center px-3 text-xs font-black"
+                href={`/api/source-assets/${previewAsset.id}/download`}
+                target="_blank"
+                rel="noreferrer"
+              >
+                打开原文件
+              </a>
+              <button
+                type="button"
+                className="button-secondary min-h-9 px-3 text-xs font-black"
+                onClick={closePreview}
+              >
+                关闭预览
+              </button>
+            </div>
+          </div>
+          <iframe
+            key={previewAsset.id}
+            title={`预览 ${previewAsset.originalName}`}
+            src={`/api/source-assets/${previewAsset.id}/preview`}
+            className="block h-[32rem] w-full bg-white"
+          />
+        </section>
       ) : null}
 
       {showOptions ? (
@@ -203,12 +277,9 @@ export function BaselineSelector({
             {availableAssets.length ? (
               <div className="mt-3 grid gap-2">
                 {availableAssets.map((asset) => (
-                  <button
+                  <article
                     key={asset.id}
-                    type="button"
-                    className="flex min-h-14 w-full items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[var(--ink)] disabled:cursor-wait disabled:opacity-60"
-                    onClick={() => void finishSelection(asset.id)}
-                    disabled={busy}
+                    className="flex min-h-14 w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[var(--ink)] sm:flex-row sm:items-center"
                   >
                     <span className="min-w-0">
                       <span className="block break-words text-sm font-black">{asset.originalName}</span>
@@ -216,9 +287,25 @@ export function BaselineSelector({
                         上传于 {formatDate(asset.createdAt)}
                       </span>
                     </span>
-                    <span className="shrink-0 text-xs font-black">选择 →</span>
-                    <span className="sr-only">选择 {asset.originalName}</span>
-                  </button>
+                    <span className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
+                      <button
+                        type="button"
+                        className="button-secondary min-h-9 px-3 text-xs font-black"
+                        onClick={(event) => openPreview(asset, event)}
+                        disabled={busy}
+                      >
+                        预览 {asset.originalName}
+                      </button>
+                      <button
+                        type="button"
+                        className="button-secondary min-h-9 px-3 text-xs font-black"
+                        onClick={() => void finishSelection(asset.id)}
+                        disabled={busy}
+                      >
+                        选择 {asset.originalName}
+                      </button>
+                    </span>
+                  </article>
                 ))}
               </div>
             ) : (
@@ -284,7 +371,7 @@ export function BaselineSelector({
           onClick={() => void finishSelection(null)}
           disabled={busy}
         >
-          暂时跳过，进入工作区
+          暂时跳过，去分析 JD
         </button>
       ) : null}
 

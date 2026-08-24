@@ -13,7 +13,7 @@ describe("resume workspace", () => {
   it("renders the resume-gap heading and no-JD link without an analysis control", () => {
     render(<ResumeWorkspace applicationId="app" mode="no-jd" baselineSelector={<div>baseline selector</div>} versions={[]} />);
     expect(screen.getByRole("heading", { name: "简历差距" })).toBeVisible();
-    expect(screen.getByRole("link", { name: /返回 JD 分析/ })).toHaveAttribute("href", "/applications/app?tab=jd");
+    expect(screen.getByRole("link", { name: /前往 JD 分析/ })).toHaveAttribute("href", "/applications/app?tab=jd&setup=1");
     expect(screen.queryByRole("button", { name: /分析简历差距/ })).not.toBeInTheDocument();
     expect(screen.getByText("baseline selector")).toBeVisible();
   });

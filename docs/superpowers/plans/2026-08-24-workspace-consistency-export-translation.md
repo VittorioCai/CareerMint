@@ -129,29 +129,29 @@
 - Create: `src/app/(app)/applications/[id]/page.test.tsx`
 - Modify: `tests/e2e/application-workspace.spec.ts`
 
-- [ ] **Step 1: Write failing UI tests for order, preview, and navigation**
+- [x] **Step 1: Write failing UI tests for order, preview, and navigation**
 
   Assert tabs render in `概览、简历、JD、面试准备、时间线` order. In the baseline selector, test `预览` for PDF and DOCX via the protected route, expand/collapse keyboard behavior, preview failure recovery, and focus return. Assert select/upload/skip from setup mode redirects to `?tab=jd&setup=1`, while changing a baseline from an established workspace stays on the Resume tab.
 
-- [ ] **Step 2: Write failing new-application flow tests**
+- [x] **Step 2: Write failing new-application flow tests**
 
   Assert saving company/role/JD creates the application without starting analysis and redirects to `?tab=resume&setup=1`. Assert the progress indicator reads `JD 已保存 → 选择并预览简历 → 分析 JD → 查看差距` and the JD tab's setup copy links back to the selected resume and forward to gap review after success.
 
-- [ ] **Step 3: Run focused tests and confirm red**
+- [x] **Step 3: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/resume-gaps/baseline-selector.test.tsx src/features/applications/setup-progress.test.tsx src/features/applications/application-draft-form.test.tsx src/app/\(app\)/applications/\[id\]/page.test.tsx`
 
   Expected: failures because tab order, setup redirects, preview controls, and progress UI are not implemented.
 
-- [ ] **Step 4: Implement the resume-first interface**
+- [x] **Step 4: Implement the resume-first interface**
 
   Reorder tabs, add setup-mode detection from search params, add the four-step progress component, and render preview as a semantic disclosure/region using the private preview endpoint. Preserve the existing ability to upload, select, replace, or skip. Keep a concise explanation that resume selection precedes analysis but JD text was already saved.
 
-- [ ] **Step 5: Update the E2E journey**
+- [x] **Step 5: Update the E2E journey**
 
   Change the happy path to: create/save application → Resume tab → preview/select/skip → JD tab → explicitly analyze → Resume tab → analyze gaps. Mock DeepSeek only at the explicit analysis steps.
 
-- [ ] **Step 6: Run tests and commit**
+- [x] **Step 6: Run tests and commit**
 
   Run: `pnpm vitest run src/features/resume-gaps src/features/applications src/app/\(app\)/applications/\[id\]`
 

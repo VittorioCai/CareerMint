@@ -86,8 +86,8 @@ export function ResumeWorkspace({
       {baselineSelector}
       {mode === "no-jd" ? (
         <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-gap-empty-title">
-          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">先完成 JD 分析，才能判断简历差距。</p>
-          <Link href={`/applications/${applicationId}?tab=jd`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">返回 JD 分析 →</Link>
+          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">对照简历确定后，再分析 JD，系统才能判断两者差距。</p>
+          <Link href={`/applications/${applicationId}?tab=jd&setup=1`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">前往 JD 分析 →</Link>
         </section>
       ) : null}
       {mode === "comparison" ? <>{gapControl}{gapPanel}</> : null}

@@ -13,6 +13,11 @@ import {
   type ApplicationStageEvent,
 } from "@/features/applications/schemas";
 import { StageUpdateForm } from "@/features/applications/stage-update-form";
+import {
+  applicationDetailTabs,
+  type ApplicationDetailTab,
+} from "@/features/applications/detail-tabs";
+import { SetupProgress } from "@/features/applications/setup-progress";
 import { AnalysisControl } from "@/features/jd-analysis/analysis-control";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { RequirementsPanel } from "@/features/jd-analysis/requirements-panel";
@@ -59,23 +64,14 @@ import { GapPanel } from "@/features/resume-gaps/gap-panel";
 import { getResumeWorkspaceMode, isCurrentGapRun, markItemsHistoricalUnlessCurrent, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
 import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
-const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
-type DetailTab = (typeof tabs)[number];
-
-const tabLabels: Record<DetailTab, string> = {
-  overview: "概览",
-  jd: "JD",
-  resume: "简历",
-  interview: "面试准备",
-  timeline: "时间线",
-};
-
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function detailTab(value: string | undefined): DetailTab {
-  return tabs.includes(value as DetailTab) ? (value as DetailTab) : "overview";
+function detailTab(value: string | undefined): ApplicationDetailTab {
+  return applicationDetailTabs.some((tab) => tab.id === value)
+    ? (value as ApplicationDetailTab)
+    : "overview";
 }
 
 function formatDate(value: string | null) {
@@ -130,13 +126,20 @@ function JdPanel({
   application,
   analysisRun,
   requirements,
+  setupMode,
 }: {
   application: Application;
   analysisRun: JDAnalysisRun | null;
   requirements: JDRequirementRecord[];
+  setupMode: boolean;
 }) {
   return (
     <div className="space-y-6">
+      {setupMode ? (
+        <SetupProgress
+          current={analysisRun?.status === "succeeded" ? "gap" : "jd"}
+        />
+      ) : null}
       <AnalysisControl
         applicationId={application.id}
         analysisRunId={analysisRun?.id ?? null}
@@ -156,6 +159,17 @@ function JdPanel({
             : null
         }
       />
+      {setupMode && analysisRun?.status === "succeeded" ? (
+        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mint)] p-5 shadow-[3px_3px_0_var(--ink)]">
+          <p className="text-sm font-black">JD 已完成分析，可以回到所选简历查看差距。</p>
+          <Link
+            href={`/applications/${application.id}?tab=resume`}
+            className="button-primary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-black"
+          >
+            查看简历差距 →
+          </Link>
+        </aside>
+      ) : null}
       <RequirementsPanel
         requirements={requirements}
         analysisRunId={analysisRun?.id ?? null}
@@ -475,14 +489,14 @@ export default async function ApplicationDetailPage({
       </div>
 
       <nav className="mt-7 flex gap-2 overflow-x-auto border-b border-[var(--line)] pb-3" aria-label="申请详情">
-        {tabs.map((tab) => (
+        {applicationDetailTabs.map((tab) => (
           <Link
-            key={tab}
-            href={`/applications/${application.id}?tab=${tab}`}
-            aria-current={activeTab === tab ? "page" : undefined}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-black ${activeTab === tab ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]" : "border border-[var(--line)] bg-white"}`}
+            key={tab.id}
+            href={`/applications/${application.id}?tab=${tab.id}`}
+            aria-current={activeTab === tab.id ? "page" : undefined}
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-black ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]" : "border border-[var(--line)] bg-white"}`}
           >
-            {tabLabels[tab]}
+            {tab.label}
           </Link>
         ))}
       </nav>
@@ -494,36 +508,40 @@ export default async function ApplicationDetailPage({
             application={application}
             analysisRun={analysisRun}
             requirements={requirements}
+            setupMode={first(query.setup) === "1"}
           />
         ) : null}
         {activeTab === "timeline" ? <Timeline events={events} /> : null}
         {activeTab === "resume" ? (
-          <ResumePanel
-            application={application}
-            analysisRun={resumeAnalysisRun}
-            requirements={resumeRequirementsForRun}
-            latestGapRun={currentGapData.latest}
-            fallbackGapRun={currentGapData.fallback}
-            gapItems={currentGapData.items}
-            versions={resumeVersions}
-            availableAssets={resumeAssets.map((asset) => ({
-              id: asset.id,
-              originalName: asset.originalName,
-              contentType: asset.contentType,
-              createdAt: asset.createdAt,
-            }))}
-            selectedAsset={
-              resumeAssets
-                .filter((asset) => asset.id === application.resumeSourceAssetId)
-                .map((asset) => ({
-                  id: asset.id,
-                  originalName: asset.originalName,
-                  contentType: asset.contentType,
-                  createdAt: asset.createdAt,
-                }))[0] ?? null
-            }
-            setupMode={first(query.setup) === "1"}
-          />
+          <div className="space-y-6">
+            {first(query.setup) === "1" ? <SetupProgress current="resume" /> : null}
+            <ResumePanel
+              application={application}
+              analysisRun={resumeAnalysisRun}
+              requirements={resumeRequirementsForRun}
+              latestGapRun={currentGapData.latest}
+              fallbackGapRun={currentGapData.fallback}
+              gapItems={currentGapData.items}
+              versions={resumeVersions}
+              availableAssets={resumeAssets.map((asset) => ({
+                id: asset.id,
+                originalName: asset.originalName,
+                contentType: asset.contentType,
+                createdAt: asset.createdAt,
+              }))}
+              selectedAsset={
+                resumeAssets
+                  .filter((asset) => asset.id === application.resumeSourceAssetId)
+                  .map((asset) => ({
+                    id: asset.id,
+                    originalName: asset.originalName,
+                    contentType: asset.contentType,
+                    createdAt: asset.createdAt,
+                  }))[0] ?? null
+              }
+              setupMode={first(query.setup) === "1"}
+            />
+          </div>
         ) : null}
         {activeTab === "interview" ? (
           <InterviewPanel

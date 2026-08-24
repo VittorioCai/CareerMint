@@ -109,10 +109,14 @@ async function createApplication(page: Page, companyName: string, roleTitle: str
   return { applicationId, detailUrl: `/applications/${applicationId}` };
 }
 
-async function uploadBaseline(page: Page, file: string) {
+async function uploadBaseline(
+  page: Page,
+  file: string,
+  expectedUrl: RegExp,
+) {
   await page.getByLabel("上传新的 PDF 或 DOCX 简历").setInputFiles(file);
   await page.getByRole("button", { name: "上传并使用这份简历" }).click();
-  await expect(page.getByText(file.split("/").pop()!, { exact: true })).toBeVisible();
+  await expect(page).toHaveURL(expectedUrl);
 }
 
 async function analyzeJD(page: Page, detailUrl: string) {
@@ -233,7 +237,11 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     const factId = await insertConfirmedFact(account, userId);
 
     const first = await createApplication(page, "Acme GmbH", "Product Manager");
-    await uploadBaseline(page, "tests/fixtures/resume-en.pdf");
+    await uploadBaseline(
+      page,
+      "tests/fixtures/resume-en.pdf",
+      new RegExp(`/applications/${first.applicationId}\\?tab=jd&setup=1$`),
+    );
     const firstAsset = await account
       .from("applications")
       .select("resume_source_asset_id")
@@ -372,8 +380,14 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     await expect(page.getByText("Submitted on company site", { exact: true })).toBeVisible();
 
     const second = await createApplication(page, "Beta GmbH", "Strategy Intern");
-    await page.getByRole("button", { name: "暂时跳过，进入工作区", exact: true }).click();
-    await expect(page).toHaveURL(new RegExp(`/applications/${second.applicationId}\\?tab=resume$`));
+    await page.getByRole("button", { name: "预览 resume-en.pdf", exact: true }).click();
+    await expect(page.getByTitle("预览 resume-en.pdf")).toHaveAttribute(
+      "src",
+      new RegExp(`/api/source-assets/[0-9a-f-]+/preview$`),
+    );
+    await page.getByRole("button", { name: "关闭预览", exact: true }).click();
+    await page.getByRole("button", { name: "暂时跳过，去分析 JD", exact: true }).click();
+    await expect(page).toHaveURL(new RegExp(`/applications/${second.applicationId}\\?tab=jd&setup=1$`));
     await analyzeJD(page, second.detailUrl);
     await page.goto(`${second.detailUrl}?tab=resume`);
     await expect(page.getByRole("heading", { name: "仅职业档案模式" })).toBeVisible();
@@ -388,7 +402,11 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     if (secondGapRunsBefore.error) throw secondGapRunsBefore.error;
     expect(secondGapRunsBefore.count).toBe(0);
 
-    await uploadBaseline(page, "tests/fixtures/resume-scanned.pdf");
+    await uploadBaseline(
+      page,
+      "tests/fixtures/resume-scanned.pdf",
+      new RegExp(`/applications/${second.applicationId}\\?tab=resume$`),
+    );
     await expect(page).toHaveURL(new RegExp(`/applications/${second.applicationId}\\?tab=resume$`));
     await expect(page.getByRole("heading", { name: "简历差距结果" })).toBeVisible();
     await expect(page.getByRole("button", { name: "分析简历差距", exact: true })).toBeVisible();
