@@ -56,6 +56,7 @@ type GapRunSummary = {
 };
 
 export type GapPanelProps = {
+  applicationId?: string;
   baseline: Pick<ResumeAssetOption, "id" | "originalName" | "contentType" | "createdAt"> | null;
   requirements: GapProfileRequirement[];
   run: GapRunSummary | null;
@@ -63,6 +64,62 @@ export type GapPanelProps = {
   currentAnalysisRunId?: string | null;
   items: GapItem[];
 };
+
+function MarkdownExportControl({ applicationId }: { applicationId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  async function download() {
+    setBusy(true);
+    setMessage(null);
+    setFailed(false);
+    try {
+      const response = await fetch(
+        `/api/applications/${applicationId}/resume/gaps/export`,
+      );
+      if (!response.ok) throw new Error("resume-gap-export-failed");
+      const blob = await response.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const encodedName = /filename\*=UTF-8''([^;]+)/i.exec(disposition)?.[1];
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = encodedName
+        ? decodeURIComponent(encodedName)
+        : "resume-gap.md";
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+      setMessage("Markdown 已下载。文件只包含当前未解决差距。");
+    } catch {
+      setFailed(true);
+      setMessage("暂时无法导出，请确认当前简历差距已完成后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="button-secondary min-h-10 px-4 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+        disabled={busy}
+        onClick={() => void download()}
+      >
+        {busy ? "正在导出…" : "导出 Markdown"}
+      </button>
+      {message ? (
+        <p
+          role={failed ? "alert" : "status"}
+          className={`mt-2 text-xs font-bold ${failed ? "text-[var(--error)]" : "text-[var(--ink-muted)]"}`}
+        >
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
 
 const gapLabels = {
   resume_omission: "简历漏写",
@@ -205,7 +262,7 @@ function HistoricalRow({ item }: { item: GapItem }) {
   );
 }
 
-export function GapPanel({ baseline, requirements, run, fallbackRun, items, currentAnalysisRunId = null }: GapPanelProps) {
+export function GapPanel({ applicationId, baseline, requirements, run, fallbackRun, items, currentAnalysisRunId = null }: GapPanelProps) {
   if (!baseline) {
     const profileCounts = requirements.reduce<Record<ProfileOnlyGroup, number>>((counts, requirement) => {
       counts[classifyProfileOnlyRequirement(requirement)] += 1;
@@ -241,6 +298,7 @@ export function GapPanel({ baseline, requirements, run, fallbackRun, items, curr
       {stale ? <p role="alert" className="mt-4 border border-[var(--coral)] bg-[var(--cream)] p-3 text-sm font-bold">这是上一份简历或上一版 JD 的结果，仅供只读参考。快照文件：{fallbackRun?.sourceFilename ?? displayRun?.sourceFilename ?? "未命名文件"}。<span className="ml-2">只读旧快照</span></p> : null}
       {run?.status === "failed" && !fallbackRun && currentRunMatches ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">上一次分析失败，请重试。</p> : null}
       {showCurrentAnalysis ? <div className="mt-5 space-y-5">
+        {applicationId && currentRunMatches && run?.status === "succeeded" ? <MarkdownExportControl applicationId={applicationId} /> : null}
         <div className="grid grid-cols-2 sm:grid-cols-4" aria-label="简历差距摘要">{(["resume_omission", "partial_coverage", "missing_evidence", "covered"] as const).map((group, index) => <div key={group} className={summaryCellClass(index)}><p className="text-xs font-bold text-[var(--ink-muted)]">{gapLabels[group]}</p><p className="mt-1 text-xl font-black">{grouped[group].length}</p></div>)}</div>
         {!actionGroups.length && currentItems.length > 0 && historicalItems.length === 0 ? <p className="border-b border-[var(--line)] pb-4 text-sm font-semibold">{stale ? "旧快照记录的简历覆盖了当时分析的要求。" : "这份简历已覆盖当前 JD 要求。已覆盖项目仍可在下方展开查看。"}</p> : null}
         {actionGroups.map((group) => <section key={group} aria-labelledby={`gap-group-${group}`}><div className="flex items-center justify-between border-b border-[var(--line)] pb-2"><h3 id={`gap-group-${group}`} className="text-sm font-black">{gapLabels[group]}</h3><span className="text-xs font-bold text-[var(--ink-muted)]">{grouped[group].length}</span></div><div>{grouped[group].map((item) => <GapRow key={item.id} item={item} />)}</div></section>)}

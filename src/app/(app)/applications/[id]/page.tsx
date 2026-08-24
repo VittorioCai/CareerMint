@@ -256,6 +256,7 @@ function ResumePanel({
       gapPanel={analysisRun ? (
           <GapPanel
             key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
+            applicationId={application.id}
             baseline={selectedAsset}
             requirements={requirements.map((requirement) => ({
               id: requirement.id,

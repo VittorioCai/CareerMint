@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { GapPanel, summaryCellClass } from "./gap-panel";
 import { markItemsHistoricalUnlessCurrent } from "./resume-workspace";
@@ -26,6 +26,7 @@ const item = (id: string, coverage: "missing" | "partial" | "covered", evidence:
 });
 
 describe("GapPanel", () => {
+  afterEach(() => vi.unstubAllGlobals());
   it("keeps summary separators aligned for mobile two-column and desktop four-column grids", () => {
     expect(summaryCellClass(0)).not.toMatch(/border-l/);
     expect(summaryCellClass(1)).toMatch(/border-l/);
@@ -172,6 +173,35 @@ describe("GapPanel", () => {
       />,
     );
     expect(screen.getByRole("button", { name: /partial requirement/ })).toHaveTextContent("需要用户判断");
+  });
+
+  it("offers Markdown only for the current completed report and keeps export failures on the page", async () => {
+    const user = userEvent.setup();
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue(
+        Response.json({ error: "resume-gap-required" }, { status: 409 }),
+      ),
+    );
+    render(
+      <GapPanel
+        applicationId="11111111-1111-4111-8111-111111111111"
+        baseline={{ id: "asset", originalName: "resume.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "resume.pdf", sourceAssetId: "asset", analysisRunId: "analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="analysis"
+        items={[item("missing", "missing")]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "导出 Markdown" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "暂时无法导出",
+    );
+    expect(fetch).toHaveBeenCalledWith(
+      "/api/applications/11111111-1111-4111-8111-111111111111/resume/gaps/export",
+    );
   });
 
   it("shows Chinese beside the original and orders same-group rows by match status then priority", () => {

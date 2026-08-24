@@ -237,29 +237,29 @@
 - Modify: `src/features/resume-gaps/gap-panel.tsx`
 - Modify: `src/features/resume-gaps/gap-panel.test.tsx`
 
-- [ ] **Step 1: Write failing pure Markdown tests**
+- [x] **Step 1: Write failing pure Markdown tests**
 
   Given mixed gap items, assert UTF-8 output includes company, role, export date, baseline filename, and only missing/profile-only/partial groups in priority order. Each item must include original requirement, Chinese translation, priority, exact resume excerpt when present, and confirmed profile evidence when present. Assert covered items and phrases such as “建议改写” are absent. Test Markdown escaping and safe filenames.
 
-- [ ] **Step 2: Write failing owner/current-run endpoint tests**
+- [x] **Step 2: Write failing owner/current-run endpoint tests**
 
   Cover 401, wrong owner/404, no selected resume, no succeeded analysis, no succeeded gap, stale gap bound to an older resume or analysis run (409), success headers, and UTF-8 body. The repository query must select the latest succeeded JD run and a succeeded gap run bound to both that run and the current `resume_source_asset_id`.
 
-- [ ] **Step 3: Run focused tests and confirm red**
+- [x] **Step 3: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/resume-gaps/markdown.test.ts src/features/resume-gaps/export-http.test.ts src/app/api/applications/\[id\]/resume/gaps/export/route.test.ts`
 
   Expected: module-not-found or missing-export failures.
 
-- [ ] **Step 4: Implement export generation and route**
+- [x] **Step 4: Implement export generation and route**
 
   Keep Markdown rendering pure and deterministic. Return `text/markdown; charset=utf-8` and `Content-Disposition: attachment` with a sanitized filename. Do not invoke AI, OCR, storage upload, or create a new analysis. Return stable Chinese error messages and leave existing UI state intact.
 
-- [ ] **Step 5: Add the export control to the gap panel**
+- [x] **Step 5: Add the export control to the gap panel**
 
   Show `导出 Markdown` only for a current succeeded gap report. Use a normal authenticated download link/button with visible completion/failure feedback and keyboard access.
 
-- [ ] **Step 6: Run tests and commit**
+- [x] **Step 6: Run tests and commit**
 
   Run: `pnpm vitest run src/features/resume-gaps src/app/api/applications/\[id\]/resume/gaps/export`
 
