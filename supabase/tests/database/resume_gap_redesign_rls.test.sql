@@ -171,10 +171,11 @@ select public.complete_application_analysis(
   current_setting('test.analysis_run')::uuid,
   jsonb_build_array(jsonb_build_object(
     'category', 'skill', 'text', 'Advanced SQL',
+    'translationZh', '需要高级 SQL 能力',
     'sourceExcerpt', 'Advanced SQL experience is required for funnel analysis.',
     'priority', 'core', 'matchStatus', 'none', 'matchReason', null,
     'matchedFactIds', '[]'::jsonb
-  )), 0, 0, '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null
+  )), '需要分析客户数据并具备高级 SQL 能力。', 0, 0, '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null
 );
 
 select set_config('test.gap_run', (select id::text from public.create_or_get_resume_gap(
@@ -305,7 +306,7 @@ select throws_ok(
   'P0002', 'application-or-resume-not-found', 'a non-succeeded JD run cannot create gap work'
 );
 select public.claim_application_analysis(current_setting('test.queued_analysis')::uuid);
-select public.complete_application_analysis(current_setting('test.queued_analysis')::uuid, '[]'::jsonb, 0, 0, null, null);
+select public.complete_application_analysis(current_setting('test.queued_analysis')::uuid, '[]'::jsonb, '岗位要求的中文翻译。', 0, 0, null, null);
 select throws_ok(
   $$select public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.queued_analysis')::uuid, '11111111-1111-4111-8111-111111111111', repeat('3', 64), 'test-provider', 'test-model')$$,
   'P0002', 'application-or-resume-not-found', 'a zero-requirement JD run cannot create gap work'
@@ -451,10 +452,11 @@ select public.complete_application_analysis(
   current_setting('test.b_analysis')::uuid,
   jsonb_build_array(jsonb_build_object(
     'category', 'skill', 'text', 'Advanced SQL',
+    'translationZh', '需要高级 SQL 能力',
     'sourceExcerpt', 'Advanced SQL experience is required.',
     'priority', 'core', 'matchStatus', 'none', 'matchReason', null,
     'matchedFactIds', '[]'::jsonb
-  )), 0, 0, null, null
+  )), '需要分析客户数据并具备高级 SQL 能力。', 0, 0, null, null
 );
 select set_config('test.b_req', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.b_analysis')::uuid), true);
 select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}', true);
@@ -569,10 +571,11 @@ select public.complete_application_analysis(
   current_setting('test.alt_analysis')::uuid,
   jsonb_build_array(jsonb_build_object(
     'category', 'skill', 'text', 'Advanced SQL',
+    'translationZh', '需要高级 SQL 能力',
     'sourceExcerpt', 'Advanced SQL experience is required for funnel analysis.',
     'priority', 'core', 'matchStatus', 'none', 'matchReason', null,
     'matchedFactIds', '[]'::jsonb
-  )), 0, 0, null, null
+  )), '需要分析客户数据并具备高级 SQL 能力。', 0, 0, null, null
 );
 select throws_ok($$select public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid, '11111111-1111-4111-8111-111111111111', repeat('d', 64), 'test-provider', 'test-model')$$, '23505', 'resume-gap-conflict', 'hash reuse cannot rebind a prior run to another analysis');
 

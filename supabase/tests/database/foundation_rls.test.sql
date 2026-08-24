@@ -2,12 +2,23 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(15);
+select plan(19);
 
 select has_table('public', 'profiles', 'profiles table exists');
 select has_table('public', 'source_assets', 'source_assets table exists');
 select has_table('public', 'career_facts', 'career_facts table exists');
 select has_table('public', 'processing_jobs', 'processing_jobs table exists');
+select has_column(
+  'public',
+  'source_assets',
+  'duplicate_of_id',
+  'source assets identify legacy duplicate rows'
+);
+select results_eq(
+  $$select count(*)::bigint from pg_indexes where schemaname = 'public' and indexname = 'source_assets_user_sha256_canonical_idx'$$,
+  array[1::bigint],
+  'source assets enforce one canonical row per user and exact hash'
+);
 
 insert into auth.users (
   id,
@@ -73,6 +84,52 @@ values (
   repeat('a', 64)
 );
 
+insert into public.source_assets (
+  id,
+  user_id,
+  original_name,
+  content_type,
+  storage_path,
+  size_bytes,
+  sha256,
+  duplicate_of_id
+)
+values (
+  '33333333-3333-4333-8333-333333333333',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'resume-copy.pdf',
+  'application/pdf',
+  'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/resume-copy.pdf',
+  1024,
+  repeat('a', 64),
+  '11111111-1111-4111-8111-111111111111'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.source_assets where duplicate_of_id is null$$,
+  array[1::bigint],
+  'an explicitly linked legacy duplicate does not become another canonical asset'
+);
+
+select throws_ok(
+  $$
+    insert into public.source_assets (
+      id, user_id, original_name, content_type, storage_path, size_bytes, sha256
+    ) values (
+      '44444444-4444-4444-8444-444444444444',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      'resume-second-canonical.pdf',
+      'application/pdf',
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/resume-second-canonical.pdf',
+      1024,
+      repeat('a', 64)
+    )
+  $$,
+  '23505',
+  'duplicate key value violates unique constraint "source_assets_user_sha256_canonical_idx"',
+  'the database rejects a second canonical asset for the same user and exact hash'
+);
+
 insert into public.career_facts (
   id,
   user_id,
@@ -92,8 +149,8 @@ values (
 
 select results_eq(
   'select count(*)::bigint from public.source_assets',
-  array[1::bigint],
-  'user A can see their source asset'
+  array[2::bigint],
+  'user A can see their canonical source asset and retained legacy duplicate'
 );
 
 select results_eq(

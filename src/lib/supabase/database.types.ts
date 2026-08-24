@@ -197,6 +197,7 @@ export type Database = {
           requirement_text: string
           sort_order: number
           source_excerpt: string
+          translation_zh: string | null
           user_id: string
         }
         Insert: {
@@ -211,6 +212,7 @@ export type Database = {
           requirement_text: string
           sort_order: number
           source_excerpt: string
+          translation_zh?: string | null
           user_id: string
         }
         Update: {
@@ -225,6 +227,7 @@ export type Database = {
           requirement_text?: string
           sort_order?: number
           source_excerpt?: string
+          translation_zh?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1288,6 +1291,7 @@ export type Database = {
         Row: {
           content_type: string
           created_at: string
+          duplicate_of_id: string | null
           error_code: string | null
           id: string
           original_name: string
@@ -1301,6 +1305,7 @@ export type Database = {
         Insert: {
           content_type: string
           created_at?: string
+          duplicate_of_id?: string | null
           error_code?: string | null
           id?: string
           original_name: string
@@ -1314,6 +1319,7 @@ export type Database = {
         Update: {
           content_type?: string
           created_at?: string
+          duplicate_of_id?: string | null
           error_code?: string | null
           id?: string
           original_name?: string
@@ -1324,22 +1330,27 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "source_assets_duplicate_owner_fkey"
+            columns: ["user_id", "duplicate_of_id"]
+            isOneToOne: false
+            referencedRelation: "source_assets"
+            referencedColumns: ["user_id", "id"]
+          },
+        ]
       }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      // Manual override: duplicate-common acceptance can return a null
-      // question_id, but Supabase CLI introspection currently marks it non-null.
-      // Reapply this override after regenerating database types.
       accept_interview_question_candidates: {
         Args: { target_application_id: string; target_candidate_ids: string[] }
         Returns: {
           candidate_id: string
           disposition: string
-          question_id: string | null
+          question_id: string
         }[]
       }
       add_interview_question: {
@@ -1450,10 +1461,11 @@ export type Database = {
       complete_application_analysis: {
         Args: {
           accepted_requirements: Json
-          ai_usage: Json
-          estimated_cost: Json
-          rejected_evidence_count: number
-          rejected_requirement_count: number
+          ai_usage?: Json
+          estimated_cost?: Json
+          jd_translation_zh?: string
+          rejected_evidence_count?: number
+          rejected_requirement_count?: number
           target_run_id: string
         }
         Returns: {
@@ -1833,6 +1845,10 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      delete_owned_application: {
+        Args: { target_application_id: string }
+        Returns: boolean
       }
       fail_application_analysis: {
         Args: {

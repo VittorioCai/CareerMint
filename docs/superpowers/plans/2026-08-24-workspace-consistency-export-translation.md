@@ -19,21 +19,21 @@
 - Modify: `supabase/tests/database/resume_gap_redesign_rls.test.sql`
 - Modify: `src/lib/supabase/database.types.ts`
 
-- [ ] **Step 1: Write failing database assertions for exact duplicate canonicalization**
+- [x] **Step 1: Write failing database assertions for exact duplicate canonicalization**
 
   Extend the resume-gap database test with two same-user `source_assets` rows sharing a SHA-256 and different statuses/timestamps. Assert that migration behavior leaves the preferred row canonical, sets the other row's `duplicate_of_id`, changes an active `applications.resume_source_asset_id` to the canonical ID, and rejects insertion of a second canonical row for the same `(user_id, sha256)`. Add a second user with the same hash to prove the uniqueness scope is per user.
 
-- [ ] **Step 2: Write failing database assertions for translations and deletion safety**
+- [x] **Step 2: Write failing database assertions for translations and deletion safety**
 
   Update the JD completion test so the RPC payload contains top-level `jdTranslationZh` and per-requirement `translationZh`, then assert those values are persisted in the run result and `application_requirements.translation_zh`. Add a deletion test that removes an owned application and verifies application-scoped analysis/gap/version rows disappear while its global source asset and career facts remain.
 
-- [ ] **Step 3: Run the focused database tests and confirm they fail**
+- [x] **Step 3: Run the focused database tests and confirm they fail**
 
   Run: `pnpm test:db`
 
   Expected: failure because `duplicate_of_id`, `translation_zh`, the partial unique index, and the updated completion contract do not exist yet.
 
-- [ ] **Step 4: Implement the migration**
+- [x] **Step 4: Implement the migration**
 
   In `202608240002_workspace_consistency.sql`:
 
@@ -46,13 +46,13 @@
   - preserve its grants and security-definer/search-path protections;
   - if the deletion test exposes restrictive FKs, add a security-definer `delete_owned_application(p_application_id uuid)` RPC that verifies `auth.uid()`, deletes dependent application-scoped rows in the required order, and never deletes source assets or career facts.
 
-- [ ] **Step 5: Reset the local database, regenerate types, and rerun tests**
+- [x] **Step 5: Reset the local database, regenerate types, and rerun tests**
 
   Run: `pnpm db:reset && pnpm db:types && pnpm test:db`
 
   Expected: all database tests pass and generated types include `duplicate_of_id` and `translation_zh`.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
   ```bash
   git add supabase/migrations/202608240002_workspace_consistency.sql supabase/tests/database src/lib/supabase/database.types.ts

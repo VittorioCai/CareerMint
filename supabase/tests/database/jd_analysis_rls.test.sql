@@ -2,12 +2,18 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(22);
+select plan(25);
 
 select has_table(
   'public',
   'application_analysis_runs',
   'application analysis runs table exists'
+);
+select has_column(
+  'public',
+  'application_requirements',
+  'translation_zh',
+  'requirements persist the Chinese translation generated with analysis'
 );
 select has_table(
   'public',
@@ -160,6 +166,7 @@ select results_eq(
         jsonb_build_object(
           'category', 'skill',
           'text', 'Advanced SQL',
+          'translationZh', '需要高级 SQL 能力',
           'sourceExcerpt', 'Advanced SQL experience is required for funnel analysis.',
           'priority', 'core',
           'matchStatus', 'evidence',
@@ -167,6 +174,7 @@ select results_eq(
           'matchedFactIds', jsonb_build_array('11111111-1111-4111-8111-111111111111')
         )
       ),
+      '负责国际市场的产品探索，并具备高级 SQL 漏斗分析经验。',
       0,
       0,
       '{"provider":"fake","model":"fake-jd-v1","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}',
@@ -193,6 +201,18 @@ select results_eq(
   $$select result ->> 'acceptedRequirementCount' from public.application_analysis_runs$$,
   array['1'::text],
   'run result stores only safe counts and metadata'
+);
+
+select results_eq(
+  $$select translation_zh from public.application_requirements$$,
+  array['需要高级 SQL 能力'::text],
+  'completion stores each requirement Chinese translation'
+);
+
+select results_eq(
+  $$select result ->> 'jdTranslationZh' from public.application_analysis_runs$$,
+  array['负责国际市场的产品探索，并具备高级 SQL 漏斗分析经验。'::text],
+  'completion stores the full JD Chinese translation in the run result'
 );
 
 select throws_ok(
@@ -290,6 +310,7 @@ select throws_ok(
         jsonb_build_object(
           'category', 'responsibility',
           'text', 'Lead discovery',
+          'translationZh', '负责产品探索',
           'sourceExcerpt', 'Lead product discovery across international markets.',
           'priority', 'core',
           'matchStatus', 'evidence',
@@ -297,6 +318,7 @@ select throws_ok(
           'matchedFactIds', jsonb_build_array('22222222-2222-4222-8222-222222222222')
         )
       ),
+      '负责国际市场的产品探索。',
       0,
       0,
       '{}',

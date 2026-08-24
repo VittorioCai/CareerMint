@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(33);
+select plan(38);
 
 select has_table('public', 'resume_generation_runs', 'resume generation runs table exists');
 select has_table('public', 'resume_suggestions', 'resume suggestions table exists');
@@ -90,6 +90,7 @@ select public.complete_application_analysis(
     jsonb_build_object(
       'category', 'skill',
       'text', 'Advanced SQL',
+      'translationZh', '需要高级 SQL 能力',
       'sourceExcerpt', 'Advanced SQL experience is required for funnel analysis.',
       'priority', 'core',
       'matchStatus', 'evidence',
@@ -97,6 +98,7 @@ select public.complete_application_analysis(
       'matchedFactIds', jsonb_build_array('11111111-1111-4111-8111-111111111111')
     )
   ),
+  '需要负责产品工作，并具备高级 SQL 漏斗分析经验。',
   0, 0,
   '{"provider":"fake","model":"fake-jd-v1","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}',
   null
@@ -379,6 +381,49 @@ select throws_ok(
   '22023',
   'invalid-resume-content',
   'completion rejects a changed number absent from confirmed evidence'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb","role":"authenticated"}',
+  true
+);
+
+select throws_ok(
+  $$select public.delete_owned_application(current_setting('test.resume_application_id')::uuid)$$,
+  'P0002',
+  'application-not-found',
+  'another user cannot delete the application'
+);
+
+select set_config(
+  'request.jwt.claims',
+  '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa","role":"authenticated"}',
+  true
+);
+
+select results_eq(
+  $$select public.delete_owned_application(current_setting('test.resume_application_id')::uuid)$$,
+  array[true],
+  'the owner can delete an application with saved resume versions'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.applications$$,
+  array[0::bigint],
+  'application deletion removes the owned application'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.resume_versions$$,
+  array[0::bigint],
+  'application deletion removes application-scoped resume history'
+);
+
+select results_eq(
+  $$select count(*)::bigint from public.career_facts$$,
+  array[2::bigint],
+  'application deletion preserves global career facts'
 );
 
 select set_config(
