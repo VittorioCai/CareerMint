@@ -42,22 +42,27 @@ export type ResumeGapProviderOutput = z.infer<
   typeof resumeGapProviderOutputSchema
 >;
 
-export type ResumeGapRequirement = {
+export type ResumeGapProviderRequirement = {
   id: string;
   category: RequirementCategory;
   text: string;
   priority: z.infer<typeof requirementPrioritySchema>;
-  sortOrder?: number;
+};
+
+/** Provider input intentionally excludes profile match metadata. */
+export type ResumeGapRequirement = ResumeGapProviderRequirement;
+
+/** Current JD views must carry an explicit match status. */
+export type ResumeGapCurrentRequirement = ResumeGapProviderRequirement & {
+  sortOrder: number;
   sourceExcerpt?: string;
-  matchStatus?: RequirementMatchStatus;
+  matchStatus: RequirementMatchStatus;
   matchReason?: string | null;
 };
 
 export type ResumeGapAnalysisInput = {
   resumeText: string;
-  requirements: Array<
-    Pick<ResumeGapRequirement, "id" | "category" | "text" | "priority">
-  >;
+  requirements: ResumeGapProviderRequirement[];
 };
 
 export type SanitizedResumeGapOutput = {
@@ -74,13 +79,13 @@ function invalidOutput(): never {
  */
 export function sanitizeResumeGapOutput(input: {
   resumeText: string;
-  requirements: ResumeGapRequirement[];
+  requirements: ResumeGapProviderRequirement[];
   output: unknown;
 }): SanitizedResumeGapOutput {
   const parsed = resumeGapProviderOutputSchema.safeParse(input.output);
   if (!parsed.success || typeof input.resumeText !== "string") invalidOutput();
 
-  const knownRequirements = new Map<string, ResumeGapRequirement>();
+  const knownRequirements = new Map<string, ResumeGapProviderRequirement>();
   for (const requirement of input.requirements) {
     if (knownRequirements.has(requirement.id)) invalidOutput();
     knownRequirements.set(requirement.id, requirement);
@@ -143,28 +148,6 @@ export const resumeGapGroupSchema = z.enum([
   "missing_evidence",
 ]);
 
-export type ResumeGapItem = {
-  id: string;
-  runId: string;
-  applicationId: string;
-  userId: string;
-  requirementId: string | null;
-  requirementText: string;
-  category: RequirementCategory;
-  priority: z.infer<typeof requirementPrioritySchema>;
-  jdSourceExcerpt: string;
-  resumeCoverage: ResumeCoverage;
-  verifiedResumeExcerpt: string | null;
-  sortOrder: number;
-  createdAt?: string;
-};
-
-export type ResumeGapItemView = ResumeGapItem & {
-  profileEvidence: ConfirmedFactForAnalysis[];
-  matchStatus?: RequirementMatchStatus;
-  matchReason?: string | null;
-};
-
 const storedText = (max: number) =>
   z
     .string()
@@ -177,6 +160,15 @@ const storedText = (max: number) =>
 
 const storedToken = (max: number) =>
   storedText(max).regex(/^[A-Za-z0-9._:-]+$/u);
+
+export function normalizeStoredIdentifier(
+  value: unknown,
+  max = 200,
+): string | null {
+  if (typeof value !== "string") return null;
+  const candidate = value.trim();
+  return storedToken(max).safeParse(candidate).success ? candidate : null;
+}
 
 export const resumeGapItemSchema = z
   .object({
@@ -192,7 +184,7 @@ export const resumeGapItemSchema = z
     resumeCoverage: resumeCoverageSchema,
     verifiedResumeExcerpt: storedText(1000).nullable(),
     sortOrder: z.number().int().min(0).max(79),
-    createdAt: z.string().optional(),
+    createdAt: z.string().datetime({ offset: true }),
   })
   .strict()
   .superRefine((item, context) => {
@@ -208,6 +200,14 @@ export const resumeGapItemSchema = z
       });
     }
   });
+
+export type ResumeGapItem = z.infer<typeof resumeGapItemSchema>;
+
+export type ResumeGapItemView = ResumeGapItem & {
+  profileEvidence: ConfirmedFactForAnalysis[];
+  matchStatus?: RequirementMatchStatus;
+  matchReason?: string | null;
+};
 
 export function classifyGap(item: ResumeGapItemView): ResumeGapGroup {
   if (item.resumeCoverage === "covered") return "covered";
@@ -244,8 +244,11 @@ export const profileOnlyGroupSchema = z.enum([
 ]);
 
 export function classifyProfileOnlyRequirement(
-  requirement: Pick<ResumeGapRequirement, "matchStatus">,
+  requirement: ResumeGapCurrentRequirement,
 ): ProfileOnlyGroup {
+  if (!requirement.matchStatus) {
+    throw new Error("resume-gap-invalid-requirement");
+  }
   switch (requirement.matchStatus) {
     case "evidence":
       return "profile_supported";
@@ -254,12 +257,14 @@ export function classifyProfileOnlyRequirement(
     case "needs_user":
       return "needs_user";
     case "none":
-    default:
       return "missing_evidence";
   }
 }
 
-function priorityRank(requirement: ResumeGapRequirement) {
+function priorityRank(requirement: ResumeGapCurrentRequirement) {
+  if (!requirement.matchStatus) {
+    throw new Error("resume-gap-invalid-requirement");
+  }
   if (requirement.matchStatus === "evidence") return 5;
   if (requirement.priority === "core") {
     if (requirement.matchStatus === "none") return 0;
@@ -278,9 +283,9 @@ function priorityRank(requirement: ResumeGapRequirement) {
 }
 
 export function selectPriorityRequirements(
-  requirements: ResumeGapRequirement[],
+  requirements: ResumeGapCurrentRequirement[],
   limit = 5,
-): ResumeGapRequirement[] {
+): ResumeGapCurrentRequirement[] {
   // The priority view is intentionally capped at five. Invalid numeric input
   // is treated as requesting no rows rather than bypassing that hard cap.
   if (!Number.isFinite(limit)) return [];
@@ -291,7 +296,7 @@ export function selectPriorityRequirements(
       requirement,
       index,
       rank: priorityRank(requirement),
-      order: requirement.sortOrder ?? index,
+      order: requirement.sortOrder,
     }))
     .sort(
       (left, right) => {
@@ -306,9 +311,12 @@ export function selectPriorityRequirements(
     .map(({ requirement }) => requirement);
 }
 
-export function summarizeRequirements(requirements: ResumeGapRequirement[]) {
+export function summarizeRequirements(requirements: ResumeGapCurrentRequirement[]) {
   return requirements.reduce(
     (summary, requirement) => {
+      if (!requirement.matchStatus) {
+        throw new Error("resume-gap-invalid-requirement");
+      }
       summary.total += 1;
       if (requirement.priority === "core") summary.core += 1;
       if (requirement.matchStatus === "evidence") summary.evidence += 1;
@@ -337,7 +345,7 @@ export const resumeGapAIResultSchema = z.object({
   model: storedText(160),
   requestId: storedToken(200).nullable(),
   usage: resumeGapAIUsageSchema,
-  priceScheduleVersion: storedText(80).nullable(),
+  priceScheduleVersion: storedToken(80).nullable(),
 }).strict();
 
 export const resumeGapEstimatedCostSchema = z.object({
@@ -348,13 +356,41 @@ export const resumeGapEstimatedCostSchema = z.object({
 }).strict();
 
 export const resumeGapRunResultSchema = z.object({
-  acceptedItemCount: z.number().int().nonnegative(),
-  coveredItemCount: z.number().int().nonnegative(),
-  partialItemCount: z.number().int().nonnegative(),
-  missingItemCount: z.number().int().nonnegative(),
+  acceptedItemCount: z.number().int().min(0).max(80),
+  coveredItemCount: z.number().int().min(0).max(80),
+  partialItemCount: z.number().int().min(0).max(80),
+  missingItemCount: z.number().int().min(0).max(80),
   ai: resumeGapAIResultSchema,
   estimatedCost: resumeGapEstimatedCostSchema.nullable(),
-}).strict();
+})
+  .strict()
+  .superRefine((result, context) => {
+    const evidenceCount =
+      result.coveredItemCount +
+      result.partialItemCount +
+      result.missingItemCount;
+    if (
+      result.acceptedItemCount !== evidenceCount ||
+      result.acceptedItemCount > 80
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["acceptedItemCount"],
+        message: "Result counts must sum to at most 80 accepted items.",
+      });
+    }
+    if (
+      result.estimatedCost !== null &&
+      (result.ai.priceScheduleVersion === null ||
+        result.ai.priceScheduleVersion !== result.estimatedCost.scheduleVersion)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["estimatedCost", "scheduleVersion"],
+        message: "Estimated cost schedule must match AI metadata.",
+      });
+    }
+  });
 
 export type ResumeGapAI = z.infer<typeof resumeGapAIResultSchema>;
 export type ResumeGapRunResult = z.infer<typeof resumeGapRunResultSchema>;
@@ -385,10 +421,10 @@ export const resumeGapRunSchema = z
     result: resumeGapRunResultSchema.nullable(),
     errorCode: storedText(120).nullable(),
     errorMessage: storedText(500).nullable(),
-    createdAt: z.string(),
-    updatedAt: z.string(),
-    startedAt: z.string().nullable().optional(),
-    finishedAt: z.string().nullable().optional(),
+    createdAt: z.string().datetime({ offset: true }),
+    updatedAt: z.string().datetime({ offset: true }),
+    startedAt: z.string().datetime({ offset: true }).nullable(),
+    finishedAt: z.string().datetime({ offset: true }).nullable(),
   })
   .strict()
   .superRefine((run, context) => {
@@ -399,29 +435,49 @@ export const resumeGapRunSchema = z
         message: "errorCode and errorMessage must be set together.",
       });
     }
+
+    const isQueued =
+      run.status === "queued" &&
+      run.attemptCount === 0 &&
+      run.startedAt === null &&
+      run.finishedAt === null &&
+      run.errorCode === null &&
+      run.errorMessage === null &&
+      run.result === null;
+    const isRunning =
+      run.status === "running" &&
+      run.attemptCount > 0 &&
+      run.startedAt !== null &&
+      run.finishedAt === null &&
+      run.errorCode === null &&
+      run.errorMessage === null &&
+      run.result === null;
+    const isSucceeded =
+      run.status === "succeeded" &&
+      run.attemptCount > 0 &&
+      run.startedAt !== null &&
+      run.finishedAt !== null &&
+      run.errorCode === null &&
+      run.errorMessage === null &&
+      run.result !== null;
+    const isFailed =
+      run.status === "failed" &&
+      run.attemptCount > 0 &&
+      run.startedAt !== null &&
+      run.finishedAt !== null &&
+      run.errorCode !== null &&
+      run.errorMessage !== null &&
+      run.result === null;
+    if (!(isQueued || isRunning || isSucceeded || isFailed)) {
+      context.addIssue({
+        code: "custom",
+        path: ["status"],
+        message: "Run state does not match its stored fields.",
+      });
+    }
   });
 
-export type ResumeGapRun = {
-  id: string;
-  applicationId: string;
-  userId: string;
-  analysisRunId: string;
-  sourceAssetId: string | null;
-  sourceFilename: string;
-  sourceSha256: string;
-  inputHash: string;
-  provider: string;
-  model: string;
-  status: ResumeGapRunStatus;
-  attemptCount: number;
-  result: ResumeGapRunResult | null;
-  errorCode: string | null;
-  errorMessage: string | null;
-  createdAt: string;
-  updatedAt: string;
-  startedAt?: string | null;
-  finishedAt?: string | null;
-};
+export type ResumeGapRun = z.infer<typeof resumeGapRunSchema>;
 
 export type ResumeGapAIUsage = Pick<
   ResumeGapAI,
