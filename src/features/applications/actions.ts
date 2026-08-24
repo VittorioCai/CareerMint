@@ -8,7 +8,11 @@ import {
   applicationRepository,
   ApplicationRepositoryError,
 } from "./repository";
-import { newApplicationSchema, stageChangeSchema } from "./schemas";
+import {
+  applicationResumeSourceSchema,
+  newApplicationSchema,
+  stageChangeSchema,
+} from "./schemas";
 
 export type ApplicationActionState =
   | Record<string, never>
@@ -71,6 +75,31 @@ export async function changeApplicationStageAction(
     const application = await applicationRepository.changeStage(parsed.data);
     revalidatePath("/applications");
     revalidatePath(`/applications/${application.id}`);
+    revalidatePath("/app");
+    return { ok: true, applicationId: application.id };
+  } catch (error) {
+    return { ok: false, error: actionError(error) };
+  }
+}
+
+export async function setApplicationResumeSourceAction(
+  _previousState: ApplicationActionState,
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  await requireUser();
+  const parsed = applicationResumeSourceSchema.safeParse(formValues(formData));
+  if (!parsed.success) {
+    return {
+      ok: false,
+      error: "invalid-input",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    const application = await applicationRepository.setResumeSource(parsed.data);
+    revalidatePath(`/applications/${application.id}`);
+    revalidatePath("/applications");
     revalidatePath("/app");
     return { ok: true, applicationId: application.id };
   } catch (error) {

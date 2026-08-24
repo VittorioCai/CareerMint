@@ -3,12 +3,21 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   revalidatePath: vi.fn(),
+  ApplicationRepositoryError: class MockApplicationRepositoryError extends Error {
+    code: string;
+
+    constructor(code: string) {
+      super(code);
+      this.code = code;
+    }
+  },
   repository: {
     create: vi.fn(),
     list: vi.fn(),
     get: vi.fn(),
     listEvents: vi.fn(),
     changeStage: vi.fn(),
+    setResumeSource: vi.fn(),
   },
 }));
 
@@ -22,11 +31,13 @@ vi.mock("next/cache", () => ({
 
 vi.mock("./repository", () => ({
   applicationRepository: mocks.repository,
+  ApplicationRepositoryError: mocks.ApplicationRepositoryError,
 }));
 
 import {
   changeApplicationStageAction,
   createApplicationAction,
+  setApplicationResumeSourceAction,
 } from "./actions";
 
 function validApplicationFormData() {
@@ -57,6 +68,10 @@ describe("application actions", () => {
     mocks.repository.changeStage.mockResolvedValue({
       id: "11111111-1111-4111-8111-111111111111",
       stage: "applied",
+    });
+    mocks.repository.setResumeSource.mockResolvedValue({
+      id: "11111111-1111-4111-8111-111111111111",
+      resumeSourceAssetId: "22222222-2222-4222-8222-222222222222",
     });
   });
 
@@ -120,5 +135,86 @@ describe("application actions", () => {
       "/applications/11111111-1111-4111-8111-111111111111",
     );
     expect(mocks.revalidatePath).toHaveBeenCalledWith("/app");
+  });
+
+  it("sets an owned baseline resume and revalidates every affected view", async () => {
+    const formData = new FormData();
+    formData.set("applicationId", "11111111-1111-4111-8111-111111111111");
+    formData.set("sourceAssetId", "22222222-2222-4222-8222-222222222222");
+
+    await expect(setApplicationResumeSourceAction({}, formData)).resolves.toEqual(
+      {
+        ok: true,
+        applicationId: "11111111-1111-4111-8111-111111111111",
+      },
+    );
+
+    expect(mocks.requireUser).toHaveBeenCalledOnce();
+    expect(mocks.repository.setResumeSource).toHaveBeenCalledExactlyOnceWith({
+      applicationId: "11111111-1111-4111-8111-111111111111",
+      sourceAssetId: "22222222-2222-4222-8222-222222222222",
+    });
+    expect(mocks.revalidatePath).toHaveBeenCalledWith(
+      "/applications/11111111-1111-4111-8111-111111111111",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/applications");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/app");
+  });
+
+  it("clears a baseline resume with an empty source id", async () => {
+    const formData = new FormData();
+    formData.set("applicationId", "11111111-1111-4111-8111-111111111111");
+    formData.set("sourceAssetId", "");
+
+    await expect(setApplicationResumeSourceAction({}, formData)).resolves.toEqual(
+      {
+        ok: true,
+        applicationId: "11111111-1111-4111-8111-111111111111",
+      },
+    );
+
+    expect(mocks.repository.setResumeSource).toHaveBeenCalledExactlyOnceWith({
+      applicationId: "11111111-1111-4111-8111-111111111111",
+      sourceAssetId: null,
+    });
+  });
+
+  it("authenticates before validating or mutating a baseline selection", async () => {
+    mocks.requireUser.mockRejectedValueOnce(new Error("unauthorized"));
+    const formData = new FormData();
+    formData.set("applicationId", "not-a-uuid");
+    formData.set("sourceAssetId", "also-not-a-uuid");
+
+    await expect(setApplicationResumeSourceAction({}, formData)).rejects.toThrow(
+      "unauthorized",
+    );
+    expect(mocks.requireUser).toHaveBeenCalledOnce();
+    expect(mocks.repository.setResumeSource).not.toHaveBeenCalled();
+  });
+
+  it("rejects invalid baseline ids before repository mutation", async () => {
+    const formData = new FormData();
+    formData.set("applicationId", "not-a-uuid");
+    formData.set("sourceAssetId", "22222222-2222-4222-8222-222222222222");
+
+    await expect(
+      setApplicationResumeSourceAction({}, formData),
+    ).resolves.toMatchObject({ ok: false, error: "invalid-input" });
+    expect(mocks.repository.setResumeSource).not.toHaveBeenCalled();
+  });
+
+  it("returns sanitized repository errors", async () => {
+    mocks.repository.setResumeSource.mockRejectedValueOnce(
+      new mocks.ApplicationRepositoryError("application-storage-error"),
+    );
+    const formData = new FormData();
+    formData.set("applicationId", "11111111-1111-4111-8111-111111111111");
+    formData.set("sourceAssetId", "22222222-2222-4222-8222-222222222222");
+
+    await expect(setApplicationResumeSourceAction({}, formData)).resolves.toEqual({
+      ok: false,
+      error: "application-storage-error",
+    });
+    expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 });

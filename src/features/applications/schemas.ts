@@ -20,6 +20,14 @@ export const WORKPLACE_MODES = [
 export const applicationStageSchema = z.enum(APPLICATION_STAGES);
 export const workplaceModeSchema = z.enum(WORKPLACE_MODES);
 
+export const applicationResumeSourceSchema = z.object({
+  applicationId: z.uuid(),
+  sourceAssetId: z.preprocess(
+    (value) => (value === "" || value == null ? null : value),
+    z.uuid().nullable(),
+  ),
+});
+
 export type ApplicationStage = z.infer<typeof applicationStageSchema>;
 export type WorkplaceMode = z.infer<typeof workplaceModeSchema>;
 
@@ -136,6 +144,7 @@ export type Application = {
   appliedAt: string | null;
   nextAction: string | null;
   nextActionDueAt: string | null;
+  resumeSourceAssetId: string | null;
   createdAt: string;
   updatedAt: string;
 };

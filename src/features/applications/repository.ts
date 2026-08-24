@@ -25,6 +25,10 @@ export type ApplicationRepository = {
     applicationId: string,
   ): Promise<ApplicationStageEvent[]>;
   changeStage(input: StageChangeInput): Promise<Application>;
+  setResumeSource(input: {
+    applicationId: string;
+    sourceAssetId: string | null;
+  }): Promise<Application>;
 };
 
 export class ApplicationRepositoryError extends Error {
@@ -45,6 +49,23 @@ function stableStorageError(error: { code?: string; message?: string } | null) {
     return "application-stage-unchanged";
   }
   if (error?.code === "22023" || error?.code === "23514") {
+    return "invalid-application-input";
+  }
+  return "application-storage-error";
+}
+
+function stableResumeSourceError(error: {
+  code?: string;
+  message?: string;
+} | null) {
+  if (error?.code === "P0002" || error?.code === "PGRST116") {
+    return "application-or-resume-not-found";
+  }
+  if (
+    error?.code === "22P02" ||
+    error?.code === "22023" ||
+    error?.code === "23514"
+  ) {
     return "invalid-application-input";
   }
   return "application-storage-error";
@@ -72,6 +93,7 @@ function toApplication(row: ApplicationRow): Application {
     appliedAt: row.applied_at,
     nextAction: row.next_action,
     nextActionDueAt: row.next_action_due_at,
+    resumeSourceAssetId: row.resume_source_asset_id,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -178,10 +200,34 @@ async function changeStage(input: StageChangeInput): Promise<Application> {
   return toApplication(data);
 }
 
+async function setResumeSource(input: {
+  applicationId: string;
+  sourceAssetId: string | null;
+}): Promise<Application> {
+  const supabase = await createClient();
+  const args: Database["public"]["Functions"]["set_application_resume_source"]["Args"] = {
+    target_application_id: input.applicationId,
+  };
+  if (input.sourceAssetId !== null) {
+    args.target_source_asset_id = input.sourceAssetId;
+  }
+
+  const { data, error } = await supabase.rpc(
+    "set_application_resume_source",
+    args,
+  );
+
+  if (error || !data) {
+    throw new ApplicationRepositoryError(stableResumeSourceError(error));
+  }
+  return toApplication(data);
+}
+
 export const applicationRepository: ApplicationRepository = {
   create,
   list,
   get,
   listEvents,
   changeStage,
+  setResumeSource,
 };

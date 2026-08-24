@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   APPLICATION_STAGE_LABELS,
   applicationFilterSchema,
+  applicationResumeSourceSchema,
   canChangeApplicationStage,
   newApplicationSchema,
   stageChangeSchema,
@@ -55,6 +56,39 @@ describe("application schemas", () => {
     });
     expect(canChangeApplicationStage("rejected", "interview")).toEqual({
       ok: true,
+    });
+  });
+
+  it("normalizes an empty baseline resume selection to null", () => {
+    expect(
+      applicationResumeSourceSchema.parse({
+        applicationId: "11111111-1111-4111-8111-111111111111",
+        sourceAssetId: "",
+      }),
+    ).toEqual({
+      applicationId: "11111111-1111-4111-8111-111111111111",
+      sourceAssetId: null,
+    });
+
+    expect(
+      applicationResumeSourceSchema.parse({
+        applicationId: "11111111-1111-4111-8111-111111111111",
+      }),
+    ).toEqual({
+      applicationId: "11111111-1111-4111-8111-111111111111",
+      sourceAssetId: null,
+    });
+  });
+
+  it("accepts a baseline resume source asset id", () => {
+    expect(
+      applicationResumeSourceSchema.parse({
+        applicationId: "11111111-1111-4111-8111-111111111111",
+        sourceAssetId: "22222222-2222-4222-8222-222222222222",
+      }),
+    ).toEqual({
+      applicationId: "11111111-1111-4111-8111-111111111111",
+      sourceAssetId: "22222222-2222-4222-8222-222222222222",
     });
   });
 
