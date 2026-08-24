@@ -7,7 +7,7 @@ vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
-import { GapAnalysisControl } from "./gap-analysis-control";
+import { GapAnalysisControl, resolveBrowserOcrHook } from "./gap-analysis-control";
 
 const appId = "11111111-1111-4111-8111-111111111111";
 const assetId = "22222222-2222-4222-8222-222222222222";
@@ -32,6 +32,14 @@ function renderControl(overrides: Partial<React.ComponentProps<typeof GapAnalysi
 }
 
 describe("GapAnalysisControl", () => {
+  it("only resolves the browser OCR injection hook outside production", () => {
+    const hook = vi.fn().mockResolvedValue("fixture OCR");
+    expect(resolveBrowserOcrHook("development", hook)).toBe(hook);
+    expect(resolveBrowserOcrHook("test", hook)).toBe(hook);
+    expect(resolveBrowserOcrHook("production", hook)).toBeNull();
+    expect(resolveBrowserOcrHook("development", undefined)).toBeNull();
+  });
+
   it("does not call the gap endpoint until the explicit analysis click", async () => {
     const user = userEvent.setup();
     const { request, refresh } = renderControl();
