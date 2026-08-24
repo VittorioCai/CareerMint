@@ -4,7 +4,7 @@
 
 **Goal:** Make signup email confirmation establish a session reliably and report callback failures accurately.
 
-**Architecture:** Add `token_hash` verification to the existing server Route Handler while preserving code-exchange compatibility. Keep callback-status presentation in the login route boundary, and version the confirmation email template in Supabase configuration.
+**Architecture:** Add `token_hash` verification to the existing server Route Handler while preserving code-exchange compatibility. The production-default Supabase Free flow uses the built-in `ConfirmationURL` template and the code exchange; the repository template/config remain optional local/custom-SMTP support for `token_hash`. Keep callback-status presentation in the login route boundary.
 
 **Tech Stack:** Next.js 16 Route Handlers, Supabase SSR/Auth, React 19, Vitest, TypeScript.
 
@@ -66,7 +66,7 @@ Run `pnpm test 'src/app/(auth)/login/auth-form.test.tsx'`. Expected: both messag
 
 - [ ] **Step 1: Add a static contract test**
 
-Extend the callback route test or add a focused configuration assertion that reads the template and checks for `{{ .RedirectTo }}`, `token_hash={{ .TokenHash }}`, `type=email`, and `next=/onboarding`. Add an action test asserting signup passes a query-free `${siteUrl}/auth/callback` as `emailRedirectTo`.
+Extend the callback route test or add a focused configuration assertion that reads the optional template and checks for `{{ .RedirectTo }}`, `token_hash={{ .TokenHash }}`, and `type=email`. Add an action test asserting signup passes `${siteUrl}/auth/callback?next=/onboarding` as `emailRedirectTo` so the built-in ConfirmationURL flow opens onboarding.
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
@@ -74,7 +74,7 @@ Run the focused test. Expected: failure because the template does not exist.
 
 - [ ] **Step 3: Add template and configuration**
 
-Add an accessible confirmation email with `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email&next=/onboarding`, configure `[auth.email.template.confirmation]`, change signup to pass a query-free callback URL as `emailRedirectTo`, and document that hosted Supabase must receive the same template before production rollout.
+Add an accessible optional confirmation email with `{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`, configure `[auth.email.template.confirmation]` for local/custom-SMTP use, set signup to pass `${siteUrl}/auth/callback?next=/onboarding`, and document that new Supabase Free projects can use the built-in default template in production without configuring SMTP now. Custom template synchronization is only a later option after custom SMTP or an upgrade.
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 

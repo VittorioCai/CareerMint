@@ -39,10 +39,13 @@ SUPABASE_SECRET_KEY=...
 
 浏览器访问 [http://127.0.0.1:3000](http://127.0.0.1:3000)。本地邮件验证与密码重设邮件可在 [Mailpit](http://127.0.0.1:54324) 查看。
 
-生产部署前，请在托管 Supabase 的 Auth 邮件模板中同步
-`supabase/templates/confirmation.html`（确认链接必须保留
-`{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email&next=/onboarding`），并在部署后验证邮件链接能打开 `/onboarding`。本地
-`supabase/config.toml` 已指向同一模板。
+生产环境支持两条邮箱确认路径。对于 2026-06-03 之后创建、使用默认 SMTP 的 Supabase Free 项目，直接使用 Supabase 内置的
+`{{ .ConfirmationURL }}` 模板即可，无需修改邮件模板或现在配置 SMTP；注册动作传入的
+`/auth/callback?next=/onboarding` 会让默认确认链接完成 code 回调后打开 `/onboarding`，默认流程已受支持。
+
+只有在配置了自定义 SMTP 或升级到支持自定义模板的方案后，才需要考虑同步可选的
+`supabase/templates/confirmation.html`，以使用 `token_hash`/`verifyOtp` 路径。本地
+`supabase/config.toml` 仍指向该模板，供本地开发和未来的自定义邮件配置使用。
 
 如果 macOS 上 Docker 无法挂载 `Documents` 下的项目，请在 Docker Desktop 中授予相应文件访问权限，或把项目放到 Docker 可访问的目录。这不会影响部署后的应用逻辑。
 

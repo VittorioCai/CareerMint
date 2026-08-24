@@ -36,7 +36,7 @@ describe("signup", () => {
     process.env.NEXT_PUBLIC_SITE_URL = "https://career.example";
   });
 
-  it("uses a query-free callback URL for confirmation templates", async () => {
+  it("redirects default confirmation links to onboarding", async () => {
     const signUp = vi.fn().mockResolvedValue({ error: null });
     mockedCreateClient.mockResolvedValue({ auth: { signUp } } as never);
     const formData = new FormData();
@@ -48,7 +48,8 @@ describe("signup", () => {
     expect(signUp).toHaveBeenCalledWith(
       expect.objectContaining({
         options: {
-          emailRedirectTo: "https://career.example/auth/callback",
+          emailRedirectTo:
+            "https://career.example/auth/callback?next=/onboarding",
         },
       }),
     );
