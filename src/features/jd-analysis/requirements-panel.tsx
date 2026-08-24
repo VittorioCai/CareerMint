@@ -232,17 +232,6 @@ export function RequirementsPanel({
   const [openAllIds, setOpenAllIds] = useState<Set<string>>(new Set());
   const [openCategories, setOpenCategories] = useState<Set<RequirementCategory>>(new Set());
 
-  if (requirements.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[var(--ink-soft)] bg-white p-6 text-center">
-        <h3 className="heading-font text-lg font-black">还没有结构化要求</h3>
-        <p className="mt-2 text-sm font-medium text-[var(--ink-muted)]">
-          点击上方“开始分析 JD”，系统会整理要求并只匹配已确认事实。
-        </p>
-      </div>
-    );
-  }
-
   const summary = summarizeRequirements(requirements);
   const priorityRequirements = selectPriorityRequirements(requirements)
     .map((selected) => requirements.find((requirement) => requirement.id === selected.id))
@@ -302,7 +291,12 @@ export function RequirementsPanel({
             ["有证据", summary.evidence],
             ["需要关注", summary.attention],
           ].map(([label, value]) => (
-            <div key={label} className="px-4 py-3 sm:px-5">
+            <div
+              key={label}
+              role="group"
+              aria-label={`${label} ${value}`}
+              className="px-4 py-3 sm:px-5"
+            >
               <dt className="text-[11px] font-black text-[var(--ink-muted)]">{label}</dt>
               <dd className="mt-1 text-xl font-black">{value}</dd>
             </div>
@@ -332,18 +326,27 @@ export function RequirementsPanel({
               按核心缺口和待判断事项排序，最多显示五条。
             </p>
           </div>
-          {priorityRequirements.map((requirement) => (
-            <RequirementDisclosure
-              key={requirement.id}
-              requirement={requirement}
-              expanded={openPriorityId === requirement.id}
-              onToggle={() =>
-                setOpenPriorityId((current) =>
-                  current === requirement.id ? null : requirement.id,
-                )
-              }
-            />
-          ))}
+          {priorityRequirements.length > 0 ? (
+            priorityRequirements.map((requirement) => (
+              <RequirementDisclosure
+                key={requirement.id}
+                requirement={requirement}
+                expanded={openPriorityId === requirement.id}
+                onToggle={() =>
+                  setOpenPriorityId((current) =>
+                    current === requirement.id ? null : requirement.id,
+                  )
+                }
+              />
+            ))
+          ) : (
+            <div className="border-t border-dashed border-[var(--ink-soft)] bg-white p-6 text-center">
+              <h4 className="heading-font text-lg font-black">还没有结构化要求</h4>
+              <p className="mt-2 text-sm font-medium text-[var(--ink-muted)]">
+                点击上方“开始分析 JD”，系统会整理要求并只匹配已确认事实。
+              </p>
+            </div>
+          )}
         </section>
       ) : null}
 
@@ -355,7 +358,7 @@ export function RequirementsPanel({
               按类别浏览，分类和要求默认闭合。
             </p>
           </div>
-          {categories.map((category) => {
+          {requirements.length > 0 ? categories.map((category) => {
             const grouped = requirements.filter(
               (requirement) => requirement.category === category.value,
             );
@@ -381,7 +384,11 @@ export function RequirementsPanel({
                   : null}
               </div>
             );
-          })}
+          }) : (
+            <p className="border-t border-[var(--line)] px-4 py-5 text-sm font-medium text-[var(--ink-muted)]">
+              分析完成后，这里会按类别显示全部要求。
+            </p>
+          )}
         </section>
       ) : null}
 

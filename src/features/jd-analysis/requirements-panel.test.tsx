@@ -94,11 +94,10 @@ describe("RequirementsPanel", () => {
       />,
     );
 
-    expect(screen.getByText("总要求")).toBeVisible();
-    expect(screen.getByText("6")).toBeVisible();
-    expect(screen.getAllByText("核心要求")[0]).toBeVisible();
-    expect(screen.getByText("有证据")).toBeVisible();
-    expect(screen.getByText("需要关注")).toBeVisible();
+    expect(screen.getByRole("group", { name: "总要求 6" })).toBeVisible();
+    expect(screen.getByRole("group", { name: "核心要求 4" })).toBeVisible();
+    expect(screen.getByRole("group", { name: "有证据 1" })).toBeVisible();
+    expect(screen.getByRole("group", { name: "需要关注 3" })).toBeVisible();
 
     const rows = screen.getAllByRole("button", { name: /核心|补充/ });
     expect(rows).toHaveLength(5);
@@ -127,6 +126,12 @@ describe("RequirementsPanel", () => {
     expect(screen.getByRole("link", { name: "查看职业档案" })).toHaveAttribute("href", "/profile");
     expect(screen.getByText("Advanced SQL experience is required.")).toBeVisible();
 
+    const reason = screen.getByText("匹配理由");
+    const facts = screen.getByText("已确认职业事实及来源");
+    const excerpt = screen.getByText("JD 来源摘录");
+    expect(reason.compareDocumentPosition(facts) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(facts.compareDocumentPosition(excerpt) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+
     await user.keyboard("{Enter}");
     expect(row).toHaveAttribute("aria-expanded", "false");
   });
@@ -149,6 +154,11 @@ describe("RequirementsPanel", () => {
     expect(screen.queryByRole("button", { name: /Core no evidence/ })).not.toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /技能关键词/ }));
+    expect(
+      screen.getByRole("button", {
+        name: /技能关键词.*1 项.*0 有证据.*0 部分匹配.*1 没有证据.*0 需判断/,
+      }),
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: /Core no evidence/ })).toHaveAttribute(
       "aria-expanded",
       "false",
@@ -183,10 +193,26 @@ describe("RequirementsPanel", () => {
     );
   });
 
-  it("gives an actionable empty state", () => {
-    render(<RequirementsPanel requirements={[]} sourceText="" />);
+  it("keeps the actionable empty state in focus while making the JD source reachable", async () => {
+    const user = userEvent.setup();
+    const emptySource = "The original job description is retained before analysis.";
+    render(
+      <RequirementsPanel
+        requirements={[]}
+        sourceText={emptySource}
+        sourceUrl="https://example.com/jobs/empty"
+      />,
+    );
 
     expect(screen.getByText("还没有结构化要求")).toBeVisible();
     expect(screen.getByText(/点击上方“开始分析 JD”/)).toBeVisible();
+    expect(screen.queryByText(emptySource)).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "JD 原文" }));
+    expect(screen.getByText(emptySource)).toBeVisible();
+    expect(screen.getByRole("link", { name: "打开原岗位 ↗" })).toHaveAttribute(
+      "href",
+      "https://example.com/jobs/empty",
+    );
   });
 });
