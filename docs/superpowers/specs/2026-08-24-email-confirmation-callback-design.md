@@ -23,7 +23,7 @@ The repository includes the signup confirmation HTML template and points local S
 
 `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`
 
-The signup action continues setting `emailRedirectTo` to the callback URL containing the allow-listed onboarding destination, so `RedirectTo` preserves the correct site and path.
+The signup action sets `emailRedirectTo` to the callback URL without query parameters. The confirmation template adds `token_hash`, `type=email`, and the allow-listed `next=/onboarding` in a single query string, avoiding malformed double-`?` URLs.
 
 ## Testing
 

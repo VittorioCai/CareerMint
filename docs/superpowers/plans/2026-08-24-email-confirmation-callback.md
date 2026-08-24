@@ -60,11 +60,13 @@ Run `pnpm test 'src/app/(auth)/login/auth-form.test.tsx'`. Expected: both messag
 **Files:**
 - Create: `supabase/templates/confirmation.html`
 - Modify: `supabase/config.toml`
+- Modify: `src/app/(auth)/login/actions.ts`
+- Modify: `src/app/(auth)/login/actions.test.ts`
 - Modify: `README.md`
 
 - [ ] **Step 1: Add a static contract test**
 
-Extend the callback route test or add a focused configuration assertion that reads the template and checks for `{{ .RedirectTo }}`, `token_hash={{ .TokenHash }}`, and `type=email`.
+Extend the callback route test or add a focused configuration assertion that reads the template and checks for `{{ .RedirectTo }}`, `token_hash={{ .TokenHash }}`, `type=email`, and `next=/onboarding`. Add an action test asserting signup passes a query-free `${siteUrl}/auth/callback` as `emailRedirectTo`.
 
 - [ ] **Step 2: Run the focused test and verify RED**
 
@@ -72,7 +74,7 @@ Run the focused test. Expected: failure because the template does not exist.
 
 - [ ] **Step 3: Add template and configuration**
 
-Add an accessible confirmation email with a direct callback link using the exact contract above, configure `[auth.email.template.confirmation]`, and document that hosted Supabase must receive the same template before production rollout.
+Add an accessible confirmation email with `{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email&next=/onboarding`, configure `[auth.email.template.confirmation]`, change signup to pass a query-free callback URL as `emailRedirectTo`, and document that hosted Supabase must receive the same template before production rollout.
 
 - [ ] **Step 4: Run focused tests and verify GREEN**
 
