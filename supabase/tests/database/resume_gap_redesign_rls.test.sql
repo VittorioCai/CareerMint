@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(80);
+select plan(81);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
@@ -625,6 +625,9 @@ select dblink_exec('gap_lock_b', $$set local role authenticated$$);
 select dblink_exec('gap_lock_b', $$set request.jwt.claims = '{"sub":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","role":"authenticated"}'$$);
 select dblink_exec('gap_lock_b', format($$set test.concurrent_app = %L$$, current_setting('test.concurrent_app')));
 select dblink_exec('gap_lock_b', $$set test.concurrent_outcome = 'unset'$$);
+select set_config('test.gap_b_pid', (
+  select result from dblink('gap_lock_b', $inner$select pg_backend_pid()$inner$) as rows(result text)
+), true);
 select dblink_send_query('gap_lock_b', $$do $body$
 begin
   perform public.set_application_resume_source(current_setting('test.concurrent_app')::uuid, '77777777-7777-4777-8777-777777777777');
@@ -633,7 +636,28 @@ exception when sqlstate 'P0002' then
   perform set_config('test.concurrent_outcome', 'expected-p0002', false);
 end
 $body$;$$);
-select pg_sleep(0.2);
+select lives_ok($$
+do $poll$
+declare
+  deadline timestamptz := clock_timestamp() + interval '5 seconds';
+  reached boolean := false;
+begin
+  while clock_timestamp() < deadline loop
+    select exists (
+      select 1
+      from pg_locks
+      where pid = current_setting('test.gap_b_pid')::integer
+        and not granted
+    ) into reached;
+    exit when reached;
+    perform pg_sleep(0.05);
+  end loop;
+  if not reached then
+    raise exception 'source selection session never reached a lock wait';
+  end if;
+end
+$poll$;
+$$, 'source selection session reaches the source lock wait before deletion starts');
 select dblink_send_query('gap_lock_a', $$delete from public.source_assets where id = '77777777-7777-4777-8777-777777777777'$$);
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['1'], 'source deletion session completes without deadlock');
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['0'], 'source deletion async result is fully drained');
