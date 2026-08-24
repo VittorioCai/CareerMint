@@ -116,10 +116,7 @@ function configuredProvider(): Pick<AIProvider, "analyzeResumeGaps"> {
 
 function configuredPriceSchedule(at: Date): AIPriceSchedule | undefined {
   const raw = getServerEnv().AI_PRICE_SCHEDULE_JSON;
-  if (!raw) {
-    console.warn("ai-price-config-unavailable");
-    return undefined;
-  }
+  if (!raw) return undefined;
 
   try {
     const schedule = parsePriceSchedule(raw);
@@ -145,18 +142,13 @@ function configuredPriceSchedule(at: Date): AIPriceSchedule | undefined {
   }
 }
 
-async function getLatestSucceededAnalysis(userId: string, applicationId: string) {
-  const run = await jdAnalysisRepository.getLatest(userId, applicationId);
-  return run?.status === "succeeded" ? run : null;
-}
-
 const providerConfig = providerConfiguration();
 
 export const POST = createResumeGapPostHandler({
   getCurrentUser,
   getApplication: applicationRepository.get,
   getAIProcessingConsentAt,
-  getLatestSucceededAnalysis,
+  getLatestSucceededAnalysis: jdAnalysisRepository.getLatestSucceeded,
   listRequirements: jdAnalysisRepository.listRequirements,
   getOwnedAsset,
   createOrGetRun: resumeGapRepository.createOrGet,

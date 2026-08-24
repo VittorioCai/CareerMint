@@ -182,6 +182,26 @@ async function getLatest(
     .eq("user_id", userId)
     .eq("application_id", applicationId)
     .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throw new JDAnalysisRepositoryError(stableError(error));
+  return data ? toRun(data) : null;
+}
+
+async function getLatestSucceeded(
+  userId: string,
+  applicationId: string,
+): Promise<JDAnalysisRun | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("application_analysis_runs")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("application_id", applicationId)
+    .eq("status", "succeeded")
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false })
     .limit(1)
     .maybeSingle();
   if (error) throw new JDAnalysisRepositoryError(stableError(error));
@@ -292,6 +312,7 @@ export const jdAnalysisRepository = {
   claim,
   getOwned,
   getLatest,
+  getLatestSucceeded,
   listRuns,
   complete,
   fail,

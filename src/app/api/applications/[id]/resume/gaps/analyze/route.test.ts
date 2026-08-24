@@ -14,7 +14,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getAIProcessingConsentAt: vi.fn(),
   getApplication: vi.fn(),
-  getLatestAnalysis: vi.fn(),
+  getLatestSucceededAnalysis: vi.fn(),
   listRequirements: vi.fn(),
   getOwnedAsset: vi.fn(),
   createOrGet: vi.fn(),
@@ -37,7 +37,7 @@ vi.mock("@/features/applications/repository", () => ({
 }));
 vi.mock("@/features/jd-analysis/repository", () => ({
   jdAnalysisRepository: {
-    getLatest: mocks.getLatestAnalysis,
+    getLatestSucceeded: mocks.getLatestSucceededAnalysis,
     listRequirements: mocks.listRequirements,
   },
 }));
@@ -136,7 +136,7 @@ beforeEach(() => {
     userId: ids.user,
     resumeSourceAssetId: ids.asset,
   });
-  mocks.getLatestAnalysis.mockResolvedValue({
+  mocks.getLatestSucceededAnalysis.mockResolvedValue({
     id: ids.analysis,
     applicationId: ids.application,
     userId: ids.user,
@@ -161,6 +161,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.unstubAllEnvs();
+  vi.useRealTimers();
 });
 
 describe("resume gap analysis route wiring", () => {
@@ -187,7 +188,7 @@ describe("resume gap analysis route wiring", () => {
     expect(mocks.getCurrentUser).toHaveBeenCalledOnce();
     expect(mocks.getAIProcessingConsentAt).toHaveBeenCalledWith(ids.user);
     expect(mocks.getApplication).toHaveBeenCalledWith(ids.user, ids.application);
-    expect(mocks.getLatestAnalysis).toHaveBeenCalledWith(ids.user, ids.application);
+    expect(mocks.getLatestSucceededAnalysis).toHaveBeenCalledWith(ids.user, ids.application);
     expect(mocks.listRequirements).toHaveBeenCalledWith(ids.user, ids.application);
     expect(mocks.getOwnedAsset).toHaveBeenCalledWith(ids.user, ids.asset);
     expect(mocks.createOrGet).toHaveBeenCalledWith(
@@ -272,6 +273,44 @@ describe("resume gap analysis route wiring", () => {
     warning.mockRestore();
   });
 
+  it("passes a valid effective matching price schedule and a clock at the same instant", async () => {
+    const fixedNow = new Date("2026-08-24T12:34:56.000Z");
+    vi.useFakeTimers();
+    vi.setSystemTime(fixedNow);
+    const schedule = {
+      version: "deepseek-v4-2026-08",
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      currency: "USD" as const,
+      observedAt: "2026-08-01T00:00:00.000Z",
+      sourceUrl: "https://example.com/prices",
+      effectiveFrom: "2026-01-01T00:00:00.000Z",
+      effectiveUntil: null,
+      defaultRates: {
+        inputCacheHitPerMillion: 1,
+        inputCacheMissPerMillion: 2,
+        outputPerMillion: 3,
+      },
+      peak: null,
+    };
+    mocks.getServerEnv.mockReturnValue({
+      AI_TEXT_PROVIDER: "deepseek",
+      AI_TEXT_MODEL: "deepseek-v4-flash",
+      DEEPSEEK_API_KEY: "test-key",
+      E2E_FAKE_EXTRACTOR: "0",
+      AI_PRICE_SCHEDULE_JSON: JSON.stringify(schedule),
+    });
+    const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const route = await import("./route");
+    await route.POST(new Request("http://test", { method: "POST" }), context());
+
+    const serviceDependencies = mocks.createResumeGapService.mock.calls[0][0];
+    expect(serviceDependencies.priceSchedule).toEqual(schedule);
+    expect(serviceDependencies.clock()).toEqual(fixedNow);
+    expect(warning).not.toHaveBeenCalled();
+    warning.mockRestore();
+  });
+
   it("does not need an API key for early guards or cached/fresh-running reuse", async () => {
     mocks.getServerEnv.mockReturnValue({
       AI_TEXT_PROVIDER: "deepseek",
@@ -301,7 +340,7 @@ describe("resume gap analysis route wiring", () => {
       userId: ids.user,
       resumeSourceAssetId: ids.asset,
     });
-    mocks.getLatestAnalysis.mockResolvedValue({
+    mocks.getLatestSucceededAnalysis.mockResolvedValue({
       id: ids.analysis,
       applicationId: ids.application,
       userId: ids.user,
