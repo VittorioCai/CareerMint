@@ -430,6 +430,38 @@ describe("DeepSeek resume-gap analyzer", () => {
     expect(serializedLogs).not.toContain("resume_document");
   });
 
+  it("projects runtime-wider requirements before serializing provider input", async () => {
+    const requirementsWithRuntimeFields = input.requirements.map(
+      (requirement, index) => ({
+        ...requirement,
+        sortOrder: index,
+        sourceExcerpt: "private JD source text",
+        matchStatus: "evidence" as const,
+        matchReason: "private profile match reason",
+      }),
+    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const { provider } = createProvider(fetchImpl);
+
+    await provider.analyzeResumeGaps({
+      ...input,
+      requirements: requirementsWithRuntimeFields,
+    });
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    const requirementsContent = body.messages[1].content as string;
+    const requirementsJson = requirementsContent
+      .split("<requirements_json>\n")[1]
+      .split("\n</requirements_json>")[0];
+    expect(JSON.parse(requirementsJson)).toEqual(input.requirements);
+    expect(requirementsJson).not.toContain("sortOrder");
+    expect(requirementsJson).not.toContain("private JD source text");
+    expect(requirementsJson).not.toContain("private profile match reason");
+  });
+
   it.each([
     ["malformed JSON", '{"items":['],
     ["invalid schema", JSON.stringify({ items: [{ requirementId: input.requirements[0].id }] })],

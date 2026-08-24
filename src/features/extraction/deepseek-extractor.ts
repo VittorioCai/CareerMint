@@ -415,12 +415,20 @@ export function createDeepSeekAIProvider(
       );
     },
     async analyzeResumeGaps(input: ResumeGapAnalysisInput) {
+      const providerRequirements = input.requirements.map(
+        ({ id, category, text, priority }) => ({
+          id,
+          category,
+          text,
+          priority,
+        }),
+      );
       return withInvalidOutputRetry<ResumeGapProviderOutput>(
         () =>
           runAttempt({
             systemInstructions: resumeGapAnalysisInstructions,
             userContent: [
-              `<requirements_json>\n${JSON.stringify(input.requirements)}\n</requirements_json>`,
+              `<requirements_json>\n${JSON.stringify(providerRequirements)}\n</requirements_json>`,
               `<resume_document>\n${input.resumeText}\n</resume_document>`,
             ].join("\n"),
             outputSchema: resumeGapProviderOutputSchema,
