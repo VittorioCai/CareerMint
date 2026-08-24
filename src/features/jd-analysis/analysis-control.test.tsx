@@ -2,13 +2,17 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
-import { AnalysisControl } from "./analysis-control";
+import { AnalysisControl, type AnalysisSummary } from "./analysis-control";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
 }));
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
+const resultSummary: AnalysisSummary = {
+  acceptedRequirementCount: 6,
+  estimatedCost: { amount: 0.012, currency: "USD" },
+};
 
 describe("AnalysisControl", () => {
   it("does not call AI until the user explicitly clicks analyze", () => {
@@ -126,32 +130,78 @@ describe("AnalysisControl", () => {
       <AnalysisControl
         applicationId={applicationId}
         initialStatus="succeeded"
-        initialResult={{
-          acceptedRequirementCount: 6,
-          rejectedRequirementCount: 1,
-          rejectedEvidenceCount: 2,
-          ai: {
-            provider: "deepseek",
-            model: "deepseek-chat",
-            requestId: null,
-            usage: {
-              inputCacheHitTokens: 0,
-              inputCacheMissTokens: 100,
-              outputTokens: 50,
-            },
-            priceScheduleVersion: "2026-01",
-          },
-          estimatedCost: {
-            amount: 0.012,
-            currency: "USD",
-            scheduleVersion: "2026-01",
-            tier: "default",
-          },
-        }}
+        initialResult={resultSummary}
       />,
     );
 
     expect(screen.getByText("上次结果：6 项要求")).toBeVisible();
     expect(screen.getByText("预计成本 $0.012 USD")).toBeVisible();
+  });
+
+  it("synchronizes the state and action label when the analyze response reports a queued run", async () => {
+    const request = vi.fn().mockResolvedValue(
+      Response.json({ status: "running", runId: "run-1", reused: false }),
+    );
+    const user = userEvent.setup();
+    render(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus={null}
+        request={request}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "开始分析 JD" }));
+    expect(screen.getByText("分析任务进行中")).toBeVisible();
+    expect(screen.getByRole("button", { name: "检查分析状态" })).toBeVisible();
+    expect(screen.queryByText("尚未分析这份 JD")).not.toBeInTheDocument();
+  });
+
+  it("synchronizes a succeeded run to a failed run without stale completion copy", async () => {
+    const request = vi.fn().mockResolvedValue(
+      Response.json({
+        status: "failed",
+        runId: "run-2",
+        reused: false,
+        errorCode: "jd-analysis-failed",
+      }),
+    );
+    const user = userEvent.setup();
+    render(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus="succeeded"
+        initialResult={resultSummary}
+        request={request}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "重新检查匹配" }));
+
+    expect(screen.getByText("上次分析未完成，可重试")).toBeVisible();
+    expect(screen.getByRole("button", { name: "重新分析 JD" })).toBeVisible();
+    expect(screen.queryByText("最近一次分析已完成")).not.toBeInTheDocument();
+  });
+
+  it("resets local status when the server prop changes to a new run", async () => {
+    const request = vi.fn().mockResolvedValue(
+      Response.json({ status: "running", runId: "run-3", reused: false }),
+    );
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus={null}
+        request={request}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "开始分析 JD" }));
+    rerender(
+      <AnalysisControl applicationId={applicationId} initialStatus="failed" />,
+    );
+
+    expect(screen.getByText("上次分析未完成，可重试")).toBeVisible();
+    expect(screen.getByRole("button", { name: "重新分析 JD" })).toBeVisible();
   });
 });

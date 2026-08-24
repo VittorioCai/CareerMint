@@ -138,10 +138,24 @@ function JdPanel({
       <AnalysisControl
         applicationId={application.id}
         initialStatus={analysisRun?.status ?? null}
-        initialResult={analysisRun?.result ?? null}
+        initialResult={
+          analysisRun?.result
+            ? {
+                acceptedRequirementCount:
+                  analysisRun.result.acceptedRequirementCount,
+                estimatedCost: analysisRun.result.estimatedCost
+                  ? {
+                      amount: analysisRun.result.estimatedCost.amount,
+                      currency: analysisRun.result.estimatedCost.currency,
+                    }
+                  : null,
+              }
+            : null
+        }
       />
       <RequirementsPanel
         requirements={requirements}
+        analysisRunId={analysisRun?.id ?? null}
         sourceText={application.jdText}
         sourceUrl={application.jobUrl}
       />

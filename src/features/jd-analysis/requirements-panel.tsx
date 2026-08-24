@@ -46,6 +46,22 @@ const matchSymbols: Record<RequirementMatchStatus, string> = {
 
 type LocalView = "priority" | "all" | "source";
 
+type DisclosureState = {
+  datasetKey: string;
+  openPriorityId: string | null;
+  openAllIds: Set<string>;
+  openCategories: Set<RequirementCategory>;
+};
+
+function emptyDisclosureState(datasetKey: string): DisclosureState {
+  return {
+    datasetKey,
+    openPriorityId: null,
+    openAllIds: new Set(),
+    openCategories: new Set(),
+  };
+}
+
 function statusClass(requirement: JDRequirementRecord) {
   if (requirement.matchStatus === "evidence") return "bg-[var(--mint)]";
   if (requirement.matchStatus === "partial") return "bg-[var(--mist-blue)]";
@@ -220,17 +236,27 @@ function CategoryHeader({
 
 export function RequirementsPanel({
   requirements,
-  sourceText = "",
+  analysisRunId,
+  sourceText,
   sourceUrl,
 }: {
   requirements: JDRequirementRecord[];
-  sourceText?: string;
+  analysisRunId?: string | null;
+  sourceText: string;
   sourceUrl?: string | null;
 }) {
   const [view, setView] = useState<LocalView>("priority");
-  const [openPriorityId, setOpenPriorityId] = useState<string | null>(null);
-  const [openAllIds, setOpenAllIds] = useState<Set<string>>(new Set());
-  const [openCategories, setOpenCategories] = useState<Set<RequirementCategory>>(new Set());
+  const datasetKey =
+    analysisRunId ?? requirements[0]?.analysisRunId ?? "empty-analysis";
+  const [disclosure, setDisclosure] = useState<DisclosureState>(() =>
+    emptyDisclosureState(datasetKey),
+  );
+
+  if (disclosure.datasetKey !== datasetKey) {
+    setDisclosure(emptyDisclosureState(datasetKey));
+  }
+
+  const { openPriorityId, openAllIds, openCategories } = disclosure;
 
   const summary = summarizeRequirements(requirements);
   const priorityRequirements = selectPriorityRequirements(requirements)
@@ -241,26 +267,29 @@ export function RequirementsPanel({
 
   function changeView(nextView: LocalView) {
     setView(nextView);
-    setOpenPriorityId(null);
-    setOpenAllIds(new Set());
-    setOpenCategories(new Set());
+    setDisclosure((current) => ({
+      ...current,
+      openPriorityId: null,
+      openAllIds: new Set(),
+      openCategories: new Set(),
+    }));
   }
 
   function toggleAllRequirement(id: string) {
-    setOpenAllIds((current) => {
-      const next = new Set(current);
+    setDisclosure((current) => {
+      const next = new Set(current.openAllIds);
       if (next.has(id)) next.delete(id);
       else next.add(id);
-      return next;
+      return { ...current, openAllIds: next };
     });
   }
 
   function toggleCategory(category: RequirementCategory) {
-    setOpenCategories((current) => {
-      const next = new Set(current);
+    setDisclosure((current) => {
+      const next = new Set(current.openCategories);
       if (next.has(category)) next.delete(category);
       else next.add(category);
-      return next;
+      return { ...current, openCategories: next };
     });
   }
 
@@ -284,18 +313,18 @@ export function RequirementsPanel({
             先看重点，需要时再展开职业事实和原文依据。
           </p>
         </div>
-        <dl className="grid grid-cols-2 divide-x divide-y divide-[var(--line)] sm:grid-cols-4 sm:divide-y-0">
+        <dl className="grid grid-cols-2 sm:grid-cols-4">
           {[
             ["总要求", summary.total],
             ["核心要求", summary.core],
             ["有证据", summary.evidence],
             ["需要关注", summary.attention],
-          ].map(([label, value]) => (
+          ].map(([label, value], index) => (
             <div
               key={label}
               role="group"
               aria-label={`${label} ${value}`}
-              className="px-4 py-3 sm:px-5"
+              className={`px-4 py-3 sm:px-5 ${index % 2 === 1 ? "border-l border-[var(--line)]" : ""} ${index >= 2 ? "border-t border-[var(--line)]" : ""} sm:border-t-0 ${index > 0 ? "sm:border-l sm:border-[var(--line)]" : "sm:border-l-0"}`}
             >
               <dt className="text-[11px] font-black text-[var(--ink-muted)]">{label}</dt>
               <dd className="mt-1 text-xl font-black">{value}</dd>
@@ -333,9 +362,13 @@ export function RequirementsPanel({
                 requirement={requirement}
                 expanded={openPriorityId === requirement.id}
                 onToggle={() =>
-                  setOpenPriorityId((current) =>
-                    current === requirement.id ? null : requirement.id,
-                  )
+                  setDisclosure((current) => ({
+                    ...current,
+                    openPriorityId:
+                      current.openPriorityId === requirement.id
+                        ? null
+                        : requirement.id,
+                  }))
                 }
               />
             ))
@@ -413,7 +446,7 @@ export function RequirementsPanel({
             ) : null}
           </div>
           <div className="whitespace-pre-wrap break-words px-4 py-5 text-sm font-medium leading-7 text-[var(--ink-muted)] sm:px-5">
-            {sourceText}
+            {sourceText.trim() ? sourceText : "没有保存的 JD 原文"}
           </div>
         </article>
       ) : null}

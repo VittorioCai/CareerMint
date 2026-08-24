@@ -98,6 +98,16 @@ describe("RequirementsPanel", () => {
     expect(screen.getByRole("group", { name: "核心要求 4" })).toBeVisible();
     expect(screen.getByRole("group", { name: "有证据 1" })).toBeVisible();
     expect(screen.getByRole("group", { name: "需要关注 3" })).toBeVisible();
+    const summaryGrid = screen.getByRole("group", { name: "总要求 6" }).parentElement;
+    expect(summaryGrid).not.toHaveClass("divide-x", "divide-y");
+    expect(screen.getByRole("group", { name: "核心要求 4" })).toHaveClass(
+      "border-l",
+      "border-[var(--line)]",
+    );
+    expect(screen.getByRole("group", { name: "有证据 1" })).toHaveClass(
+      "border-t",
+      "border-[var(--line)]",
+    );
 
     const rows = screen.getAllByRole("button", { name: /核心|补充/ });
     expect(rows).toHaveLength(5);
@@ -191,6 +201,42 @@ describe("RequirementsPanel", () => {
       "aria-expanded",
       "false",
     );
+  });
+
+  it("clears open disclosures when the analysis dataset changes", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <RequirementsPanel
+        requirements={requirements}
+        analysisRunId="run-before"
+        sourceText={sourceText}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /Core no evidence/ });
+    await user.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
+
+    rerender(
+      <RequirementsPanel
+        requirements={requirements}
+        analysisRunId="run-after"
+        sourceText={sourceText}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /Core no evidence/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
+  it("names a missing JD source instead of rendering an empty source view", async () => {
+    const user = userEvent.setup();
+    render(<RequirementsPanel requirements={requirements} sourceText="" />);
+
+    await user.click(screen.getByRole("button", { name: "JD 原文" }));
+    expect(screen.getByText("没有保存的 JD 原文")).toBeVisible();
   });
 
   it("keeps the actionable empty state in focus while making the JD source reachable", async () => {

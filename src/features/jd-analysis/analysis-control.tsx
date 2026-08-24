@@ -6,6 +6,14 @@ import { useState } from "react";
 
 import type { JDAnalysisRun } from "./schemas";
 
+export type AnalysisSummary = {
+  acceptedRequirementCount: number;
+  estimatedCost: {
+    amount: number;
+    currency: "USD";
+  } | null;
+};
+
 const failureMessages: Record<string, string> = {
   "jd-analysis-unavailable": "AI 暂未配置，JD 和现有结果都已保留。",
   "ai-provider-rate-limited": "AI 当前请求较多，请稍后重试。",
@@ -34,7 +42,7 @@ export function AnalysisControl({
 }: {
   applicationId: string;
   initialStatus: JDAnalysisRun["status"] | null;
-  initialResult?: JDAnalysisRun["result"];
+  initialResult?: AnalysisSummary | null;
   request?: typeof fetch;
   refresh?: () => void;
 }) {
@@ -43,6 +51,16 @@ export function AnalysisControl({
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsConsent, setNeedsConsent] = useState(false);
+  const [statusState, setStatusState] = useState<{
+    source: JDAnalysisRun["status"] | null;
+    value: JDAnalysisRun["status"] | null;
+  }>(() => ({ source: initialStatus, value: initialStatus }));
+
+  if (statusState.source !== initialStatus) {
+    setStatusState({ source: initialStatus, value: initialStatus });
+  }
+
+  const currentStatus = statusState.value;
 
   async function analyze() {
     if (busy) return;
@@ -68,6 +86,7 @@ export function AnalysisControl({
       if (!response.ok) throw new Error("jd-analysis-request-failed");
 
       if (body.status === "succeeded") {
+        setStatusState((current) => ({ ...current, value: "succeeded" }));
         setSuccess(
           body.reused
             ? "已复用相同 JD 与职业事实的分析结果。"
@@ -77,6 +96,8 @@ export function AnalysisControl({
         return;
       }
       if (body.status === "running" || body.status === "queued") {
+        const nextStatus = body.status === "queued" ? "queued" : "running";
+        setStatusState((current) => ({ ...current, value: nextStatus }));
         setSuccess("分析任务正在进行，可以先离开，稍后回来刷新查看。");
         return;
       }
@@ -84,6 +105,7 @@ export function AnalysisControl({
         typeof body.errorCode === "string"
           ? body.errorCode
           : "jd-analysis-failed";
+      setStatusState((current) => ({ ...current, value: "failed" }));
       setError(failureMessages[errorCode] ?? failureMessages["jd-analysis-failed"]);
     } catch {
       setError("连接暂时失败，JD 和现有结果都已保留，请重试。");
@@ -93,20 +115,20 @@ export function AnalysisControl({
   }
 
   const buttonLabel =
-    initialStatus === "failed"
+    currentStatus === "failed"
       ? "重新分析 JD"
-      : initialStatus === "succeeded"
+      : currentStatus === "succeeded"
         ? "重新检查匹配"
-        : initialStatus === "running" || initialStatus === "queued"
+        : currentStatus === "running" || currentStatus === "queued"
           ? "检查分析状态"
           : "开始分析 JD";
 
   const stateLabel =
-    initialStatus === "succeeded"
+    currentStatus === "succeeded"
       ? "最近一次分析已完成"
-      : initialStatus === "failed"
+      : currentStatus === "failed"
         ? "上次分析未完成，可重试"
-        : initialStatus === "running" || initialStatus === "queued"
+        : currentStatus === "running" || currentStatus === "queued"
           ? "分析任务进行中"
           : "尚未分析这份 JD";
 
