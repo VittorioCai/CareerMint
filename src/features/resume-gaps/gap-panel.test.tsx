@@ -2,7 +2,7 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
-import { GapPanel } from "./gap-panel";
+import { GapPanel, summaryCellClass } from "./gap-panel";
 
 type GapFactFixture = { id: string; title: string; description: string; sourceExcerpt: string | null };
 
@@ -25,6 +25,18 @@ const item = (id: string, coverage: "missing" | "partial" | "covered", evidence:
 });
 
 describe("GapPanel", () => {
+  it("keeps summary separators aligned for mobile two-column and desktop four-column grids", () => {
+    expect(summaryCellClass(0)).not.toMatch(/border-l/);
+    expect(summaryCellClass(1)).toMatch(/border-l/);
+    expect(summaryCellClass(1)).not.toMatch(/border-t/);
+    expect(summaryCellClass(2)).toMatch(/border-t/);
+    expect(summaryCellClass(2).split(" ")).not.toContain("border-l");
+    expect(summaryCellClass(2)).toMatch(/sm:border-l/);
+    expect(summaryCellClass(3)).toMatch(/border-l/);
+    expect(summaryCellClass(3)).toMatch(/border-t/);
+    expect(summaryCellClass(3)).toMatch(/sm:border-l/);
+  });
+
   it("renders profile-only labels without calling any resume-gap endpoint", () => {
     render(
       <GapPanel
@@ -158,6 +170,7 @@ describe("GapPanel", () => {
     await user.click(screen.getByRole("button", { name: /未覆盖（旧快照）/ }));
     expect(screen.getByText("未覆盖（旧快照）")).toBeVisible();
     expect(screen.getByText(/原职业档案证据无法从历史快照重建/)).toBeVisible();
+    expect(screen.queryByText(/旧快照记录的简历覆盖了当时分析的要求/)).not.toBeInTheDocument();
     expect(screen.queryByText("职业档案中也没有已确认事实")).not.toBeInTheDocument();
     expect(within(screen.getByLabelText("简历差距摘要")).getAllByText("0")).toHaveLength(4);
   });

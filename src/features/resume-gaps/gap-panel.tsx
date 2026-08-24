@@ -80,13 +80,12 @@ const factLabel = (fact: GapFact) => [
   fact.sourceExcerpt ?? "来源：用户手动确认",
 ].join(" · ");
 
-function summaryCellClass(index: number) {
+export function summaryCellClass(index: number) {
   return [
     "px-3 py-3",
     index % 2 === 1 ? "border-l border-[var(--line)]" : "",
     index >= 2 ? "border-t border-[var(--line)] sm:border-t-0" : "",
     index > 0 ? "sm:border-l sm:border-[var(--line)]" : "",
-    index === 2 ? "sm:border-l-0" : "",
   ].filter(Boolean).join(" ");
 }
 
@@ -194,7 +193,7 @@ export function GapPanel({ baseline, requirements, run, fallbackRun, items, curr
       {run?.status === "failed" && !fallbackRun ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">上一次分析失败，请重试。</p> : null}
       {displayRun ? <div className="mt-5 space-y-5">
         <div className="grid grid-cols-2 sm:grid-cols-4" aria-label="简历差距摘要">{(["resume_omission", "partial_coverage", "missing_evidence", "covered"] as const).map((group, index) => <div key={group} className={summaryCellClass(index)}><p className="text-xs font-bold text-[var(--ink-muted)]">{gapLabels[group]}</p><p className="mt-1 text-xl font-black">{grouped[group].length}</p></div>)}</div>
-        {!actionGroups.length ? <p className="border-b border-[var(--line)] pb-4 text-sm font-semibold">{stale ? "旧快照记录的简历覆盖了当时分析的要求。" : "这份简历已覆盖当前 JD 要求。已覆盖项目仍可在下方展开查看。"}</p> : null}
+        {!actionGroups.length && currentItems.length > 0 ? <p className="border-b border-[var(--line)] pb-4 text-sm font-semibold">{stale ? "旧快照记录的简历覆盖了当时分析的要求。" : "这份简历已覆盖当前 JD 要求。已覆盖项目仍可在下方展开查看。"}</p> : null}
         {actionGroups.map((group) => <section key={group} aria-labelledby={`gap-group-${group}`}><div className="flex items-center justify-between border-b border-[var(--line)] pb-2"><h3 id={`gap-group-${group}`} className="text-sm font-black">{gapLabels[group]}</h3><span className="text-xs font-bold text-[var(--ink-muted)]">{grouped[group].length}</span></div><div>{grouped[group].map((item) => <GapRow key={item.id} item={item} />)}</div></section>)}
         {historicalItems.length ? <details className="border-t border-[var(--line)] pt-4"><summary className="cursor-pointer list-none text-sm font-black">历史差距快照 <span className="ml-2 text-xs font-bold text-[var(--ink-muted)]">{historicalItems.length} 项</span></summary><div className="mt-3">{historicalItems.map((item) => <HistoricalRow key={item.id} item={item} />)}</div></details> : null}
         <details className="border-t border-[var(--line)] pt-4"><summary className="cursor-pointer list-none text-sm font-black"><span className="inline-flex items-center gap-2"><span aria-hidden="true">›</span>{gapLabels.covered}<span className="text-xs font-bold text-[var(--ink-muted)]">{grouped.covered.length}</span></span></summary><div className="mt-3">{grouped.covered.map((item) => <GapRow key={item.id} item={item} />)}</div></details>

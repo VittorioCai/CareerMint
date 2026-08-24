@@ -189,4 +189,20 @@ describe("GapAnalysisControl", () => {
     await user.click(screen.getByRole("button", { name: "重试分析" }));
     expect(await screen.findByRole("alert")).toHaveTextContent("结果格式无效");
   });
+
+  it.each([
+    ["source-download-failed", "无法下载"],
+    ["resume-gap-invalid-output", "结果格式无效"],
+    ["ai-provider-rate-limited", "请求过于频繁"],
+    ["ai-provider-request-failed", "分析服务请求失败"],
+    ["ai-provider-timeout", "分析服务请求超时"],
+    ["resume-gap-unavailable", "分析服务暂时不可用"],
+    ["resume-gap-failed", "分析失败"],
+  ] as const)("maps the service error code %s to an actionable message", async (errorCode, copy) => {
+    const user = userEvent.setup();
+    const { request } = renderControl();
+    request.mockResolvedValueOnce(new Response(JSON.stringify({ errorCode }), { status: 500 }));
+    await user.click(screen.getByRole("button", { name: "分析简历差距" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(copy);
+  });
 });

@@ -220,17 +220,14 @@ function ResumePanel({
     <ResumeWorkspace
       applicationId={application.id}
       mode={!analysisRun ? "no-jd" : selectedAsset ? "comparison" : "profile-only"}
-      leading={<BaselineSelector
+      baselineSelector={<BaselineSelector
         applicationId={application.id}
         selectedAsset={selectedAsset}
         availableAssets={availableAssets}
         setupMode={setupMode}
         setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
       />}
-    >
-      {analysisRun ? (
-        <>
-          {selectedAsset ? (
+      gapControl={analysisRun && selectedAsset ? (
             <GapAnalysisControl
               key={`${selectedAsset.id}:${analysisRun.id}`}
               applicationId={application.id}
@@ -240,7 +237,8 @@ function ResumePanel({
                 errorCode: currentGapRun.errorCode,
               } : null}
             />
-          ) : null}
+      ) : null}
+      gapPanel={analysisRun ? (
           <GapPanel
             key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
             baseline={selectedAsset}
@@ -287,44 +285,15 @@ function ResumePanel({
             }))}
             currentAnalysisRunId={analysisRun.id}
           />
-        </>
       ) : null}
-
-      <section>
-        <details className="dense-surface min-w-0 p-5 sm:p-6">
-          <summary className="cursor-pointer list-none text-sm font-black">历史版本 <span className="ml-2 text-xs font-bold text-[var(--ink-muted)]">{versions.length} 个版本</span></summary>
-          {versions.length ? (
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-            {versions.map((version) => (
-              <Link
-                key={version.id}
-                href={`/applications/${application.id}/resume/${version.id}`}
-                className="group rounded-2xl border border-[var(--line)] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[var(--ink)]"
-              >
-                <div className="flex items-center justify-between gap-3">
-                  <span className="status-chip bg-[var(--mint)]">
-                    V{version.versionNumber}
-                  </span>
-                  <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                    {version.template === "modern" ? "现代" : "简洁"}
-                  </span>
-                </div>
-                <p className="mt-4 text-sm font-black">
-                  {version.items.length} 条已核对内容
-                </p>
-                <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
-                  {formatDate(version.createdAt)} · 不可变快照
-                </p>
-                <p className="mt-4 text-xs font-black underline underline-offset-4">
-                  查看版本 →
-                </p>
-              </Link>
-            ))}
-          </div>
-          ) : <p className="mt-4 text-sm font-semibold text-[var(--ink-muted)]">还没有简历版本。</p>}
-        </details>
-      </section>
-    </ResumeWorkspace>
+      versions={versions.map((version) => ({
+        id: version.id,
+        versionNumber: version.versionNumber,
+        template: version.template,
+        itemCount: version.items.length,
+        createdAt: version.createdAt,
+      }))}
+    />
   );
 }
 
