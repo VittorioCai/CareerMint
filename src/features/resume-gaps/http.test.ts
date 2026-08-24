@@ -19,7 +19,7 @@ function deps() {
     getApplication: vi.fn().mockResolvedValue({ id: applicationId, userId, resumeSourceAssetId: assetId }),
     getAIProcessingConsentAt: vi.fn().mockResolvedValue("2026-08-24T00:00:00Z"),
     getLatestSucceededAnalysis: vi.fn().mockResolvedValue({ id: analysisId, applicationId, userId, status: "succeeded" }),
-    listRequirements: vi.fn().mockResolvedValue([{ id: "55555555-5555-4555-8555-555555555555", category: "skill", text: "SQL", priority: "core" }]),
+    listRequirements: vi.fn().mockResolvedValue([{ id: "55555555-5555-4555-8555-555555555555", analysisRunId: analysisId, applicationId, category: "skill", text: "SQL", priority: "core" }]),
     getOwnedAsset: vi.fn().mockResolvedValue({ id: assetId, userId, originalName: "resume.pdf", sha256: "a".repeat(64), contentType: "application/pdf", storagePath: "safe/path" }),
     createOrGetRun: vi.fn().mockResolvedValue(run),
     providerConfig: { provider: "deepseek", model: "deepseek-chat" },
@@ -128,6 +128,21 @@ describe("resume gaps POST handler", () => {
     });
     const streamed = await post(new Request("http://test", { method: "POST", body: stream, headers: { "content-type": "application/json" }, duplex: "half" } as RequestInit & { duplex: "half" }), context());
     expect(streamed.status).toBe(413);
+  });
+
+  it("rejects declared oversized content immediately after path validation", async () => {
+    const dependencies = deps();
+    const post = createResumeGapPostHandler(dependencies);
+    const response = await post(new Request("http://test", {
+      method: "POST",
+      body: "{}",
+      headers: { "content-type": "application/json", "content-length": "1048577" },
+    }), context());
+    expect(response.status).toBe(413);
+    expect(dependencies.getApplication).not.toHaveBeenCalled();
+    expect(dependencies.getAIProcessingConsentAt).not.toHaveBeenCalled();
+    expect(dependencies.getLatestSucceededAnalysis).not.toHaveBeenCalled();
+    expect(dependencies.getOwnedAsset).not.toHaveBeenCalled();
   });
 
   it("hashes only the specified projection, without mutating requirements", () => {

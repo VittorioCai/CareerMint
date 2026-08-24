@@ -47,6 +47,8 @@ const run = {
 };
 const requirements = [{
   id: requirementId,
+  analysisRunId: analysisId,
+  applicationId: appId,
   category: "skill" as const,
   text: "Advanced SQL",
   priority: "core" as const,
@@ -155,6 +157,44 @@ describe("resume gap service", () => {
     }
   });
 
+  it("uses the reread claimed attempt token when another transition advanced it before reread", async () => {
+    const fakes = dependencies();
+    const running = { ...run, status: "running" as const, attemptCount: 1, startedAt: run.createdAt };
+    fakes.runs.getOwned.mockResolvedValue({ ...running, attemptCount: 3 });
+    const result = await createResumeGapService(fakes).run({ userId, run: running, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
+    expect(result.reused).toBe(false);
+    expect(fakes.providerFactory).toHaveBeenCalledTimes(1);
+    expect(fakes.runs.complete).toHaveBeenCalledWith(expect.objectContaining({ expectedAttemptCount: 3 }));
+  });
+
+  it("passes only the four provider fields and strips wider JD provenance/private fields", async () => {
+    const fakes = dependencies();
+    const provider = { analyzeResumeGaps: vi.fn().mockResolvedValue({
+      data: { items: [{ requirementId, resumeCoverage: "covered", resumeExcerpt: "Advanced SQL" }] },
+      provider: "deepseek", model: "deepseek-chat", requestId: null,
+      usage: { inputCacheHitTokens: 1, inputCacheMissTokens: 2, outputTokens: 3 },
+    }) };
+    fakes.providerFactory.mockReturnValue(provider);
+    const wide = [{ ...requirements[0], sourceExcerpt: "private JD", matchReason: "private reason", evidence: [{ sentinel: "private" }], profileSecret: "private" }];
+    await createResumeGapService(fakes).run({ userId, run, asset, analysisRun, requirements: wide as never, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
+    expect(provider.analyzeResumeGaps).toHaveBeenCalledWith({
+      resumeText: "Advanced SQL and analytics experience with measurable outcomes.",
+      requirements: [{ id: requirementId, category: "skill", text: "Advanced SQL", priority: "core" }],
+    });
+    expect(Object.keys(provider.analyzeResumeGaps.mock.calls[0][0].requirements[0])).toEqual(["id", "category", "text", "priority"]);
+  });
+
+  it("downloads and parses the private source with exact storage path/content type when OCR is absent", async () => {
+    const fakes = dependencies();
+    const bytes = Buffer.from("pdf-bytes");
+    fakes.storage.download.mockResolvedValue(new Blob([bytes]));
+    fakes.parser.mockResolvedValue("Advanced SQL and analytics experience with measurable outcomes.");
+    const result = await createResumeGapService(fakes).run({ userId, run, asset, analysisRun, requirements });
+    expect(result.reused).toBe(false);
+    expect(fakes.storage.download).toHaveBeenCalledWith(asset.storagePath);
+    expect(fakes.parser).toHaveBeenCalledWith(bytes, asset.contentType);
+  });
+
   it.each([
     ["provider mismatch", { provider: "other", model: "deepseek-chat" }, "resume-gap-failed"],
     ["model mismatch", { provider: "deepseek", model: "other" }, "resume-gap-failed"],
@@ -244,10 +284,12 @@ describe("resume gap service", () => {
   it("does not fail or complete an attempt after a newer attempt has taken the lease", async () => {
     const fakes = dependencies();
     fakes.runs.complete.mockRejectedValue(new Error("stale attempt"));
-    fakes.runs.getOwned.mockResolvedValue({ ...run, status: "running", attemptCount: 2, startedAt: run.createdAt });
-    const result = await createResumeGapService(fakes).run({ userId, run, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
+    fakes.runs.getOwned
+      .mockResolvedValueOnce({ ...run, status: "running", attemptCount: 2, startedAt: run.createdAt })
+      .mockResolvedValueOnce({ ...run, status: "running", attemptCount: 3, startedAt: run.createdAt });
+    const result = await createResumeGapService(fakes).run({ userId, run: { ...run, status: "running", attemptCount: 1, startedAt: run.createdAt }, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
     expect(result.reused).toBe(true);
-    expect(result.run.attemptCount).toBe(2);
+    expect(result.run.attemptCount).toBe(3);
     expect(fakes.runs.fail).not.toHaveBeenCalled();
   });
 

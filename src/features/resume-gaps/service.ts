@@ -49,12 +49,17 @@ export type ResumeGapServiceDependencies = {
   clock?: () => Date;
 };
 
+export type ResumeGapServiceRequirement = ResumeGapProviderRequirement & {
+  analysisRunId: string;
+  applicationId: string;
+};
+
 export type ResumeGapServiceInput = {
   userId: string;
   run: ResumeGapRun;
   asset: SourceAsset;
   analysisRun: Pick<JDAnalysisRun, "id" | "applicationId" | "userId" | "status">;
-  requirements: ResumeGapProviderRequirement[];
+  requirements: ResumeGapServiceRequirement[];
   ocrText?: string;
   providerFactory?: () => Pick<AIProvider, "analyzeResumeGaps">;
 };
@@ -105,13 +110,10 @@ function assertOwnedInputs(input: ResumeGapServiceInput) {
   }
   if (input.requirements.length === 0) throw new Error("jd-analysis-required");
   for (const requirement of input.requirements) {
-    const candidate = requirement as ResumeGapProviderRequirement & {
-      analysisRunId?: string;
-      applicationId?: string;
-    };
+    const candidate = requirement;
     if (
-      candidate.analysisRunId !== undefined && candidate.analysisRunId !== input.analysisRun.id ||
-      candidate.applicationId !== undefined && candidate.applicationId !== input.run.applicationId
+      candidate.analysisRunId !== input.analysisRun.id ||
+      candidate.applicationId !== input.run.applicationId
     ) {
       throw new Error("application-or-resume-not-found");
     }
@@ -194,10 +196,16 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
 
       const claimedRun = await dependencies.runs.getOwned(input.userId, input.run.id);
       if (!claimedRun) throw new Error("application-or-resume-not-found");
-      const expectedAttemptCount = input.run.attemptCount + 1;
+      // A successful claim owns the attempt observed in the reread. Use that
+      // authoritative token even if another transition interleaved before it.
+      const expectedAttemptCount = claimedRun.attemptCount;
+      if (claimedRun.status !== "running") {
+        return { run: claimedRun, reused: true };
+      }
       if (
-        claimedRun.status !== "running" ||
-        claimedRun.attemptCount !== expectedAttemptCount
+        !Number.isInteger(expectedAttemptCount) ||
+        expectedAttemptCount <= 0 ||
+        expectedAttemptCount <= input.run.attemptCount
       ) {
         return { run: claimedRun, reused: true };
       }
@@ -205,9 +213,12 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
       try {
         const resumeText = await readResumeText(dependencies, input);
         const provider = (input.providerFactory ?? dependencies.providerFactory)();
+        const providerRequirements: ResumeGapProviderRequirement[] = input.requirements.map(
+          ({ id, category, text, priority }) => ({ id, category, text, priority }),
+        );
         const providerInput: ResumeGapAnalysisInput = {
           resumeText,
-          requirements: input.requirements,
+          requirements: providerRequirements,
         };
         const aiResult = await provider.analyzeResumeGaps(providerInput);
         if (
@@ -220,7 +231,7 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
         if (!parsedUsage.success) throw new Error("resume-gap-failed");
         const sanitized = sanitizeResumeGapOutput({
           resumeText,
-          requirements: input.requirements,
+          requirements: providerRequirements,
           output: aiResult.data,
         });
         const ai = safeAIResult({

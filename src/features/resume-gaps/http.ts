@@ -8,7 +8,7 @@ import type { JDAnalysisRun } from "@/features/jd-analysis/schemas";
 import type { SourceAsset } from "@/features/source-assets/repository";
 
 import type { ResumeGapProviderRequirement, ResumeGapRun } from "./schemas";
-import type { ResumeGapServiceResult } from "./service";
+import type { ResumeGapServiceRequirement, ResumeGapServiceResult } from "./service";
 
 export const resumeGapSchemaVersion = "resume-gap-v1";
 export const resumeGapAnalysisSchemaVersion = resumeGapSchemaVersion;
@@ -24,7 +24,7 @@ export type ResumeGapPostDependencies = {
   getApplication(userId: string, applicationId: string): Promise<ResumeGapApplication | null>;
   getAIProcessingConsentAt(userId: string): Promise<string | null>;
   getLatestSucceededAnalysis(userId: string, applicationId: string): Promise<Pick<JDAnalysisRun, "id" | "applicationId" | "userId" | "status"> | null>;
-  listRequirements(userId: string, applicationId: string): Promise<ResumeGapProviderRequirement[]>;
+  listRequirements(userId: string, applicationId: string): Promise<ResumeGapServiceRequirement[]>;
   getOwnedAsset(userId: string, assetId: string): Promise<SourceAsset | null>;
   createOrGetRun(input: {
     applicationId: string;
@@ -41,7 +41,7 @@ export type ResumeGapPostDependencies = {
     run: ResumeGapRun;
     asset: SourceAsset;
     analysisRun: Pick<JDAnalysisRun, "id" | "applicationId" | "userId" | "status">;
-    requirements: ResumeGapProviderRequirement[];
+    requirements: ResumeGapServiceRequirement[];
     ocrText?: string;
     providerFactory: () => Pick<AIProvider, "analyzeResumeGaps">;
   }): Promise<ResumeGapServiceResult>;
@@ -139,6 +139,14 @@ export function createResumeGapPostHandler(dependencies: ResumeGapPostDependenci
     const { id } = await context.params;
     const parsedId = applicationIdSchema.safeParse(id);
     if (!parsedId.success) return Response.json({ error: "application-not-found" }, { status: 404 });
+    try {
+      rejectDeclaredOversizedRequest(request);
+    } catch (error) {
+      if (error instanceof BodyTooLargeError) {
+        return Response.json({ error: "ocr-request-too-large" }, { status: 413 });
+      }
+      return Response.json({ error: "resume-gap-request-failed" }, { status: 500 });
+    }
 
     try {
       const application = await dependencies.getApplication(user.id, parsedId.data);

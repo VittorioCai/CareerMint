@@ -77,7 +77,10 @@ create table public.resume_gap_runs (
       and jsonb_typeof(result -> 'ai' -> 'requestId') in ('string', 'null')
       and jsonb_typeof(result -> 'ai' -> 'priceScheduleVersion') in ('string', 'null')
       and (result -> 'ai' -> 'requestId' = 'null'::jsonb or char_length(btrim(result -> 'ai' ->> 'requestId')) between 1 and 200)
-      and (result -> 'ai' -> 'priceScheduleVersion' = 'null'::jsonb or char_length(btrim(result -> 'ai' ->> 'priceScheduleVersion')) between 1 and 80)
+      and (result -> 'ai' -> 'priceScheduleVersion' = 'null'::jsonb or (
+        char_length(btrim(result -> 'ai' ->> 'priceScheduleVersion')) between 1 and 80
+        and result -> 'ai' ->> 'priceScheduleVersion' ~ '^[A-Za-z0-9._:-]{1,80}$'
+      ))
       and jsonb_typeof(result -> 'ai' -> 'usage') = 'object'
       and public.resume_gap_json_has_exact_keys(result -> 'ai' -> 'usage', array['inputCacheHitTokens', 'inputCacheMissTokens', 'outputTokens'])
       and result -> 'ai' -> 'usage' ? 'inputCacheHitTokens'
@@ -110,6 +113,8 @@ create table public.resume_gap_runs (
           and result -> 'estimatedCost' ->> 'scheduleVersion' ~ '^[A-Za-z0-9._:-]{1,80}$'
           and jsonb_typeof(result -> 'estimatedCost' -> 'tier') = 'string'
           and result -> 'estimatedCost' ->> 'tier' in ('default', 'peak')
+          and result -> 'ai' -> 'priceScheduleVersion' <> 'null'::jsonb
+          and result -> 'ai' ->> 'priceScheduleVersion' = result -> 'estimatedCost' ->> 'scheduleVersion'
         )
       )
     )
@@ -642,7 +647,10 @@ begin
     )
     and (
       target_ai_usage -> 'priceScheduleVersion' = 'null'::jsonb
-      or char_length(btrim(target_ai_usage ->> 'priceScheduleVersion')) between 1 and 80
+      or (
+        char_length(btrim(target_ai_usage ->> 'priceScheduleVersion')) between 1 and 80
+        and target_ai_usage ->> 'priceScheduleVersion' ~ '^[A-Za-z0-9._:-]{1,80}$'
+      )
     )
     and jsonb_typeof(target_ai_usage -> 'usage') = 'object'
     and public.resume_gap_json_has_exact_keys(target_ai_usage -> 'usage', array['inputCacheHitTokens', 'inputCacheMissTokens', 'outputTokens'])
@@ -687,6 +695,9 @@ begin
       or char_length(btrim(target_estimated_cost ->> 'scheduleVersion')) not between 1 and 80
       or jsonb_typeof(target_estimated_cost -> 'tier') <> 'string'
       or target_estimated_cost ->> 'tier' not in ('default', 'peak')
+      or target_ai_usage is null
+      or target_ai_usage -> 'priceScheduleVersion' = 'null'::jsonb
+      or (target_ai_usage ->> 'priceScheduleVersion') <> (target_estimated_cost ->> 'scheduleVersion')
     ) then
     raise exception 'invalid-resume-gap-cost' using errcode = '22023';
   end if;

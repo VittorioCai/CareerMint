@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(81);
+select plan(84);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
@@ -146,6 +146,7 @@ select results_eq(
   'a failed source selection does not mutate the application'
 );
 select public.set_application_resume_source(current_setting('test.app_a')::uuid, '11111111-1111-4111-8111-111111111111');
+
 delete from public.source_assets where id = '11111111-1111-4111-8111-111111111111';
 select results_eq(
   $$select resume_source_asset_id::text from public.applications where id = current_setting('test.app_a')::uuid$$,
@@ -265,7 +266,7 @@ set local role authenticated;
 
 select set_config('test.fail_run', (select id::text from public.create_or_get_resume_gap(
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
-  '11111111-1111-4111-8111-111111111111', repeat('f', 64), 'test-provider', 'test-model'
+  '11111111-1111-4111-8111-111111111111', repeat('f', 61) || 'f12', 'test-provider', 'test-model'
 )), true);
 select public.claim_resume_gap(current_setting('test.fail_run')::uuid, 120);
 select results_eq(
@@ -671,6 +672,29 @@ select dblink_exec('gap_lock_a', $$delete from auth.users where id = 'cccccccc-c
 select dblink_disconnect('gap_lock_a');
 select dblink_disconnect('gap_lock_b');
 set local role authenticated;
+
+-- Direct RPC callers cannot smuggle unsafe schedule metadata or mismatch AI
+-- and cost schedule versions past the storage boundary.
+select set_config('test.metadata_run', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('f', 64), 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.metadata_run')::uuid, 120);
+select throws_ok($$select public.complete_resume_gap(current_setting('test.metadata_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":"unsafe version"}', null)$$, '22023', 'invalid-resume-gap-usage', 'unsafe AI schedule versions are rejected by the completion RPC');
+
+select set_config('test.mismatch_run', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('f', 63) || '1', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.mismatch_run')::uuid, 120);
+select throws_ok($$select public.complete_resume_gap(current_setting('test.mismatch_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":"safe-v1"}', '{"amount":0.01,"currency":"USD","scheduleVersion":"other-v1","tier":"default"}')$$, '22023', 'invalid-resume-gap-cost', 'AI and estimated cost schedule versions must match');
+
+select set_config('test.null_cost_run', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('f', 63) || '2', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.null_cost_run')::uuid, 120);
+select throws_ok($$select public.complete_resume_gap(current_setting('test.null_cost_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', '{"amount":0.01,"currency":"USD","scheduleVersion":"safe-v1","tier":"default"}')$$, '22023', 'invalid-resume-gap-cost', 'a non-null cost requires a matching non-null AI schedule version');
 
 select finish();
 rollback;
