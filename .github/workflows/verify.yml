@@ -85,4 +85,4 @@ jobs:
             echo "DEEPSEEK_API_KEY=ci-placeholder-deepseek-key"
           } >> "$GITHUB_ENV"
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec playwright test tests/e2e/application-workspace.spec.ts --grep "interview question generation"
+      - run: pnpm test:e2e -- --project=chromium
