@@ -48,7 +48,10 @@ describe("GET /auth/callback", () => {
 
   it("redirects malformed or failed OTP callbacks with invalid-link", async () => {
     const verifyOtp = vi.fn().mockResolvedValue({
-      error: new Error("provider details must stay private"),
+      error: {
+        code: "unexpected_failure",
+        message: "provider details must stay private",
+      },
     });
     mockedCreateClient.mockResolvedValue({ auth: { verifyOtp } } as never);
 
@@ -61,6 +64,80 @@ describe("GET /auth/callback", () => {
 
     expect(location(response)).toBe("http://localhost/login?error=invalid-link");
     expect(location(malformed)).toBe("http://localhost/login?error=invalid-link");
+  });
+
+  it("redirects consumed or expired OTP callbacks with login guidance", async () => {
+    const verifyOtp = vi.fn().mockResolvedValue({
+      error: {
+        code: "otp_expired",
+        name: "AuthApiError",
+        message: "Email link is invalid or has expired",
+      },
+    });
+    mockedCreateClient.mockResolvedValue({ auth: { verifyOtp } } as never);
+
+    const response = await GET(
+      request(
+        "/auth/callback?token_hash=used-or-expired&type=email&next=/onboarding",
+      ),
+    );
+
+    expect(location(response)).toBe(
+      "http://localhost/login?error=email-link-used",
+    );
+  });
+
+  it("redirects default confirmation OTP failures with login guidance", async () => {
+    const response = await GET(
+      request(
+        "/auth/callback?error=access_denied&error_code=otp_expired&error_description=Email%20link%20is%20invalid%20or%20has%20expired&next=/onboarding",
+      ),
+    );
+
+    expect(location(response)).toBe(
+      "http://localhost/login?error=email-link-used",
+    );
+  });
+
+  it("keeps reset-password OTP failures as invalid-link", async () => {
+    const defaultResponse = await GET(
+      request(
+        "/auth/callback?next=/reset-password&error=access_denied&error_code=otp_expired",
+      ),
+    );
+
+    const verifyOtp = vi.fn().mockResolvedValue({
+      error: { code: "otp_expired" },
+    });
+    mockedCreateClient.mockResolvedValue({ auth: { verifyOtp } } as never);
+    const tokenResponse = await GET(
+      request(
+        "/auth/callback?token_hash=used-or-expired&type=email&next=/reset-password",
+      ),
+    );
+
+    expect(location(defaultResponse)).toBe(
+      "http://localhost/login?error=invalid-link",
+    );
+    expect(location(tokenResponse)).toBe(
+      "http://localhost/login?error=invalid-link",
+    );
+  });
+
+  it("keeps provider errors and missing credentials as invalid-link", async () => {
+    const providerError = await GET(
+      request(
+        "/auth/callback?error=access_denied&error_code=unexpected_failure&error_description=Provider%20failure",
+      ),
+    );
+    const missingCredentials = await GET(request("/auth/callback"));
+
+    expect(location(providerError)).toBe(
+      "http://localhost/login?error=invalid-link",
+    );
+    expect(location(missingCredentials)).toBe(
+      "http://localhost/login?error=invalid-link",
+    );
   });
 
   it("preserves legacy code exchange and redirects to the requested destination", async () => {
