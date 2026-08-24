@@ -302,9 +302,35 @@ describe("JD requirement summary and priority selection", () => {
     ];
 
     expect(selectPriorityRequirements(evidence).map((requirement) => requirement.id)).toEqual([
-      "00000000-0000-4000-8000-000000000000",
       thirdId,
+      "00000000-0000-4000-8000-000000000000",
       firstId,
+    ]);
+  });
+
+  it("preserves supplied order for equal rank and sortOrder", () => {
+    const equalRank = [
+      {
+        id: "ffffffff-ffff-4fff-8fff-ffffffffffff",
+        category: "skill" as const,
+        text: "First gap",
+        priority: "core" as const,
+        sortOrder: 1,
+        matchStatus: "none" as const,
+      },
+      {
+        id: "00000000-0000-4000-8000-000000000000",
+        category: "skill" as const,
+        text: "Second gap",
+        priority: "core" as const,
+        sortOrder: 1,
+        matchStatus: "none" as const,
+      },
+    ];
+
+    expect(selectPriorityRequirements(equalRank).map((requirement) => requirement.id)).toEqual([
+      equalRank[0].id,
+      equalRank[1].id,
     ]);
   });
 
@@ -396,5 +422,51 @@ describe("stored resume-gap DTOs and safe metadata", () => {
         }).success,
       ).toBe(false);
     }
+  });
+
+  it("rejects provider and model metadata with surrounding whitespace", () => {
+    const valid = {
+      provider: "deepseek",
+      model: "deepseek-chat",
+      requestId: null,
+      usage: {
+        inputCacheHitTokens: 1,
+        inputCacheMissTokens: 2,
+        outputTokens: 3,
+      },
+      priceScheduleVersion: null,
+    };
+
+    expect(resumeGapAIResultSchema.safeParse({ ...valid, provider: " deepseek" }).success).toBe(false);
+    expect(resumeGapAIResultSchema.safeParse({ ...valid, model: "deepseek-chat " }).success).toBe(false);
+  });
+
+  it("bounds generic stored metadata by Unicode code points", () => {
+    expect(
+      resumeGapAIResultSchema.safeParse({
+        provider: "😀".repeat(80),
+        model: "deepseek-chat",
+        requestId: null,
+        usage: {
+          inputCacheHitTokens: 0,
+          inputCacheMissTokens: 0,
+          outputTokens: 0,
+        },
+        priceScheduleVersion: null,
+      }).success,
+    ).toBe(true);
+    expect(
+      resumeGapAIResultSchema.safeParse({
+        provider: "😀".repeat(81),
+        model: "deepseek-chat",
+        requestId: null,
+        usage: {
+          inputCacheHitTokens: 0,
+          inputCacheMissTokens: 0,
+          outputTokens: 0,
+        },
+        priceScheduleVersion: null,
+      }).success,
+    ).toBe(false);
   });
 });

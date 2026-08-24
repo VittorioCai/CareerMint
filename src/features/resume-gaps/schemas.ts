@@ -168,9 +168,12 @@ export type ResumeGapItemView = ResumeGapItem & {
 const storedText = (max: number) =>
   z
     .string()
-    .min(1)
-    .max(max)
-    .refine((value) => value.trim().length > 0);
+    .refine(
+      (value) =>
+        value === value.trim() &&
+        unicodeCodePointLength(value) >= 1 &&
+        unicodeCodePointLength(value) <= max,
+    );
 
 const storedToken = (max: number) =>
   storedText(max).regex(/^[A-Za-z0-9._:-]+$/u);
@@ -296,9 +299,6 @@ export function selectPriorityRequirements(
         if (rankDifference !== 0) return rankDifference;
         const orderDifference = left.order - right.order;
         if (orderDifference !== 0) return orderDifference;
-        if (left.rank === 5 && left.requirement.id !== right.requirement.id) {
-          return left.requirement.id < right.requirement.id ? -1 : 1;
-        }
         return left.index - right.index;
       },
     )
