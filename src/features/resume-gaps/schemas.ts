@@ -209,7 +209,12 @@ export type ResumeGapItemView = ResumeGapItem & {
   matchReason?: string | null;
 };
 
-export function classifyGap(item: ResumeGapItemView): ResumeGapGroup {
+export type ResumeGapClassificationInput = {
+  resumeCoverage: ResumeCoverage;
+  profileEvidence: readonly unknown[];
+};
+
+export function classifyGap(item: ResumeGapClassificationInput): ResumeGapGroup {
   if (item.resumeCoverage === "covered") return "covered";
   if (item.resumeCoverage === "partial") return "partial_coverage";
   return item.profileEvidence.length > 0
@@ -217,7 +222,7 @@ export function classifyGap(item: ResumeGapItemView): ResumeGapGroup {
     : "missing_evidence";
 }
 
-export function explainGap(item: ResumeGapItemView): string {
+export function explainGap(item: ResumeGapClassificationInput): string {
   switch (classifyGap(item)) {
     case "covered":
       return "当前简历已明确覆盖这项要求。";
@@ -244,7 +249,7 @@ export const profileOnlyGroupSchema = z.enum([
 ]);
 
 export function classifyProfileOnlyRequirement(
-  requirement: ResumeGapCurrentRequirement,
+  requirement: Pick<ResumeGapCurrentRequirement, "matchStatus">,
 ): ProfileOnlyGroup {
   if (!requirement.matchStatus) {
     throw new Error("resume-gap-invalid-requirement");

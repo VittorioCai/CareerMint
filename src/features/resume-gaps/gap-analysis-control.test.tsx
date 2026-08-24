@@ -33,7 +33,7 @@ function renderControl(overrides: Partial<React.ComponentProps<typeof GapAnalysi
 describe("GapAnalysisControl", () => {
   it("does not call the gap endpoint until the explicit analysis click", async () => {
     const user = userEvent.setup();
-    const { request } = renderControl();
+    const { request, refresh } = renderControl();
     expect(request).not.toHaveBeenCalled();
 
     request.mockResolvedValueOnce(
@@ -46,12 +46,30 @@ describe("GapAnalysisControl", () => {
     await waitFor(() => expect(request).toHaveBeenCalledOnce());
     expect(request.mock.calls[0][0]).toBe(`/api/applications/${appId}/resume/gaps/analyze`);
     expect(request.mock.calls[0][1]).toMatchObject({ method: "POST" });
+    expect(refresh).toHaveBeenCalledOnce();
+  });
+
+  it("shows an existing queued task and does not silently reset it to idle", () => {
+    const { request } = renderControl({ initialRun: { status: "queued" } });
+    expect(screen.getByText(/分析任务正在进行中/)).toBeVisible();
+    expect(screen.getByRole("button", { name: "分析简历差距" })).toBeDisabled();
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("resets cached/error state when the selected baseline changes", () => {
+    const { unmount } = renderControl({ initialRun: { status: "failed", errorCode: "resume-text-too-short" } });
+    expect(screen.getByRole("button", { name: "在本机识别扫描版 PDF" })).toBeVisible();
+    unmount();
+    renderControl({ asset: { id: "new-asset", originalName: "new.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }, initialRun: null });
+    expect(screen.queryByRole("button", { name: "在本机识别扫描版 PDF" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "分析简历差距" })).toBeVisible();
   });
 
   it("offers browser OCR only for a short PDF, downloads once, and posts strict OCR JSON", async () => {
     const user = userEvent.setup();
     const ocrPdf = vi.fn().mockImplementation(async (_file: File, options?: { onProgress?: (progress: { phase: "recognizing"; page: number; totalPages: number }) => void }) => {
       options?.onProgress?.({ phase: "recognizing", page: 1, totalPages: 2 });
+      await new Promise((resolve) => setTimeout(resolve, 20));
       return "Verified resume text";
     });
     const { request } = renderControl({ ocrPdf });
@@ -65,6 +83,7 @@ describe("GapAnalysisControl", () => {
     await user.click(screen.getByRole("button", { name: "在本机识别扫描版 PDF" }));
 
     await waitFor(() => expect(ocrPdf).toHaveBeenCalledOnce());
+    expect(screen.getByRole("progressbar", { name: "扫描版 PDF 本地识别进度" })).toBeVisible();
     expect(request.mock.calls[1][0]).toBe(`/api/source-assets/${assetId}/download`);
     expect(request.mock.calls[1][1]).toMatchObject({ method: "GET" });
     await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
@@ -91,6 +110,7 @@ describe("GapAnalysisControl", () => {
 
     await waitFor(() => expect(request).toHaveBeenCalledTimes(4));
     expect(ocrPdf).toHaveBeenCalledOnce();
+    expect(screen.getByText(/已复用相同简历与 JD 的缓存结果/)).toBeVisible();
     expect(request.mock.calls[3][0]).toBe(`/api/applications/${appId}/resume/gaps/analyze`);
     expect(request.mock.calls[3][1]).toMatchObject({ body: JSON.stringify({ ocrText: "Cached resume text" }) });
   });
@@ -147,5 +167,26 @@ describe("GapAnalysisControl", () => {
     expect(screen.getByRole("alert")).toHaveTextContent("已取消本地识别");
     expect(request).toHaveBeenCalledTimes(2);
     resolveOcr("must not be posted");
+  });
+
+  it("keeps stable business errors actionable instead of calling them network failures", async () => {
+    const user = userEvent.setup();
+    const { request } = renderControl();
+    request.mockResolvedValueOnce(new Response(JSON.stringify({ errorCode: "jd-analysis-required" }), { status: 409 }));
+    await user.click(screen.getByRole("button", { name: "分析简历差距" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("请先完成 JD 分析");
+    expect(screen.getByRole("link", { name: "返回 JD 分析" })).toHaveAttribute("href", `/applications/${appId}?tab=jd`);
+    expect(screen.getByRole("alert")).not.toHaveTextContent("网络暂时不可用");
+  });
+
+  it("renders rate limits and invalid output as distinct retryable states", async () => {
+    const user = userEvent.setup();
+    const { request } = renderControl();
+    request.mockResolvedValueOnce(new Response(JSON.stringify({ errorCode: "rate-limited" }), { status: 429 }));
+    await user.click(screen.getByRole("button", { name: "分析简历差距" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("请求过于频繁");
+    request.mockResolvedValueOnce(new Response(JSON.stringify({ errorCode: "resume-gap-invalid-output" }), { status: 422 }));
+    await user.click(screen.getByRole("button", { name: "重试分析" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("结果格式无效");
   });
 });

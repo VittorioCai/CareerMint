@@ -56,6 +56,7 @@ import {
 } from "@/features/resume-gaps/baseline-selector";
 import { GapAnalysisControl } from "@/features/resume-gaps/gap-analysis-control";
 import { GapPanel } from "@/features/resume-gaps/gap-panel";
+import { isCurrentGapRun, ResumeWorkspace } from "@/features/resume-gaps/resume-workspace";
 import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
@@ -212,33 +213,22 @@ function ResumePanel({
   availableAssets: ResumeAssetOption[];
   setupMode: boolean;
 }) {
-  const currentGapRun = latestGapRun && selectedAsset && latestGapRun.sourceAssetId === selectedAsset.id && latestGapRun.analysisRunId === analysisRun?.id
+  const currentGapRun = isCurrentGapRun(latestGapRun, selectedAsset?.id ?? null, analysisRun?.id ?? null)
     ? latestGapRun
     : null;
   return (
-    <div className="space-y-6">
-      <header>
-        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历差距</h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">只读比较当前 JD 与这次申请的对照简历，职业档案事实仅作为已确认补充。</p>
-      </header>
-      <BaselineSelector
+    <ResumeWorkspace
+      applicationId={application.id}
+      mode={!analysisRun ? "no-jd" : selectedAsset ? "comparison" : "profile-only"}
+      leading={<BaselineSelector
         applicationId={application.id}
         selectedAsset={selectedAsset}
         availableAssets={availableAssets}
         setupMode={setupMode}
         setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
-      />
-
-      {!analysisRun ? (
-        <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-gap-empty-title">
-          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-            先完成 JD 分析，才能判断简历差距。
-          </p>
-          <Link href={`/applications/${application.id}?tab=jd`} className="mt-4 inline-flex text-sm font-black underline underline-offset-4">
-            返回 JD 分析 →
-          </Link>
-        </section>
-      ) : (
+      />}
+    >
+      {analysisRun ? (
         <>
           {selectedAsset ? (
             <GapAnalysisControl
@@ -246,55 +236,59 @@ function ResumePanel({
               applicationId={application.id}
               asset={selectedAsset}
               initialRun={currentGapRun ? {
-                id: currentGapRun.id,
                 status: currentGapRun.status,
                 errorCode: currentGapRun.errorCode,
-                sourceFilename: currentGapRun.sourceFilename,
-                sourceAssetId: currentGapRun.sourceAssetId,
-                analysisRunId: currentGapRun.analysisRunId,
-                result: currentGapRun.result ? {
-                  acceptedItemCount: currentGapRun.result.acceptedItemCount,
-                  estimatedCost: currentGapRun.result.estimatedCost,
-                } : null,
               } : null}
             />
           ) : null}
           <GapPanel
             key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
-            applicationId={application.id}
             baseline={selectedAsset}
             requirements={requirements.map((requirement) => ({
               id: requirement.id,
-              category: requirement.category,
               text: requirement.text,
               priority: requirement.priority,
-              sortOrder: requirement.sortOrder,
               sourceExcerpt: requirement.sourceExcerpt,
               matchStatus: requirement.matchStatus,
-              matchReason: requirement.matchReason,
-              evidence: requirement.evidence,
+              evidence: requirement.evidence.map((fact) => ({
+                id: fact.id,
+                title: fact.title,
+                description: fact.description,
+                sourceExcerpt: fact.sourceExcerpt,
+              })),
             }))}
             run={latestGapRun ? {
-              id: latestGapRun.id,
               status: latestGapRun.status,
-              errorCode: latestGapRun.errorCode,
               sourceFilename: latestGapRun.sourceFilename,
               sourceAssetId: latestGapRun.sourceAssetId,
               analysisRunId: latestGapRun.analysisRunId,
             } : null}
             fallbackRun={fallbackGapRun ? {
-              id: fallbackGapRun.id,
               status: fallbackGapRun.status,
-              errorCode: fallbackGapRun.errorCode,
               sourceFilename: fallbackGapRun.sourceFilename,
               sourceAssetId: fallbackGapRun.sourceAssetId,
               analysisRunId: fallbackGapRun.analysisRunId,
             } : null}
-            items={gapItems}
+            items={gapItems.map((item) => ({
+              id: item.id,
+              requirementText: item.requirementText,
+              priority: item.priority,
+              jdSourceExcerpt: item.jdSourceExcerpt,
+              resumeCoverage: item.resumeCoverage,
+              verifiedResumeExcerpt: item.verifiedResumeExcerpt,
+              profileEvidence: item.profileEvidence.map((fact) => ({
+                id: fact.id,
+                title: fact.title,
+                description: fact.description,
+                sourceExcerpt: fact.sourceExcerpt,
+              })),
+              matchStatus: item.matchStatus,
+              historical: item.historical,
+            }))}
             currentAnalysisRunId={analysisRun.id}
           />
         </>
-      )}
+      ) : null}
 
       <section>
         <details className="dense-surface min-w-0 p-5 sm:p-6">
@@ -330,7 +324,7 @@ function ResumePanel({
           ) : <p className="mt-4 text-sm font-semibold text-[var(--ink-muted)]">还没有简历版本。</p>}
         </details>
       </section>
-    </div>
+    </ResumeWorkspace>
   );
 }
 

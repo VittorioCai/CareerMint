@@ -11,16 +11,8 @@ import type { ResumeAssetOption } from "./baseline-selector";
 type GapRunStatus = "queued" | "running" | "succeeded" | "failed";
 
 export type GapRunSummary = {
-  id: string;
   status: GapRunStatus;
   errorCode?: string | null;
-  sourceFilename?: string;
-  sourceAssetId?: string | null;
-  analysisRunId?: string;
-  result?: {
-    acceptedItemCount: number;
-    estimatedCost?: { amount: number; currency: string } | null;
-  } | null;
 };
 
 export type GapAnalysisControlProps = {
@@ -36,7 +28,18 @@ const errorCopy: Record<string, string> = {
   "resume-text-too-short": "分析没有完成：简历文字太少。可以重试，或在本机识别扫描版 PDF。",
   "resume-text-too-long": "分析没有完成：简历文字超过限制，请换一份精简文件。",
   "resume-gap-parse-failed": "分析没有完成：文件解析失败，请重试或更换文件。",
+  "jd-analysis-required": "请先完成 JD 分析，再判断简历差距。",
+  "resume-source-required": "请先选择一份对照简历，或更换当前简历后重试。",
   "unsupported-content-type": "分析没有完成：只支持 PDF 或 DOCX 简历。",
+  "rate-limited": "分析请求过于频繁，请稍后重试。",
+  "ai-rate-limited": "分析请求过于频繁，请稍后重试。",
+  "too-many-requests": "分析请求过于频繁，请稍后重试。",
+  timeout: "分析超时，请稍后重试。",
+  "ai-timeout": "分析超时，请稍后重试。",
+  "resume-gap-invalid-output": "分析结果格式无效，请重试。",
+  unauthorized: "登录状态已失效，请重新登录后重试。",
+  "authentication-required": "登录状态已失效，请重新登录后重试。",
+  "ai-provider-authentication-failed": "分析服务认证失败，请稍后重试。",
   "ai-processing-consent-required": "需要先允许 AI 处理这份简历，授权后再试。",
   "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
   "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
@@ -237,23 +240,24 @@ export function GapAnalysisControl({
               : "正在准备本地识别…"}
           </p>
           <progress
+            aria-label="扫描版 PDF 本地识别进度"
             className="mt-2 h-2 w-full accent-[var(--coral)]"
             max={ocrProgress?.phase === "recognizing" ? ocrProgress.totalPages : 1}
             value={ocrProgress?.phase === "recognizing" ? ocrProgress.page : 0}
           />
-          <button type="button" className="button-secondary mt-3 min-h-10 px-4 text-sm font-black" onClick={cancelOcr}>
+          <button type="button" className="button-secondary mt-3 min-h-11 px-4 text-sm font-black" onClick={cancelOcr}>
             取消本机识别
           </button>
         </div>
       ) : null}
-      {visibleError ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">{visibleError}{error === "ai-processing-consent-required" ? <>{" "}<Link href="/settings/account" className="underline underline-offset-4">前往账户设置</Link></> : null}</p> : null}
+      {visibleError ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">{visibleError}{error === "ai-processing-consent-required" ? <> {" "}<Link href="/settings/account" className="underline underline-offset-4">前往账户设置</Link></> : null}{error === "jd-analysis-required" ? <> {" "}<Link href={`/applications/${applicationId}?tab=jd`} className="underline underline-offset-4">返回 JD 分析</Link></> : null}</p> : null}
       {canRecoverWithOcr && phase !== "ocr" ? (
-        <button type="button" className="button-secondary mt-3 min-h-10 px-4 text-sm font-black" onClick={() => void runOcr()} disabled={busy}>
+        <button type="button" className="button-secondary mt-3 min-h-11 px-4 text-sm font-black" onClick={() => void runOcr()} disabled={busy}>
           在本机识别扫描版 PDF
         </button>
       ) : null}
       {phase === "failed" && !canRecoverWithOcr ? (
-        <button type="button" className="button-secondary mt-3 min-h-10 px-4 text-sm font-black" onClick={() => void analyze()} disabled={busy}>
+        <button type="button" className="button-secondary mt-3 min-h-11 px-4 text-sm font-black" onClick={() => void analyze()} disabled={busy}>
           重试分析
         </button>
       ) : null}

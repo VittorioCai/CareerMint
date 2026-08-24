@@ -15,7 +15,7 @@ import {
   selectPriorityRequirements,
   summarizeRequirements,
   type ResumeGapCurrentRequirement,
-  type ResumeGapItemView,
+  type ResumeCoverage,
 } from "./schemas";
 
 const firstId = "11111111-1111-4111-8111-111111111111";
@@ -203,27 +203,12 @@ describe("sanitizeResumeGapOutput", () => {
 });
 
 function item(
-  resumeCoverage: ResumeGapItemView["resumeCoverage"],
-  profileEvidence: ResumeGapItemView["profileEvidence"],
-  matchStatus: ResumeGapCurrentRequirement["matchStatus"] = "none",
-): ResumeGapItemView {
+  resumeCoverage: ResumeCoverage,
+  profileEvidence: readonly unknown[],
+): { resumeCoverage: ResumeCoverage; profileEvidence: readonly unknown[] } {
   return {
-    id: firstId,
-    runId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
-    applicationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
-    userId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
-    requirementId: firstId,
-    requirementText: "SQL",
-    category: "skill",
-    priority: "core",
-    jdSourceExcerpt: "SQL experience is required.",
     resumeCoverage,
-    verifiedResumeExcerpt: resumeCoverage === "missing" ? null : "SQL",
-    sortOrder: 0,
-    createdAt: "2026-08-24T00:00:00.000Z",
     profileEvidence,
-    matchStatus,
-    matchReason: null,
   };
 }
 
@@ -232,7 +217,7 @@ describe("deterministic resume gap classification", () => {
     expect([
       classifyGap(item("covered", [])),
       classifyGap(item("partial", [])),
-      classifyGap(item("missing", [{} as never])),
+      classifyGap(item("missing", [{}])),
       classifyGap(item("missing", [])),
     ]).toEqual([
       "covered",
@@ -240,16 +225,16 @@ describe("deterministic resume gap classification", () => {
       "resume_omission",
       "missing_evidence",
     ]);
-    expect(classifyGap(item("covered", [{} as never]))).toBe("covered");
-    expect(classifyGap(item("partial", [{} as never]))).toBe("partial_coverage");
+    expect(classifyGap(item("covered", [{}]))).toBe("covered");
+    expect(classifyGap(item("partial", [{}]))).toBe("partial_coverage");
   });
 
   it("explains each group locally and reports confirmed fact count for omissions", () => {
     const providerProse = "The model recommends adding a stronger bullet.";
     expect(explainGap(item("covered", []))).not.toContain(providerProse);
     expect(explainGap(item("partial", []))).not.toContain(providerProse);
-    expect(explainGap(item("missing", [{} as never, {} as never]))).toContain("2");
-    expect(explainGap(item("missing", [{} as never, {} as never]))).not.toContain(providerProse);
+    expect(explainGap(item("missing", [{}, {}]))).toContain("2");
+    expect(explainGap(item("missing", [{}, {}]))).not.toContain(providerProse);
   });
 
   it("classifies profile-only requirements without ever returning resume omission", () => {
