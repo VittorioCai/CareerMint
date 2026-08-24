@@ -142,6 +142,13 @@ export function AppShell({ children, email }: AppShellProps) {
           </div>
 
           <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden" aria-label="移动端主导航">
+            <Link
+              href="/applications/new"
+              aria-label="移动端新建申请"
+              className="flex shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-2.5 text-sm font-black shadow-[2px_2px_0_var(--ink)]"
+            >
+              ＋ 新建申请
+            </Link>
             {appNavigation.map((item) => (
               <NavLink key={item.href} {...item} compact />
             ))}
@@ -153,12 +160,6 @@ export function AppShell({ children, email }: AppShellProps) {
         </main>
       </div>
 
-      <Link
-        href="/applications/new"
-        className="fixed bottom-4 right-4 z-20 inline-flex min-h-12 items-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-4 text-sm font-black shadow-[3px_3px_0_var(--ink)] md:hidden"
-      >
-        ＋ 新建申请
-      </Link>
     </div>
   );
 }

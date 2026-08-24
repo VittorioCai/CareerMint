@@ -203,6 +203,7 @@ async function createLegacyVersion(
 
 test("covers the application workspace JD and resume-gap paths", async ({ page }) => {
   test.setTimeout(180_000);
+  const visualQa = process.env.VISUAL_QA === "1";
   if (process.env.E2E_FAKE_EXTRACTOR !== "1") {
     test.skip(true, "set E2E_FAKE_EXTRACTOR=1 to keep this E2E deterministic and free");
   }
@@ -248,9 +249,20 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     const requirementRow = page.getByRole("button", { name: /理解并推进这份岗位描述中的核心职责/ });
     await expect(requirementRow).toHaveAttribute("aria-expanded", "false");
     expect(await page.getByText("JD 来源摘录", { exact: true }).count()).toBe(0);
+    if (visualQa) {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({ path: "/tmp/job-buddy-jd-desktop-default.png", fullPage: false });
+      await page.getByRole("button", { name: "全部要求", exact: true }).click();
+      await page.screenshot({ path: "/tmp/job-buddy-jd-all-desktop-default.png", fullPage: false });
+      await page.getByRole("button", { name: "重点", exact: true }).click();
+    }
     await requirementRow.click();
     await expect(page.getByText("JD 来源摘录", { exact: true })).toBeVisible();
     await expect(page.getByText(jdText, { exact: true })).toBeVisible();
+    if (visualQa) {
+      await page.setViewportSize({ width: 1440, height: 1000 });
+      await page.screenshot({ path: "/tmp/job-buddy-jd-desktop.png", fullPage: false });
+    }
 
     await page.goto(`${first.detailUrl}?tab=resume`);
     const firstGapResponsePromise = page.waitForResponse(
@@ -277,6 +289,9 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     await gapRow.click();
     await expect(page.getByText("JD 摘录", { exact: true })).toBeVisible();
     await expect(page.getByText("确定性说明", { exact: true })).toBeVisible();
+    if (visualQa) {
+      await page.screenshot({ path: "/tmp/job-buddy-resume-desktop.png", fullPage: false });
+    }
 
     const reusedResponsePromise = page.waitForResponse(
       (response) =>
@@ -362,6 +377,9 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     await analyzeJD(page, second.detailUrl);
     await page.goto(`${second.detailUrl}?tab=resume`);
     await expect(page.getByRole("heading", { name: "仅职业档案模式" })).toBeVisible();
+    if (visualQa) {
+      await page.screenshot({ path: "/tmp/job-buddy-profile-only-desktop.png", fullPage: false });
+    }
     const secondGapRunsBefore = await account
       .from("resume_gap_runs")
       .select("id", { count: "exact", head: true })
@@ -407,6 +425,9 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     for (const label of ["简历漏写", "部分覆盖", "缺少证据", "已经覆盖"]) {
       await expect(ocrGapSummary.getByText(label, { exact: true })).toBeVisible();
     }
+    if (visualQa) {
+      await page.screenshot({ path: "/tmp/job-buddy-replaced-baseline-desktop.png", fullPage: false });
+    }
     const coveredDetails = page.locator("details").filter({ hasText: /已经覆盖/ });
     await coveredDetails.locator("summary").click();
     const ocrGapRow = coveredDetails.getByRole("button", { name: /理解并推进这份岗位描述中的核心职责/ });
@@ -433,14 +454,21 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
 
     await page.goto(`${first.detailUrl}?tab=jd`);
     await page.setViewportSize({ width: 390, height: 844 });
+    await expect(page.locator('a[href="/applications/new"]:visible')).toHaveCount(1);
     const mobileRequirementRow = page.getByRole("button", { name: /理解并推进这份岗位描述中的核心职责/ });
     await mobileRequirementRow.focus();
     await mobileRequirementRow.press("Enter");
     await expect(mobileRequirementRow).toHaveAttribute("aria-expanded", "true");
     await expect(page.getByText("JD 来源摘录", { exact: true })).toBeVisible();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    if (visualQa) {
+      await page.screenshot({ path: "/tmp/job-buddy-jd-mobile.png", fullPage: false });
+    }
     await page.goto(`${first.detailUrl}?tab=resume`);
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBe(true);
+    if (visualQa) {
+      await page.screenshot({ path: "/tmp/job-buddy-resume-mobile.png", fullPage: false });
+    }
     for (const oldText of ["正文预览", "AI 建议", "证据切换", "建议/证据"]) {
       await expect(page.getByText(oldText, { exact: true })).toHaveCount(0);
     }

@@ -1,4 +1,8 @@
+import { isLocalPlaywrightRun } from "../../src/lib/e2e/local-supabase-env";
+
 export default async function globalSetup() {
+  if (!isLocalPlaywrightRun({ PLAYWRIGHT_BASE_URL: process.env.PLAYWRIGHT_BASE_URL })) return;
+
   const [authHealth, mailHealth] = await Promise.all([
     fetch("http://127.0.0.1:54321/auth/v1/health"),
     fetch("http://127.0.0.1:54324/api/v1/messages"),

@@ -78,6 +78,35 @@ describe("GapPanel", () => {
     expect(screen.getByText(/来源：用户手动确认/)).toBeVisible();
   });
 
+  it("shows fact title, description, and a distinct original source without repeating identical text", async () => {
+    const user = userEvent.setup();
+    render(
+      <GapPanel
+        baseline={null}
+        requirements={[{
+          id: "structured-fact",
+          text: "Structured fact",
+          priority: "core",
+          matchStatus: "evidence",
+          evidence: [{
+            ...fact,
+            description: "Built reliable reporting dashboards.",
+            sourceExcerpt: "Built reliable reporting dashboards.",
+          }],
+        }]}
+        run={null}
+        fallbackRun={null}
+        items={[]}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /Structured fact/ }));
+
+    expect(screen.getByText("SQL", { exact: true })).toBeVisible();
+    expect(screen.getAllByText("Built reliable reporting dashboards.", { exact: true })).toHaveLength(1);
+    expect(screen.queryByText(/原始来源：Built reliable reporting dashboards\./)).not.toBeInTheDocument();
+  });
+
   it("shows all four groups, keeps covered collapsed, and reveals evidence in the approved order", async () => {
     const user = userEvent.setup();
     render(

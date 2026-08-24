@@ -74,11 +74,7 @@ const profileLabels: Record<ProfileOnlyGroup, string> = {
 };
 
 const priorityLabel = (priority: "core" | "supporting") => priority === "core" ? "核心" : "补充";
-const factLabel = (fact: GapFact) => [
-  fact.title,
-  fact.description,
-  fact.sourceExcerpt ?? "来源：用户手动确认",
-].join(" · ");
+const normalizeFactText = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
 
 export function summaryCellClass(index: number) {
   return [
@@ -101,7 +97,18 @@ function FactEvidence({ facts }: { facts: GapFact[] }) {
         <p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">已确认职业事实及来源</p>
         <Link href="/profile" className="text-xs font-black underline underline-offset-4">查看职业档案</Link>
       </div>
-      {facts.map((fact) => <p key={fact.id} className="mt-1 break-words whitespace-pre-wrap font-semibold">{factLabel(fact)}</p>)}
+      {facts.map((fact) => {
+        const sourceExcerpt = fact.sourceExcerpt?.trim() || null;
+        const hasDistinctSource = sourceExcerpt !== null && normalizeFactText(sourceExcerpt) !== normalizeFactText(fact.description);
+        return (
+          <div key={fact.id} className="mt-3 space-y-1">
+            <p className="break-words whitespace-pre-wrap font-black">{fact.title}</p>
+            <p className="break-words whitespace-pre-wrap font-semibold">{fact.description}</p>
+            {hasDistinctSource ? <p className="break-words whitespace-pre-wrap font-semibold"><span className="font-black text-[var(--ink-muted)]">原始来源：</span>{sourceExcerpt}</p> : null}
+            {sourceExcerpt === null ? <p className="break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">来源：用户手动确认</p> : null}
+          </div>
+        );
+      })}
       {!facts.length ? <p className="mt-1 break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">暂无已确认职业事实。</p> : null}
     </div>
   );

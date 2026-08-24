@@ -10,6 +10,12 @@ const targetEnvKeys: Record<StatusKey, keyof NodeJS.ProcessEnv> = {
   SECRET_KEY: "SUPABASE_SECRET_KEY",
 };
 
+export function isLocalPlaywrightRun(env: {
+  PLAYWRIGHT_BASE_URL?: string;
+}) {
+  return !env.PLAYWRIGHT_BASE_URL;
+}
+
 function unquote(value: string) {
   const trimmed = value.trim();
   const quote = trimmed[0];
@@ -64,7 +70,7 @@ export function loadLocalSupabaseEnv(
   targetEnv: Record<string, string | undefined>,
   readStatus: () => string = readLocalSupabaseStatus,
 ) {
-  if (targetEnv.PLAYWRIGHT_BASE_URL) return;
+  if (!isLocalPlaywrightRun({ PLAYWRIGHT_BASE_URL: targetEnv.PLAYWRIGHT_BASE_URL })) return;
 
   const localEnv = parseSupabaseStatusEnv(readStatus());
   for (const key of statusKeys) {

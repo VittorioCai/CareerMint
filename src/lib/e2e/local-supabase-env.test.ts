@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 
 import {
+  isLocalPlaywrightRun,
   loadLocalSupabaseEnv,
   parseSupabaseStatusEnv,
 } from "./local-supabase-env";
@@ -38,6 +39,11 @@ describe("parseSupabaseStatusEnv", () => {
 });
 
 describe("loadLocalSupabaseEnv", () => {
+  it("identifies local runs separately from remote Playwright targets", () => {
+    expect(isLocalPlaywrightRun({})).toBe(true);
+    expect(isLocalPlaywrightRun({ PLAYWRIGHT_BASE_URL: "https://preview.example.test" })).toBe(false);
+  });
+
   it("uses local Supabase values only for a local Playwright server and preserves explicit env", () => {
     const readStatus = vi.fn(() => statusOutput);
     const env: Record<string, string | undefined> = {

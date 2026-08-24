@@ -469,7 +469,7 @@ export default async function ApplicationDetailPage({
           </h1>
           <p className="mt-2 text-lg font-black text-[var(--ink-muted)]">{application.companyName}</p>
         </div>
-        <Link href="/applications/new" className="button-secondary inline-flex min-h-11 items-center justify-center px-4 text-sm font-black">
+        <Link href="/applications/new" className="button-secondary hidden min-h-11 items-center justify-center px-4 text-sm font-black md:inline-flex">
           ＋ 新建申请
         </Link>
       </div>
