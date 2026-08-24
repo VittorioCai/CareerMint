@@ -44,10 +44,8 @@ import type {
 import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import { getAIProcessingConsentAt } from "@/features/account/repository";
-import { ResumeGenerationControl } from "@/features/resume-customization/generation-control";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import type {
-  ResumeGenerationRun,
   ResumeVersion,
 } from "@/features/resume-customization/schemas";
 import { requireUser } from "@/lib/auth/require-user";
@@ -56,6 +54,9 @@ import {
   BaselineSelector,
   type ResumeAssetOption,
 } from "@/features/resume-gaps/baseline-selector";
+import { GapAnalysisControl } from "@/features/resume-gaps/gap-analysis-control";
+import { GapPanel } from "@/features/resume-gaps/gap-panel";
+import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
 type DetailTab = (typeof tabs)[number];
@@ -190,21 +191,36 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
 
 function ResumePanel({
   application,
-  latestRun,
+  analysisRun,
+  requirements,
+  latestGapRun,
+  fallbackGapRun,
+  gapItems,
   versions,
   selectedAsset,
   availableAssets,
   setupMode,
 }: {
   application: Application;
-  latestRun: ResumeGenerationRun | null;
+  analysisRun: JDAnalysisRun | null;
+  requirements: JDRequirementRecord[];
+  latestGapRun: Awaited<ReturnType<typeof resumeGapRepository.getLatest>>;
+  fallbackGapRun: Awaited<ReturnType<typeof resumeGapRepository.getLatestSucceeded>>;
+  gapItems: Awaited<ReturnType<typeof resumeGapRepository.listItems>>;
   versions: ResumeVersion[];
   selectedAsset: ResumeAssetOption | null;
   availableAssets: ResumeAssetOption[];
   setupMode: boolean;
 }) {
+  const currentGapRun = latestGapRun && selectedAsset && latestGapRun.sourceAssetId === selectedAsset.id && latestGapRun.analysisRunId === analysisRun?.id
+    ? latestGapRun
+    : null;
   return (
     <div className="space-y-6">
+      <header>
+        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历差距</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">只读比较当前 JD 与这次申请的对照简历，职业档案事实仅作为已确认补充。</p>
+      </header>
       <BaselineSelector
         applicationId={application.id}
         selectedAsset={selectedAsset}
@@ -212,44 +228,78 @@ function ResumePanel({
         setupMode={setupMode}
         setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
       />
-      <ResumeGenerationControl
-        applicationId={application.id}
-        initialStatus={latestRun?.status ?? null}
-      />
 
-      {latestRun?.status === "succeeded" ? (
-        <article className="rounded-2xl border border-[var(--line)] bg-white p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              当前审核工作区
-            </p>
-            <h2 className="heading-font mt-1 text-xl font-black">
-              建议已生成，等待逐条决定
-            </h2>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-              建议不会自动进入简历；打开三栏编辑器查看 JD 理由与事实证据。
-            </p>
-          </div>
-          <Link
-            href={`/applications/${application.id}/resume/${latestRun.id}`}
-            className="button-primary mt-4 inline-flex min-h-11 items-center justify-center px-5 text-sm font-black sm:mt-0"
-          >
-            继续审核建议 →
+      {!analysisRun ? (
+        <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-gap-empty-title">
+          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+            先完成 JD 分析，才能判断简历差距。
+          </p>
+          <Link href={`/applications/${application.id}?tab=jd`} className="mt-4 inline-flex text-sm font-black underline underline-offset-4">
+            返回 JD 分析 →
           </Link>
-        </article>
-      ) : null}
+        </section>
+      ) : (
+        <>
+          {selectedAsset ? (
+            <GapAnalysisControl
+              key={`${selectedAsset.id}:${analysisRun.id}`}
+              applicationId={application.id}
+              asset={selectedAsset}
+              initialRun={currentGapRun ? {
+                id: currentGapRun.id,
+                status: currentGapRun.status,
+                errorCode: currentGapRun.errorCode,
+                sourceFilename: currentGapRun.sourceFilename,
+                sourceAssetId: currentGapRun.sourceAssetId,
+                analysisRunId: currentGapRun.analysisRunId,
+                result: currentGapRun.result ? {
+                  acceptedItemCount: currentGapRun.result.acceptedItemCount,
+                  estimatedCost: currentGapRun.result.estimatedCost,
+                } : null,
+              } : null}
+            />
+          ) : null}
+          <GapPanel
+            key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
+            applicationId={application.id}
+            baseline={selectedAsset}
+            requirements={requirements.map((requirement) => ({
+              id: requirement.id,
+              category: requirement.category,
+              text: requirement.text,
+              priority: requirement.priority,
+              sortOrder: requirement.sortOrder,
+              sourceExcerpt: requirement.sourceExcerpt,
+              matchStatus: requirement.matchStatus,
+              matchReason: requirement.matchReason,
+              evidence: requirement.evidence,
+            }))}
+            run={latestGapRun ? {
+              id: latestGapRun.id,
+              status: latestGapRun.status,
+              errorCode: latestGapRun.errorCode,
+              sourceFilename: latestGapRun.sourceFilename,
+              sourceAssetId: latestGapRun.sourceAssetId,
+              analysisRunId: latestGapRun.analysisRunId,
+            } : null}
+            fallbackRun={fallbackGapRun ? {
+              id: fallbackGapRun.id,
+              status: fallbackGapRun.status,
+              errorCode: fallbackGapRun.errorCode,
+              sourceFilename: fallbackGapRun.sourceFilename,
+              sourceAssetId: fallbackGapRun.sourceAssetId,
+              analysisRunId: fallbackGapRun.analysisRunId,
+            } : null}
+            items={gapItems}
+            currentAnalysisRunId={analysisRun.id}
+          />
+        </>
+      )}
 
       <section>
-        <div className="flex items-end justify-between gap-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              Immutable history
-            </p>
-            <h2 className="heading-font mt-1 text-2xl font-black">版本历史</h2>
-          </div>
-          <span className="status-chip bg-white">{versions.length} 个版本</span>
-        </div>
-        {versions.length ? (
+        <details className="dense-surface min-w-0 p-5 sm:p-6">
+          <summary className="cursor-pointer list-none text-sm font-black">历史版本 <span className="ml-2 text-xs font-bold text-[var(--ink-muted)]">{versions.length} 个版本</span></summary>
+          {versions.length ? (
           <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {versions.map((version) => (
               <Link
@@ -277,14 +327,8 @@ function ResumePanel({
               </Link>
             ))}
           </div>
-        ) : (
-          <article className="mt-4 rounded-2xl border border-dashed border-[var(--ink-soft)] bg-white p-6 text-center">
-            <p className="text-sm font-black">还没有简历版本</p>
-            <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-              先生成建议并至少接受一条，保存后会得到不可覆盖的 V1。
-            </p>
-          </article>
-        )}
+          ) : <p className="mt-4 text-sm font-semibold text-[var(--ink-muted)]">还没有简历版本。</p>}
+        </details>
       </section>
     </div>
   );
@@ -376,7 +420,7 @@ export default async function ApplicationDetailPage({
   const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, resumeRun, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
+  const [events, analysisRun, requirements, resumeAnalysisRun, resumeRequirements, gapData, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "jd"
       ? jdAnalysisRepository.getLatest(user.id, id)
@@ -385,8 +429,20 @@ export default async function ApplicationDetailPage({
       ? jdAnalysisRepository.listRequirements(user.id, id)
       : Promise.resolve([]),
     activeTab === "resume"
-      ? resumeCustomizationRepository.getLatestRun(user.id, id)
+      ? jdAnalysisRepository.getLatestSucceeded(user.id, id)
       : Promise.resolve(null),
+    activeTab === "resume"
+      ? jdAnalysisRepository.listRequirements(user.id, id)
+      : Promise.resolve([]),
+    activeTab === "resume"
+      ? (async () => {
+          const latest = await resumeGapRepository.getLatest(user.id, id);
+          const fallback = await resumeGapRepository.getLatestSucceeded(user.id, id);
+          const displayRun = latest?.status === "succeeded" ? latest : fallback;
+          const items = displayRun ? await resumeGapRepository.listItems(user.id, displayRun.id) : [];
+          return { latest, fallback, items };
+        })()
+      : Promise.resolve({ latest: null, fallback: null, items: [] }),
     activeTab === "resume"
       ? resumeCustomizationRepository.listVersions(user.id, id)
       : Promise.resolve([]),
@@ -457,7 +513,11 @@ export default async function ApplicationDetailPage({
         {activeTab === "resume" ? (
           <ResumePanel
             application={application}
-            latestRun={resumeRun}
+            analysisRun={resumeAnalysisRun}
+            requirements={resumeRequirements}
+            latestGapRun={gapData.latest}
+            fallbackGapRun={gapData.fallback}
+            gapItems={gapData.items}
             versions={resumeVersions}
             availableAssets={resumeAssets.map((asset) => ({
               id: asset.id,
