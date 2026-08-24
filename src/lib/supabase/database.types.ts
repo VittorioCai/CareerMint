@@ -2024,6 +2024,10 @@ export type Database = {
         Args: { target_fact_ids: string[]; target_question_id: string }
         Returns: number
       }
+      resume_gap_json_has_exact_keys: {
+        Args: { expected_keys: string[]; payload: Json }
+        Returns: boolean
+      }
       review_resume_suggestion: {
         Args: {
           target_decision: string

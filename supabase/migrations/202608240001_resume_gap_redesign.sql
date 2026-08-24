@@ -4,6 +4,28 @@ alter table public.applications
 
 create type public.resume_coverage as enum ('covered', 'partial', 'missing');
 
+create function public.resume_gap_json_has_exact_keys(
+  payload jsonb,
+  expected_keys text[]
+)
+returns boolean
+language sql
+immutable
+parallel safe
+set search_path = ''
+as $$
+  select jsonb_typeof(payload) = 'object'
+    and (select count(*) from jsonb_object_keys(payload)) = cardinality(expected_keys)
+    and not exists (
+      select 1 from jsonb_object_keys(payload) as actual(key)
+      where actual.key <> all(expected_keys)
+    )
+    and not exists (
+      select 1 from unnest(expected_keys) as expected(key)
+      where not payload ? expected.key
+    );
+$$;
+
 create table public.resume_gap_runs (
   id uuid primary key default gen_random_uuid(),
   application_id uuid not null
@@ -24,9 +46,70 @@ create table public.resume_gap_runs (
   attempt_count integer not null default 0 check (attempt_count between 0 and 1000),
   result jsonb check (
     result is null
-    or (jsonb_typeof(result) = 'object'
-      and not result ? 'fullResumeText'
-      and not result ? 'fullJdText')
+    or (
+      jsonb_typeof(result) = 'object'
+      and public.resume_gap_json_has_exact_keys(result, array['acceptedItemCount', 'coveredItemCount', 'partialItemCount', 'missingItemCount', 'ai', 'estimatedCost'])
+      and result ? 'acceptedItemCount'
+      and result ? 'coveredItemCount'
+      and result ? 'partialItemCount'
+      and result ? 'missingItemCount'
+      and result ? 'ai'
+      and result ? 'estimatedCost'
+      and jsonb_typeof(result -> 'acceptedItemCount') = 'number'
+      and jsonb_typeof(result -> 'coveredItemCount') = 'number'
+      and jsonb_typeof(result -> 'partialItemCount') = 'number'
+      and jsonb_typeof(result -> 'missingItemCount') = 'number'
+      and (result ->> 'acceptedItemCount') ~ '^[0-9]+$'
+      and (result ->> 'coveredItemCount') ~ '^[0-9]+$'
+      and (result ->> 'partialItemCount') ~ '^[0-9]+$'
+      and (result ->> 'missingItemCount') ~ '^[0-9]+$'
+      and jsonb_typeof(result -> 'ai') = 'object'
+      and public.resume_gap_json_has_exact_keys(result -> 'ai', array['provider', 'model', 'requestId', 'usage', 'priceScheduleVersion'])
+      and result -> 'ai' ? 'provider'
+      and result -> 'ai' ? 'model'
+      and result -> 'ai' ? 'requestId'
+      and result -> 'ai' ? 'usage'
+      and result -> 'ai' ? 'priceScheduleVersion'
+      and jsonb_typeof(result -> 'ai' -> 'provider') = 'string'
+      and jsonb_typeof(result -> 'ai' -> 'model') = 'string'
+      and char_length(btrim(result -> 'ai' ->> 'provider')) between 1 and 80
+      and char_length(btrim(result -> 'ai' ->> 'model')) between 1 and 160
+      and jsonb_typeof(result -> 'ai' -> 'requestId') in ('string', 'null')
+      and jsonb_typeof(result -> 'ai' -> 'priceScheduleVersion') in ('string', 'null')
+      and (result -> 'ai' -> 'requestId' = 'null'::jsonb or char_length(btrim(result -> 'ai' ->> 'requestId')) between 1 and 200)
+      and (result -> 'ai' -> 'priceScheduleVersion' = 'null'::jsonb or char_length(btrim(result -> 'ai' ->> 'priceScheduleVersion')) between 1 and 80)
+      and jsonb_typeof(result -> 'ai' -> 'usage') = 'object'
+      and public.resume_gap_json_has_exact_keys(result -> 'ai' -> 'usage', array['inputCacheHitTokens', 'inputCacheMissTokens', 'outputTokens'])
+      and result -> 'ai' -> 'usage' ? 'inputCacheHitTokens'
+      and result -> 'ai' -> 'usage' ? 'inputCacheMissTokens'
+      and result -> 'ai' -> 'usage' ? 'outputTokens'
+      and (result -> 'ai' -> 'usage' ->> 'inputCacheHitTokens') ~ '^[0-9]+$'
+      and (result -> 'ai' -> 'usage' ->> 'inputCacheMissTokens') ~ '^[0-9]+$'
+      and (result -> 'ai' -> 'usage' ->> 'outputTokens') ~ '^[0-9]+$'
+      and (result -> 'ai' -> 'usage' ->> 'inputCacheHitTokens')::numeric between 0 and 2147483647
+      and (result -> 'ai' -> 'usage' ->> 'inputCacheMissTokens')::numeric between 0 and 2147483647
+      and (result -> 'ai' -> 'usage' ->> 'outputTokens')::numeric between 0 and 2147483647
+      and (
+        result -> 'estimatedCost' = 'null'::jsonb
+        or (
+          jsonb_typeof(result -> 'estimatedCost') = 'object'
+          and public.resume_gap_json_has_exact_keys(result -> 'estimatedCost', array['amount', 'currency', 'scheduleVersion', 'tier'])
+          and result -> 'estimatedCost' ? 'amount'
+          and result -> 'estimatedCost' ? 'currency'
+          and result -> 'estimatedCost' ? 'scheduleVersion'
+          and result -> 'estimatedCost' ? 'tier'
+          and jsonb_typeof(result -> 'estimatedCost' -> 'amount') = 'number'
+          and (result -> 'estimatedCost' ->> 'amount')::numeric >= 0
+          and jsonb_typeof(result -> 'estimatedCost' -> 'currency') = 'string'
+          and result -> 'estimatedCost' ->> 'currency' = 'USD'
+          and jsonb_typeof(result -> 'estimatedCost' -> 'scheduleVersion') = 'string'
+          and char_length(btrim(result -> 'estimatedCost' ->> 'scheduleVersion')) between 1 and 80
+          and result -> 'estimatedCost' ->> 'scheduleVersion' ~ '^[A-Za-z0-9._:-]{1,80}$'
+          and jsonb_typeof(result -> 'estimatedCost' -> 'tier') = 'string'
+          and result -> 'estimatedCost' ->> 'tier' in ('default', 'peak')
+        )
+      )
+    )
   ),
   error_code text check (
     error_code is null or char_length(btrim(error_code)) between 1 and 120
@@ -41,10 +124,10 @@ create table public.resume_gap_runs (
   unique (user_id, application_id, input_hash, provider, model),
   check ((error_code is null) = (error_message is null)),
   check (
-    (status = 'queued' and attempt_count = 0 and started_at is null and finished_at is null and error_code is null and error_message is null)
-    or (status = 'running' and attempt_count > 0 and started_at is not null and finished_at is null and error_code is null and error_message is null)
+    (status = 'queued' and attempt_count = 0 and started_at is null and finished_at is null and error_code is null and error_message is null and result is null)
+    or (status = 'running' and attempt_count > 0 and started_at is not null and finished_at is null and error_code is null and error_message is null and result is null)
     or (status = 'succeeded' and attempt_count > 0 and finished_at is not null and error_code is null and error_message is null and result is not null)
-    or (status = 'failed' and attempt_count > 0 and finished_at is not null and error_code is not null and error_message is not null)
+    or (status = 'failed' and attempt_count > 0 and finished_at is not null and error_code is not null and error_message is not null and result is null)
   )
 );
 
@@ -201,14 +284,32 @@ begin
   end if;
 
   select * into owned_asset from public.source_assets
-  where id = target_source_asset_id and user_id = current_user_id;
+  where id = target_source_asset_id and user_id = current_user_id
+  for update;
   select * into owned_analysis from public.application_analysis_runs
   where id = target_analysis_run_id
     and application_id = target_application_id
-    and user_id = current_user_id;
+    and user_id = current_user_id
+  for update;
   if owned_asset.id is null or owned_analysis.id is null
-    or owned_application.resume_source_asset_id is distinct from owned_asset.id then
+    or owned_analysis.status <> 'succeeded'
+    or owned_application.resume_source_asset_id is distinct from owned_asset.id
+    or not exists (
+      select 1 from public.application_requirements
+      where analysis_run_id = owned_analysis.id
+        and application_id = target_application_id
+        and user_id = current_user_id
+    ) then
     raise exception 'application-or-resume-not-found' using errcode = 'P0002';
+  end if;
+  if exists (
+    select 1 from public.application_analysis_runs newer
+    where newer.application_id = target_application_id
+      and newer.user_id = current_user_id
+      and newer.status = 'succeeded'
+      and newer.created_at > owned_analysis.created_at
+  ) then
+    raise exception 'invalid-resume-gap-input' using errcode = '22023';
   end if;
 
   insert into public.resume_gap_runs (
@@ -227,6 +328,12 @@ begin
     and provider = btrim(target_provider)
     and model = btrim(target_model);
   if owned_run.id is null then
+    raise exception 'resume-gap-conflict' using errcode = '23505';
+  end if;
+  if owned_run.analysis_run_id <> owned_analysis.id
+    or owned_run.source_asset_id is distinct from owned_asset.id
+    or owned_run.source_filename <> btrim(owned_asset.original_name)
+    or owned_run.source_sha256 <> lower(owned_asset.sha256) then
     raise exception 'resume-gap-conflict' using errcode = '23505';
   end if;
   return owned_run;
@@ -278,6 +385,9 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
+  locked_application public.applications%rowtype;
+  locked_asset public.source_assets%rowtype;
+  locked_analysis public.application_analysis_runs%rowtype;
   owned_run public.resume_gap_runs%rowtype;
   completed_run public.resume_gap_runs%rowtype;
   candidate jsonb;
@@ -285,7 +395,9 @@ declare
   candidate_coverage public.resume_coverage;
   candidate_excerpt text;
   candidate_index integer := 0;
+  locked_requirement public.application_requirements%rowtype;
   expected_count integer;
+  inserted_count integer;
   covered_count integer := 0;
   partial_count integer := 0;
   missing_count integer := 0;
@@ -302,6 +414,21 @@ begin
     raise exception 'invalid-resume-gap-result' using errcode = '22023';
   end if;
 
+  -- Lock the application, selected source, analysis run, and its requirement
+  -- rows in this order. This serializes selection/JD replacement with output.
+  select * into locked_application from public.applications
+  where id = (select application_id from public.resume_gap_runs where id = target_run_id)
+    and user_id = current_user_id
+  for update;
+  select * into locked_asset from public.source_assets
+  where id = locked_application.resume_source_asset_id
+    and user_id = current_user_id
+  for update;
+  select * into locked_analysis from public.application_analysis_runs
+  where id = (select analysis_run_id from public.resume_gap_runs where id = target_run_id)
+    and application_id = locked_application.id
+    and user_id = current_user_id
+  for update;
   select * into owned_run from public.resume_gap_runs
   where id = target_run_id and user_id = current_user_id
     and status = 'running' and attempt_count = target_attempt_count
@@ -313,25 +440,37 @@ begin
   -- Re-check the live selection and source snapshot while the run is locked.
   -- This prevents completion after an application switches resumes or a source
   -- asset is deleted/replaced during processing.
-  if not exists (
-    select 1
-    from public.applications a
-    join public.source_assets s on s.id = a.resume_source_asset_id
-      and s.user_id = current_user_id
-    where a.id = owned_run.application_id
-      and a.user_id = current_user_id
-      and a.resume_source_asset_id = owned_run.source_asset_id
-      and s.original_name = owned_run.source_filename
-      and lower(s.sha256) = owned_run.source_sha256
-  ) then
+  if locked_application.id is null or locked_asset.id is null
+    or locked_analysis.id is null
+    or locked_analysis.status <> 'succeeded'
+    or locked_analysis.id <> owned_run.analysis_run_id
+    or exists (
+      select 1 from public.application_analysis_runs newer
+      where newer.application_id = owned_run.application_id
+        and newer.user_id = current_user_id
+        and newer.status = 'succeeded'
+        and newer.created_at > locked_analysis.created_at
+    )
+    or locked_analysis.application_id <> owned_run.application_id
+    or locked_analysis.user_id <> current_user_id
+    or locked_application.resume_source_asset_id is distinct from owned_run.source_asset_id
+    or locked_asset.original_name <> owned_run.source_filename
+    or lower(locked_asset.sha256) <> owned_run.source_sha256 then
     raise exception 'application-or-resume-not-found' using errcode = 'P0002';
   end if;
 
-  select count(*) into expected_count from public.application_requirements
-  where analysis_run_id = owned_run.analysis_run_id
-    and application_id = owned_run.application_id
-    and user_id = current_user_id;
-  if expected_count <> jsonb_array_length(target_items) then
+  expected_count := 0;
+  for locked_requirement in
+    select * from public.application_requirements
+    where analysis_run_id = owned_run.analysis_run_id
+      and application_id = owned_run.application_id
+      and user_id = current_user_id
+    order by id
+    for update
+  loop
+    expected_count := expected_count + 1;
+  end loop;
+  if expected_count < 1 or expected_count <> jsonb_array_length(target_items) then
     raise exception 'invalid-resume-gap-requirements' using errcode = '22023';
   end if;
 
@@ -381,39 +520,79 @@ begin
     raise exception 'invalid-resume-gap-requirements' using errcode = '22023';
   end if;
 
-  if target_ai_usage is null then
-    safe_ai_usage := jsonb_build_object(
-      'provider', owned_run.provider, 'model', owned_run.model,
-      'usage', jsonb_build_object('inputCacheHitTokens', 0, 'inputCacheMissTokens', 0, 'outputTokens', 0)
-    );
-  elsif jsonb_typeof(target_ai_usage) = 'object' then
+  if target_ai_usage is not null and jsonb_typeof(target_ai_usage) = 'object'
+    and public.resume_gap_json_has_exact_keys(target_ai_usage, array['provider', 'model', 'requestId', 'usage', 'priceScheduleVersion'])
+    and target_ai_usage ? 'provider'
+    and target_ai_usage ? 'model'
+    and target_ai_usage ? 'requestId'
+    and target_ai_usage ? 'usage'
+    and target_ai_usage ? 'priceScheduleVersion'
+    and jsonb_typeof(target_ai_usage -> 'provider') = 'string'
+    and jsonb_typeof(target_ai_usage -> 'model') = 'string'
+    and target_ai_usage ->> 'provider' = owned_run.provider
+    and target_ai_usage ->> 'model' = owned_run.model
+    and jsonb_typeof(target_ai_usage -> 'requestId') in ('string', 'null')
+    and jsonb_typeof(target_ai_usage -> 'priceScheduleVersion') in ('string', 'null')
+    and (
+      target_ai_usage -> 'requestId' = 'null'::jsonb
+      or (char_length(btrim(target_ai_usage ->> 'requestId')) between 1 and 200
+        and target_ai_usage ->> 'requestId' ~ '^[A-Za-z0-9._:-]{1,200}$')
+    )
+    and (
+      target_ai_usage -> 'priceScheduleVersion' = 'null'::jsonb
+      or char_length(btrim(target_ai_usage ->> 'priceScheduleVersion')) between 1 and 80
+    )
+    and jsonb_typeof(target_ai_usage -> 'usage') = 'object'
+    and public.resume_gap_json_has_exact_keys(target_ai_usage -> 'usage', array['inputCacheHitTokens', 'inputCacheMissTokens', 'outputTokens'])
+    and target_ai_usage -> 'usage' ? 'inputCacheHitTokens'
+    and target_ai_usage -> 'usage' ? 'inputCacheMissTokens'
+    and target_ai_usage -> 'usage' ? 'outputTokens'
+    and jsonb_typeof(target_ai_usage -> 'usage' -> 'inputCacheHitTokens') = 'number'
+    and jsonb_typeof(target_ai_usage -> 'usage' -> 'inputCacheMissTokens') = 'number'
+    and jsonb_typeof(target_ai_usage -> 'usage' -> 'outputTokens') = 'number'
+    and (target_ai_usage -> 'usage' ->> 'inputCacheHitTokens') ~ '^[0-9]+$'
+    and (target_ai_usage -> 'usage' ->> 'inputCacheMissTokens') ~ '^[0-9]+$'
+    and (target_ai_usage -> 'usage' ->> 'outputTokens') ~ '^[0-9]+$' then
     usage_payload := target_ai_usage -> 'usage';
-    if usage_payload is null or jsonb_typeof(usage_payload) <> 'object'
-      or coalesce(usage_payload ->> 'inputCacheHitTokens', '0') !~ '^[0-9]+$'
-      or coalesce(usage_payload ->> 'inputCacheMissTokens', '0') !~ '^[0-9]+$'
-      or coalesce(usage_payload ->> 'outputTokens', '0') !~ '^[0-9]+$' then
-      raise exception 'invalid-resume-gap-usage' using errcode = '22023';
-    end if;
     safe_ai_usage := jsonb_build_object(
-      'provider', owned_run.provider, 'model', owned_run.model,
+      'provider', owned_run.provider,
+      'model', owned_run.model,
+      'requestId', target_ai_usage -> 'requestId',
       'usage', jsonb_build_object(
-        'inputCacheHitTokens', coalesce((usage_payload ->> 'inputCacheHitTokens')::integer, 0),
-        'inputCacheMissTokens', coalesce((usage_payload ->> 'inputCacheMissTokens')::integer, 0),
-        'outputTokens', coalesce((usage_payload ->> 'outputTokens')::integer, 0)
-      )
+        'inputCacheHitTokens', (usage_payload ->> 'inputCacheHitTokens')::integer,
+        'inputCacheMissTokens', (usage_payload ->> 'inputCacheMissTokens')::integer,
+        'outputTokens', (usage_payload ->> 'outputTokens')::integer
+      ),
+      'priceScheduleVersion', target_ai_usage -> 'priceScheduleVersion'
     );
   else
     raise exception 'invalid-resume-gap-usage' using errcode = '22023';
   end if;
 
-  if target_estimated_cost is not null and jsonb_typeof(target_estimated_cost) <> 'object' then
+  if target_estimated_cost is not null
+    and (
+      jsonb_typeof(target_estimated_cost) <> 'object'
+      or not public.resume_gap_json_has_exact_keys(target_estimated_cost, array['amount', 'currency', 'scheduleVersion', 'tier'])
+      or not target_estimated_cost ? 'amount'
+      or not target_estimated_cost ? 'currency'
+      or not target_estimated_cost ? 'scheduleVersion'
+      or not target_estimated_cost ? 'tier'
+      or jsonb_typeof(target_estimated_cost -> 'amount') <> 'number'
+      or (target_estimated_cost ->> 'amount')::numeric < 0
+      or jsonb_typeof(target_estimated_cost -> 'currency') <> 'string'
+      or target_estimated_cost ->> 'currency' <> 'USD'
+      or jsonb_typeof(target_estimated_cost -> 'scheduleVersion') <> 'string'
+      or char_length(btrim(target_estimated_cost ->> 'scheduleVersion')) not between 1 and 80
+      or jsonb_typeof(target_estimated_cost -> 'tier') <> 'string'
+      or target_estimated_cost ->> 'tier' not in ('default', 'peak')
+    ) then
     raise exception 'invalid-resume-gap-cost' using errcode = '22023';
   end if;
   safe_estimated_cost := case when target_estimated_cost is null then null else jsonb_build_object(
-    'amount', target_estimated_cost -> 'amount',
-    'currency', target_estimated_cost -> 'currency',
-    'scheduleVersion', target_estimated_cost -> 'scheduleVersion',
-    'tier', target_estimated_cost -> 'tier'
+    'amount', (target_estimated_cost ->> 'amount')::numeric,
+    'currency', 'USD',
+    'scheduleVersion', target_estimated_cost ->> 'scheduleVersion',
+    'tier', target_estimated_cost ->> 'tier'
   ) end;
 
   for candidate in select value from jsonb_array_elements(target_items)
@@ -433,6 +612,13 @@ begin
     from public.application_requirements r
     where r.id = candidate_requirement_id;
   end loop;
+
+  select count(*) into inserted_count
+  from public.resume_gap_items
+  where run_id = owned_run.id and user_id = current_user_id;
+  if inserted_count <> expected_count then
+    raise exception 'invalid-resume-gap-requirements' using errcode = '22023';
+  end if;
 
   update public.resume_gap_runs
   set status = 'succeeded', result = jsonb_build_object(
@@ -471,16 +657,25 @@ begin
   end if;
   if target_attempt_count is null or target_attempt_count < 1
     or target_error_code is null or target_error_code not in (
-      'resume-gap-unavailable', 'resume-gap-invalid-output', 'resume-gap-provider-error'
+      'resume-text-too-short',
+      'resume-text-too-long',
+      'unsupported-content-type',
+      'source-download-failed',
+      'resume-gap-invalid-output',
+      'ai-provider-rate-limited',
+      'ai-provider-request-failed',
+      'ai-provider-timeout',
+      'resume-gap-unavailable',
+      'resume-gap-failed'
     )
-    or target_error_message is null
-    or char_length(btrim(target_error_message)) not between 1 and 500 then
+    then
     raise exception 'invalid-resume-gap-error' using errcode = '22023';
   end if;
 
   update public.resume_gap_runs
   set status = 'failed', result = null,
-      error_code = btrim(target_error_code), error_message = btrim(target_error_message),
+      error_code = btrim(target_error_code),
+      error_message = 'Resume comparison failed.',
       finished_at = now(), updated_at = now()
   where id = target_run_id and user_id = current_user_id
     and status = 'running' and attempt_count = target_attempt_count
