@@ -6,7 +6,7 @@ Supabase can confirm a new account before the application finishes exchanging th
 
 ## Chosen design
 
-Signup confirmation emails use the server-side `token_hash` flow recommended for Supabase SSR. The application receives `token_hash`, `type=email`, and `next=/onboarding`, validates the allowed destination, and calls `verifyOtp`. This avoids depending on the PKCE verifier cookie from the browser that initiated signup.
+Signup confirmation supports two paths. The production-default path uses Supabase's built-in `{{ .ConfirmationURL }}` template: the signup action sends `emailRedirectTo` with `?next=/onboarding`, so the default confirmation URL reaches the callback with a `code` and the existing `exchangeCodeForSession` branch opens onboarding. The optional local/custom-template path receives `token_hash`, `type=email`, and `next=/onboarding`, validates the allowed destination, and calls `verifyOtp`. This avoids depending on the PKCE verifier cookie from the browser that initiated signup.
 
 The existing `code` callback remains supported for password recovery and already-sent legacy links. Unknown destinations always fall back to `/app`.
 
@@ -19,11 +19,11 @@ The existing `code` callback remains supported for password recovery and already
 
 ## Configuration
 
-The repository includes the signup confirmation HTML template and points local Supabase configuration at it. Production Supabase must use the same template body:
+The repository includes an optional signup confirmation HTML template and points local Supabase configuration at it. New Supabase Free projects created after 2026-06-03 can use the built-in default SMTP template without changing it or configuring SMTP now; the default ConfirmationURL-plus-code flow is supported in production. A custom template is only applicable after configuring custom SMTP or upgrading. When that optional path is used, the template link is:
 
-`{{ .RedirectTo }}?token_hash={{ .TokenHash }}&type=email`
+`{{ .RedirectTo }}&token_hash={{ .TokenHash }}&type=email`
 
-The signup action sets `emailRedirectTo` to the callback URL without query parameters. The confirmation template adds `token_hash`, `type=email`, and the allow-listed `next=/onboarding` in a single query string, avoiding malformed double-`?` URLs.
+The signup action sets `emailRedirectTo` to `${siteUrl}/auth/callback?next=/onboarding`. The default template carries that URL through as a code callback; the optional custom template appends `token_hash` and `type=email` with `&`, preserving the allow-listed onboarding destination without a malformed second `?`.
 
 ## Testing
 

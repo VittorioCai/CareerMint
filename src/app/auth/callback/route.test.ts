@@ -118,9 +118,8 @@ describe("confirmation email template", () => {
     expect(template).toContain("{{ .RedirectTo }}");
     expect(template).toContain("token_hash={{ .TokenHash }}");
     expect(template).toContain("type=email");
-    expect(template).toContain("next=/onboarding");
     expect(template).toContain(
-      "?token_hash={{ .TokenHash }}&amp;type=email&amp;next=/onboarding",
+      "&amp;token_hash={{ .TokenHash }}&amp;type=email",
     );
 
     const config = await readFile(

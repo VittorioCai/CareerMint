@@ -243,7 +243,8 @@ otp_expiry = 3600
 # admin_email = "admin@email.com"
 # sender_name = "Admin"
 
-# Customize the signup confirmation email to use the server-side token hash flow.
+# Optional local/custom-SMTP template for the server-side token hash flow.
+# Hosted Supabase Free projects can use the built-in ConfirmationURL template.
 [auth.email.template.confirmation]
 subject = "确认你的 CareerMint 邮箱"
 content_path = "./supabase/templates/confirmation.html"

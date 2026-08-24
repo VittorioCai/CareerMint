@@ -56,7 +56,7 @@ export async function signup(
   const { error } = await supabase.auth.signUp({
     ...parsed.data,
     options: {
-      emailRedirectTo: `${siteUrl}/auth/callback`,
+      emailRedirectTo: `${siteUrl}/auth/callback?next=/onboarding`,
     },
   });
 
