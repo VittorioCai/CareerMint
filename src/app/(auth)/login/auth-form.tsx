@@ -9,7 +9,14 @@ import { login, signup, type AuthActionState } from "./actions";
 
 const initialState: AuthActionState = { error: null, message: null };
 
-export function AuthForm({ callbackFailed = false }: { callbackFailed?: boolean }) {
+export type CallbackError = "invalid-link" | "session-not-created";
+
+const callbackMessages: Record<CallbackError, string> = {
+  "invalid-link": "验证链接无效或已过期，请重新申请",
+  "session-not-created": "邮箱可能已完成验证，请使用邮箱和密码登录",
+};
+
+export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
   const [loginState, loginAction, loginPending] = useActionState(
     login,
     initialState,
@@ -24,12 +31,8 @@ export function AuthForm({ callbackFailed = false }: { callbackFailed?: boolean 
   return (
     <form className="space-y-5">
       <AuthFeedback
-        error={
-          callbackFailed
-            ? "验证链接无效或已过期，请重新登录或注册"
-            : state.error
-        }
-        message={callbackFailed ? null : state.message}
+        error={callbackError ? callbackMessages[callbackError] : state.error}
+        message={callbackError ? null : state.message}
       />
 
       <div>
