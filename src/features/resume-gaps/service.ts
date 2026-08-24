@@ -8,6 +8,9 @@ import type { JDAnalysisRun } from "@/features/jd-analysis/schemas";
 
 import {
   normalizeStoredIdentifier,
+  resumeGapAIResultSchema,
+  resumeGapAIUsageSchema,
+  resumeGapRunResultSchema,
   sanitizeResumeGapOutput,
   type ResumeGapAnalysisInput,
   type ResumeGapProviderRequirement,
@@ -148,9 +151,11 @@ function safeAIResult(input: {
   usage: AIUsage;
   schedule?: AIPriceSchedule;
   at: Date;
+  expectedProvider: string;
+  expectedModel: string;
 }): ResumeGapSafeAIUsage & { estimatedCost: ResumeGapRunResult["estimatedCost"] } {
   const requestId = normalizeStoredIdentifier(input.requestId, 200);
-  const configuredSchedule = input.schedule?.provider === input.provider && input.schedule.model === input.model
+  const configuredSchedule = input.schedule?.provider === input.expectedProvider && input.schedule.model === input.expectedModel
     ? input.schedule
     : undefined;
   const safeScheduleVersion = configuredSchedule
@@ -205,6 +210,14 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
           requirements: input.requirements,
         };
         const aiResult = await provider.analyzeResumeGaps(providerInput);
+        if (
+          aiResult.provider !== claimedRun.provider ||
+          aiResult.model !== claimedRun.model
+        ) {
+          throw new Error("resume-gap-failed");
+        }
+        const parsedUsage = resumeGapAIUsageSchema.safeParse(aiResult.usage);
+        if (!parsedUsage.success) throw new Error("resume-gap-failed");
         const sanitized = sanitizeResumeGapOutput({
           resumeText,
           requirements: input.requirements,
@@ -214,10 +227,38 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
           provider: aiResult.provider,
           model: aiResult.model,
           requestId: aiResult.requestId,
-          usage: aiResult.usage,
+          usage: parsedUsage.data,
           schedule: dependencies.priceSchedule,
           at: clock(),
+          expectedProvider: claimedRun.provider,
+          expectedModel: claimedRun.model,
         });
+        const finalAI = resumeGapAIResultSchema.safeParse({
+          provider: ai.provider,
+          model: ai.model,
+          requestId: ai.requestId,
+          usage: parsedUsage.data,
+          priceScheduleVersion: ai.priceScheduleVersion,
+        });
+        if (!finalAI.success) throw new Error("resume-gap-failed");
+        if (
+          ai.estimatedCost !== null &&
+          (ai.estimatedCost.scheduleVersion !== ai.priceScheduleVersion)
+        ) {
+          throw new Error("resume-gap-failed");
+        }
+        const coveredItemCount = sanitized.items.filter((item) => item.resumeCoverage === "covered").length;
+        const partialItemCount = sanitized.items.filter((item) => item.resumeCoverage === "partial").length;
+        const missingItemCount = sanitized.items.filter((item) => item.resumeCoverage === "missing").length;
+        const finalResult = resumeGapRunResultSchema.safeParse({
+          acceptedItemCount: sanitized.items.length,
+          coveredItemCount,
+          partialItemCount,
+          missingItemCount,
+          ai: finalAI.data,
+          estimatedCost: ai.estimatedCost,
+        });
+        if (!finalResult.success) throw new Error("resume-gap-failed");
         const completeInput: ResumeGapCompleteInput = {
           runId: input.run.id,
           expectedAttemptCount,

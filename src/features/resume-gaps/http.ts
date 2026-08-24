@@ -11,6 +11,7 @@ import type { ResumeGapProviderRequirement, ResumeGapRun } from "./schemas";
 import type { ResumeGapServiceResult } from "./service";
 
 export const resumeGapSchemaVersion = "resume-gap-v1";
+export const resumeGapAnalysisSchemaVersion = resumeGapSchemaVersion;
 const applicationIdSchema = z.uuid();
 const MAX_OCR_REQUEST_BYTES = 1_048_576;
 
@@ -179,7 +180,7 @@ export function createResumeGapPostHandler(dependencies: ResumeGapPostDependenci
         inputHash,
         ...dependencies.providerConfig,
       });
-      if (run.status === "running" || run.status === "succeeded") {
+      if (run.status === "succeeded") {
         return Response.json({ runId: run.id, status: run.status, reused: true, errorCode: run.errorCode });
       }
       const result = await dependencies.runAnalysis({

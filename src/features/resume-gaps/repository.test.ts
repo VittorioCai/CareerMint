@@ -3,8 +3,12 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
+vi.mock("@/features/jd-analysis/repository", () => ({
+  jdAnalysisRepository: { listRequirements: vi.fn() },
+}));
 
 import { createResumeGapRepository } from "./repository";
+import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const appId = "11111111-1111-4111-8111-111111111111";
@@ -127,5 +131,93 @@ describe("resume gap repository", () => {
       target_error_code: "resume-gap-failed",
       target_error_message: "safe",
     });
+  });
+
+  it("hydrates owned reads, returns null for an owner miss, and rejects invalid stored DTOs", async () => {
+    const supabase = client();
+    const repository = createResumeGapRepository(async () => supabase as never);
+    await expect(repository.getOwned(userId, runId)).resolves.toMatchObject({ id: runId });
+
+    supabase.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: null, error: null }),
+    });
+    await expect(repository.getOwned(userId, runId)).resolves.toBeNull();
+
+    supabase.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(),
+      eq: vi.fn().mockReturnThis(),
+      maybeSingle: vi.fn().mockResolvedValue({ data: row({ source_filename: "" }), error: null }),
+    });
+    await expect(repository.getOwned(userId, runId)).rejects.toMatchObject({ code: "invalid-stored-resume-gap" });
+  });
+
+  it("uses deterministic created_at then id ordering for latest and latest succeeded", async () => {
+    const supabase = client();
+    const repository = createResumeGapRepository(async () => supabase as never);
+    await repository.getLatest(userId, appId);
+    await repository.getLatestSucceeded(userId, appId);
+    const first = supabase.from.mock.results[0].value;
+    const second = supabase.from.mock.results[1].value;
+    expect(first.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });
+    expect(first.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
+    expect(second.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });
+    expect(second.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
+  });
+
+  it.each([
+    ["application-or-resume-not-found", "P0002"],
+    ["invalid-resume-gap", "22023"],
+    ["resume-gap-conflict", "23505"],
+  ] as const)("maps %s RPC failures without exposing provider details", async (expected, code) => {
+    const supabase = client({ rpc: vi.fn().mockResolvedValue({ data: null, error: { code, message: "private provider body" } }) });
+    const repository = createResumeGapRepository(async () => supabase as never);
+    await expect(repository.createOrGet({ applicationId: appId, analysisRunId: analysisId, sourceAssetId: assetId, inputHash: "b".repeat(64), provider: "deepseek", model: "deepseek-chat" })).rejects.toMatchObject({ code: expected });
+  });
+
+  it("joins only same-run current confirmed evidence and marks replaced requirements historical", async () => {
+    const itemRow = {
+      id: "66666666-6666-4666-8666-666666666666",
+      run_id: runId,
+      application_id: appId,
+      user_id: userId,
+      requirement_id: "55555555-5555-4555-8555-555555555555",
+      requirement_text: "Advanced SQL",
+      category: "skill",
+      priority: "core",
+      jd_source_excerpt: "Advanced SQL is required.",
+      resume_coverage: "missing",
+      verified_resume_excerpt: null,
+      sort_order: 0,
+      created_at: timestamp,
+    };
+    const supabase = client();
+    supabase.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [itemRow], error: null }),
+    });
+    vi.mocked(jdAnalysisRepository.listRequirements).mockResolvedValueOnce([{
+      id: itemRow.requirement_id,
+      analysisRunId: analysisId,
+      applicationId: appId,
+      category: "skill",
+      text: "Advanced SQL",
+      sourceExcerpt: itemRow.jd_source_excerpt,
+      priority: "core",
+      matchStatus: "evidence",
+      matchReason: "confirmed",
+      sortOrder: 0,
+      evidence: [],
+    }]);
+    const repository = createResumeGapRepository(async () => supabase as never);
+    const items = await repository.listItems(userId, runId);
+    expect(items[0]).toMatchObject({ historical: false, matchStatus: "evidence", profileEvidence: [] });
+
+    supabase.from.mockReturnValueOnce({
+      select: vi.fn().mockReturnThis(), eq: vi.fn().mockReturnThis(), order: vi.fn().mockResolvedValue({ data: [itemRow], error: null }),
+    });
+    vi.mocked(jdAnalysisRepository.listRequirements).mockResolvedValueOnce([]);
+    const historical = await repository.listItems(userId, runId);
+    expect(historical[0]).toMatchObject({ historical: true, profileEvidence: [], matchStatus: undefined });
   });
 });
