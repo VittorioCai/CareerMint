@@ -2,6 +2,13 @@
 
 import { useState } from "react";
 
+import { FactFields } from "./fact-fields";
+import {
+  FactFormMappingError,
+  factDataToFormValues,
+  mapFactFormValues,
+  type FactFormField,
+} from "./fact-form-mapping";
 import type { CareerFact, CareerFactInput } from "./schemas";
 
 type ActionResult = Promise<{ ok: true } | { ok: false; error: string }>;
@@ -36,7 +43,12 @@ export function FactEditor({
   const [error, setError] = useState<string | null>(null);
   const [status, setStatus] = useState(fact.confirmationStatus);
   const [data, setData] = useState(fact.data);
-  const [skills, setSkills] = useState(fact.data.skills.join(", "));
+  const [formValues, setFormValues] = useState(() =>
+    factDataToFormValues(fact.factType, fact.data),
+  );
+  const [fieldErrors, setFieldErrors] = useState<
+    Partial<Record<FactFormField, string>>
+  >({});
 
   async function run(action: () => ActionResult, after?: () => void) {
     setBusy(true);
@@ -48,13 +60,6 @@ export function FactEditor({
       return;
     }
     after?.();
-  }
-
-  function setField<Key extends keyof typeof data>(
-    key: Key,
-    value: (typeof data)[Key],
-  ) {
-    setData((current) => ({ ...current, [key]: value }));
   }
 
   const chipClass =
@@ -132,64 +137,59 @@ export function FactEditor({
       ) : (
         <form
           className="mt-5 grid gap-4 sm:grid-cols-2"
+          noValidate
           onSubmit={(event) => {
             event.preventDefault();
+            let input: CareerFactInput;
+            try {
+              input = mapFactFormValues(fact.factType, formValues);
+              setFieldErrors({});
+            } catch (mappingError) {
+              if (mappingError instanceof FactFormMappingError) {
+                setFieldErrors({ [mappingError.field]: mappingError.message });
+              } else {
+                setError("内容没有保存，请检查必填项和日期格式。");
+              }
+              return;
+            }
             void run(
               () =>
                 actions.update({
                   factId: fact.id,
-                  factType: fact.factType,
-                  data: {
-                    ...data,
-                    skills: skills
-                      .split(",")
-                      .map((skill) => skill.trim())
-                      .filter(Boolean),
-                  },
+                  ...input,
                 }),
               () => {
-                setData((current) => ({
-                  ...current,
-                  skills: skills
-                    .split(",")
-                    .map((skill) => skill.trim())
-                    .filter(Boolean),
-                }));
+                setData(input.data);
+                setFormValues(factDataToFormValues(fact.factType, input.data));
                 setStatus("pending");
                 setEditing(false);
               },
             );
           }}
         >
-          <label className="block text-sm font-black">
-            标题
-            <input className="form-input mt-2" value={data.title} onChange={(event) => setField("title", event.target.value)} required />
-          </label>
-          <label className="block text-sm font-black">
-            组织 / 公司
-            <input className="form-input mt-2" value={data.organization ?? ""} onChange={(event) => setField("organization", event.target.value || null)} />
-          </label>
-          <label className="block text-sm font-black">
-            开始时间（YYYY 或 YYYY-MM）
-            <input className="form-input mt-2" value={data.startDate ?? ""} onChange={(event) => setField("startDate", event.target.value || null)} />
-          </label>
-          <label className="block text-sm font-black">
-            结束时间（留空代表至今）
-            <input className="form-input mt-2" value={data.endDate ?? ""} onChange={(event) => setField("endDate", event.target.value || null)} />
-          </label>
-          <label className="block text-sm font-black sm:col-span-2">
-            描述
-            <textarea className="form-input mt-2 min-h-28 resize-y" value={data.description} onChange={(event) => setField("description", event.target.value)} required />
-          </label>
-          <label className="block text-sm font-black sm:col-span-2">
-            技能（用逗号分隔）
-            <input className="form-input mt-2" value={skills} onChange={(event) => setSkills(event.target.value)} />
-          </label>
+          <FactFields
+            factType={fact.factType}
+            values={formValues}
+            errors={fieldErrors}
+            idPrefix={`fact-${fact.id}`}
+            onChange={(field, value) => {
+              setFormValues((current) => ({ ...current, [field]: value }));
+              setFieldErrors((current) => ({ ...current, [field]: undefined }));
+            }}
+          />
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <button type="submit" className="button-primary min-h-10 px-4 text-sm font-black" disabled={busy}>
               {busy ? "保存中…" : "保存修改"}
             </button>
-            <button type="button" className="button-secondary min-h-10 px-4 text-sm font-black" onClick={() => setEditing(false)}>
+            <button
+              type="button"
+              className="button-secondary min-h-10 px-4 text-sm font-black"
+              onClick={() => {
+                setFormValues(factDataToFormValues(fact.factType, data));
+                setFieldErrors({});
+                setEditing(false);
+              }}
+            >
               取消
             </button>
           </div>

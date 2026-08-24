@@ -326,25 +326,25 @@
 - Modify: `src/features/career-profile/schemas.ts`
 - Modify: `src/features/career-profile/schemas.test.ts`
 
-- [ ] **Step 1: Write failing mapping tests for all nine categories**
+- [x] **Step 1: Write failing mapping tests for all nine categories**
 
   For summary, work, education, project, skill, certification, language, quantified achievement, and STAR story, assert visible field values transform into the existing `CareerFactInput` shape. Hidden irrelevant data must be omitted. Specifically, language maps language/proficiency/certificate without company, employment dates, or skill-list fields; STAR combines situation/task/action/result without losing section labels.
 
-- [ ] **Step 2: Write failing add/edit UI tests**
+- [x] **Step 2: Write failing add/edit UI tests**
 
   Assert switching categories changes labels and required fields, clears irrelevant hidden values, preserves relevant values, shows validation next to the correct field, and both add and edit use the same type-aware component. Assert manual saves remain pending rather than confirmed.
 
-- [ ] **Step 3: Run focused tests and confirm red**
+- [x] **Step 3: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/career-profile/fact-form-mapping.test.ts src/features/career-profile/manual-fact-form.test.tsx src/features/career-profile/fact-editor.test.tsx src/features/career-profile/schemas.test.ts`
 
   Expected: missing modules and failures caused by the current generic form.
 
-- [ ] **Step 4: Implement shared type-aware fields and mapping**
+- [x] **Step 4: Implement shared type-aware fields and mapping**
 
   Keep the database shape unchanged. Use semantic labels and existing form styling, not a new visual system. Add/edit submit through one pure mapping layer so category-specific presentation cannot leak irrelevant fields. Preserve source, confirmation, and usage-history behavior.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
   Run: `pnpm vitest run src/features/career-profile`
 

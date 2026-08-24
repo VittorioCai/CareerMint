@@ -78,4 +78,31 @@ describe("FactEditor", () => {
     expect(screen.getByRole("button", { name: "编辑事实" })).toBeVisible();
     expect(screen.getByRole("button", { name: "删除事实" })).toBeVisible();
   });
+
+  it("uses the same category-specific language fields when editing", async () => {
+    const user = userEvent.setup();
+    render(
+      <FactEditor
+        fact={{
+          ...pendingFact,
+          factType: "language",
+          data: {
+            title: "德语",
+            organization: null,
+            startDate: null,
+            endDate: null,
+            description: "熟练程度：B2\n证书或证明：Goethe B2",
+            skills: [],
+          },
+        }}
+        actions={actions()}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "编辑事实" }));
+    expect(screen.getByRole("textbox", { name: "语言" })).toHaveValue("德语");
+    expect(screen.getByRole("textbox", { name: "熟练程度" })).toHaveValue("B2");
+    expect(screen.getByRole("textbox", { name: "证书或证明（可选）" })).toHaveValue("Goethe B2");
+    expect(screen.queryByRole("textbox", { name: /组织|公司/ })).not.toBeInTheDocument();
+  });
 });
