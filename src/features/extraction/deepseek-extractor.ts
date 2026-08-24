@@ -41,6 +41,7 @@ const endpoint = "https://api.deepseek.com/chat/completions";
 const providerName = "deepseek";
 const invalidOutputError = "resume-extraction-invalid-output";
 const resumeGapInvalidOutputError = "resume-gap-invalid-output";
+const resumeGapMaxTokens = 96_000;
 
 const usageSchema = z
   .object({
@@ -84,21 +85,22 @@ type DeepSeekProviderOptions = {
   logger?: MetadataLogger;
 };
 
-class AdapterError extends Error {
-  constructor(
-    public readonly code: string,
-    public readonly retryableOutput: boolean = false,
-  ) {
-    super(code);
-    this.name = "AIProviderAdapterError";
-  }
-}
-
 const emptyUsage: AIUsage = {
   inputCacheHitTokens: 0,
   inputCacheMissTokens: 0,
   outputTokens: 0,
 };
+
+class AdapterError extends Error {
+  constructor(
+    public readonly code: string,
+    public readonly retryableOutput: boolean = false,
+    public readonly usage: AIUsage = emptyUsage,
+  ) {
+    super(code);
+    this.name = "AIProviderAdapterError";
+  }
+}
 
 const noOpLogger: MetadataLogger = { log: () => undefined };
 
@@ -109,6 +111,16 @@ function mapUsage(
     inputCacheHitTokens: usage?.prompt_cache_hit_tokens ?? 0,
     inputCacheMissTokens: usage?.prompt_cache_miss_tokens ?? 0,
     outputTokens: usage?.completion_tokens ?? 0,
+  };
+}
+
+function addUsage(left: AIUsage, right: AIUsage): AIUsage {
+  return {
+    inputCacheHitTokens:
+      left.inputCacheHitTokens + right.inputCacheHitTokens,
+    inputCacheMissTokens:
+      left.inputCacheMissTokens + right.inputCacheMissTokens,
+    outputTokens: left.outputTokens + right.outputTokens,
   };
 }
 
@@ -273,14 +285,14 @@ export function createDeepSeekAIProvider(
       try {
         rawExtraction = JSON.parse(choice.message.content);
       } catch {
-        throw new AdapterError(invalidOutputError, true);
+        throw new AdapterError(invalidOutputError, true, usage);
       }
 
       const extraction = outputSchema.safeParse(
         preprocess ? preprocess(rawExtraction) : rawExtraction,
       );
       if (!extraction.success) {
-        throw new AdapterError(invalidOutputError, true);
+        throw new AdapterError(invalidOutputError, true, usage);
       }
 
       safeLog(logger, {
@@ -327,15 +339,20 @@ export function createDeepSeekAIProvider(
     run: () => Promise<AIResult<Output>>,
     invalidOutputError: string,
   ) {
+    let retryUsage = emptyUsage;
     for (let attempt = 0; attempt < 2; attempt += 1) {
       try {
-        return await run();
+        const result = await run();
+        return attempt === 0
+          ? result
+          : { ...result, usage: addUsage(retryUsage, result.usage) };
       } catch (error) {
         if (
           error instanceof AdapterError &&
           error.retryableOutput &&
           attempt === 0
         ) {
+          retryUsage = addUsage(retryUsage, error.usage);
           continue;
         }
         throw error;
@@ -433,7 +450,7 @@ export function createDeepSeekAIProvider(
             ].join("\n"),
             outputSchema: resumeGapProviderOutputSchema,
             invalidOutputError: resumeGapInvalidOutputError,
-            maxTokens: 4096,
+            maxTokens: resumeGapMaxTokens,
           }),
         resumeGapInvalidOutputError,
       );
