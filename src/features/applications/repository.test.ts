@@ -99,4 +99,25 @@ describe("application repository baseline resume selection", () => {
       applicationRepository.setResumeSource({ applicationId, sourceAssetId }),
     ).rejects.toMatchObject({ code: expectedCode });
   });
+
+  it("deletes only through the owner-scoped RPC without touching source assets", async () => {
+    mocks.rpc.mockResolvedValue({ data: true, error: null });
+
+    await expect(applicationRepository.remove(applicationId)).resolves.toBeUndefined();
+
+    expect(mocks.rpc).toHaveBeenCalledExactlyOnceWith(
+      "delete_owned_application",
+      { target_application_id: applicationId },
+    );
+    expect(JSON.stringify(mocks.rpc.mock.calls)).not.toContain("source_assets");
+    expect(JSON.stringify(mocks.rpc.mock.calls)).not.toContain("career_facts");
+  });
+
+  it("returns not-found for an application outside the authenticated owner", async () => {
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: "P0002" } });
+
+    await expect(applicationRepository.remove(applicationId)).rejects.toMatchObject({
+      code: "application-not-found",
+    });
+  });
 });

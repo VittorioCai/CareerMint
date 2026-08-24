@@ -284,25 +284,25 @@
 - Modify: `src/features/applications/application-list.test.tsx`
 - Modify: `src/app/(app)/applications/[id]/page.tsx`
 
-- [ ] **Step 1: Write failing repository/action tests**
+- [x] **Step 1: Write failing repository/action tests**
 
   Assert removal filters by both application ID and authenticated user ID (or calls the owner-only RPC), returns not-found for cross-user IDs, and preserves source assets/career facts. The server action must reject missing/false confirmation, return a stable field/global error, revalidate `/applications` and `/app`, and redirect detail deletion only after success.
 
-- [ ] **Step 2: Write failing component/list tests**
+- [x] **Step 2: Write failing component/list tests**
 
   Assert both board/table and overview expose `删除记录`; first activation expands an inline warning naming company and role; cancel collapses it; second activation submits explicit confirmation; pending/error/success states remain screen-reader readable. Refactor card markup so nested interactive controls are not placed inside a link.
 
-- [ ] **Step 3: Run focused tests and confirm red**
+- [x] **Step 3: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/applications/repository.test.ts src/features/applications/actions.test.ts src/features/applications/application-delete-control.test.tsx src/features/applications/application-list.test.tsx`
 
   Expected: failures for missing delete schema/action/control.
 
-- [ ] **Step 4: Implement deletion**
+- [x] **Step 4: Implement deletion**
 
   Add a strict confirmation schema, repository owner check/RPC call, server action, and inline two-step component. On list pages, refresh after success; on the detail page, redirect to `/applications`. Do not delete the selected source asset.
 
-- [ ] **Step 5: Run tests and commit**
+- [x] **Step 5: Run tests and commit**
 
   Run: `pnpm vitest run src/features/applications src/app/\(app\)/applications/\[id\]`
 

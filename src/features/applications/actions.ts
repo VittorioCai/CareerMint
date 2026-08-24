@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/require-user";
 
@@ -10,6 +11,7 @@ import {
 } from "./repository";
 import {
   applicationResumeSourceSchema,
+  applicationDeleteSchema,
   newApplicationSchema,
   stageChangeSchema,
 } from "./schemas";
@@ -105,4 +107,35 @@ export async function setApplicationResumeSourceAction(
   } catch (error) {
     return { ok: false, error: actionError(error) };
   }
+}
+
+export async function deleteApplicationAction(
+  _previousState: ApplicationActionState,
+  formData: FormData,
+): Promise<ApplicationActionState> {
+  await requireUser();
+  const parsed = applicationDeleteSchema.safeParse(formValues(formData));
+  if (!parsed.success) {
+    const confirmationMissing = parsed.error.issues.some(
+      (issue) => issue.path[0] === "confirmed",
+    );
+    return {
+      ok: false,
+      error: confirmationMissing
+        ? "deletion-confirmation-required"
+        : "invalid-input",
+      fieldErrors: parsed.error.flatten().fieldErrors,
+    };
+  }
+
+  try {
+    await applicationRepository.remove(parsed.data.applicationId);
+  } catch (error) {
+    return { ok: false, error: actionError(error) };
+  }
+
+  revalidatePath("/applications");
+  revalidatePath("/app");
+  if (parsed.data.redirectAfterDelete) redirect("/applications");
+  return { ok: true, applicationId: parsed.data.applicationId };
 }

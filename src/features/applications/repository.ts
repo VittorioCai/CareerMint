@@ -29,6 +29,7 @@ export type ApplicationRepository = {
     applicationId: string;
     sourceAssetId: string | null;
   }): Promise<Application>;
+  remove(applicationId: string): Promise<void>;
 };
 
 export class ApplicationRepositoryError extends Error {
@@ -223,6 +224,16 @@ async function setResumeSource(input: {
   return toApplication(data);
 }
 
+async function remove(applicationId: string): Promise<void> {
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("delete_owned_application", {
+    target_application_id: applicationId,
+  });
+  if (error || data !== true) {
+    throw new ApplicationRepositoryError(stableStorageError(error));
+  }
+}
+
 export const applicationRepository: ApplicationRepository = {
   create,
   list,
@@ -230,4 +241,5 @@ export const applicationRepository: ApplicationRepository = {
   listEvents,
   changeStage,
   setResumeSource,
+  remove,
 };

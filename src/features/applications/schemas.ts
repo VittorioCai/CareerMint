@@ -28,6 +28,19 @@ export const applicationResumeSourceSchema = z.object({
   ),
 });
 
+export const applicationDeleteSchema = z
+  .object({
+    applicationId: z.uuid(),
+    confirmed: z.literal("true"),
+    redirectAfterDelete: z
+      .preprocess(
+        (value) => (value === "true" ? true : false),
+        z.boolean(),
+      )
+      .default(false),
+  })
+  .strict();
+
 export type ApplicationStage = z.infer<typeof applicationStageSchema>;
 export type WorkplaceMode = z.infer<typeof workplaceModeSchema>;
 

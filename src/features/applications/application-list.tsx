@@ -1,5 +1,8 @@
 import Link from "next/link";
 
+import { ApplicationDeleteControl } from "./application-delete-control";
+import type { ApplicationActionState } from "./actions";
+
 import {
   APPLICATION_STAGES,
   APPLICATION_STAGE_LABELS,
@@ -53,26 +56,45 @@ function StageChip({ stage }: { stage: ApplicationStage }) {
   );
 }
 
-function ApplicationCard({ application }: { application: Application }) {
+type DeleteApplication = (formData: FormData) => Promise<ApplicationActionState>;
+
+function ApplicationCard({
+  application,
+  deleteApplication,
+}: {
+  application: Application;
+  deleteApplication: DeleteApplication;
+}) {
   return (
-    <Link
-      href={`/applications/${application.id}`}
-      className="block rounded-xl border border-[var(--line)] bg-white p-4 transition-transform hover:-translate-y-0.5 hover:border-[var(--ink-soft)] focus-visible:outline-offset-2"
-    >
-      <span className="text-xs font-black text-[var(--ink-muted)]">
-        {application.companyName}
-      </span>
-      <h3 className="mt-1 break-words text-sm font-black leading-5">
-        {application.roleTitle}
-      </h3>
-      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-[var(--ink-muted)]">
-        {application.location ? <span>{application.location}</span> : null}
-        <span>· {WORKPLACE_MODE_LABELS[application.workplaceMode]}</span>
+    <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-white transition-transform hover:-translate-y-0.5 hover:border-[var(--ink-soft)]">
+      <Link
+        href={`/applications/${application.id}`}
+        className="block p-4 focus-visible:outline-offset-[-3px]"
+      >
+        <span className="text-xs font-black text-[var(--ink-muted)]">
+          {application.companyName}
+        </span>
+        <h3 className="mt-1 break-words text-sm font-black leading-5">
+          {application.roleTitle}
+        </h3>
+        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-[var(--ink-muted)]">
+          {application.location ? <span>{application.location}</span> : null}
+          <span>· {WORKPLACE_MODE_LABELS[application.workplaceMode]}</span>
+        </div>
+        <p className="mt-3 border-t border-[var(--line)] pt-2 text-[10px] font-bold text-[var(--ink-soft)]">
+          更新于 {formatDate(application.updatedAt)}
+        </p>
+      </Link>
+      <div className="border-t border-[var(--line)] px-4 py-3">
+        <ApplicationDeleteControl
+          compact
+          applicationId={application.id}
+          companyName={application.companyName}
+          roleTitle={application.roleTitle}
+          deleteApplication={deleteApplication}
+        />
       </div>
-      <p className="mt-3 border-t border-[var(--line)] pt-2 text-[10px] font-bold text-[var(--ink-soft)]">
-        更新于 {formatDate(application.updatedAt)}
-      </p>
-    </Link>
+    </article>
   );
 }
 
@@ -97,9 +119,11 @@ function EmptyApplications() {
 export function ApplicationList({
   applications,
   view,
+  deleteApplication,
 }: {
   applications: Application[];
   view: "board" | "table";
+  deleteApplication: DeleteApplication;
 }) {
   if (applications.length === 0) return <EmptyApplications />;
 
@@ -115,6 +139,7 @@ export function ApplicationList({
                 "阶段",
                 "来源",
                 "最后更新",
+                "操作",
               ].map((heading) => (
                 <th key={heading} scope="col" className="border-b border-[var(--line)] px-4 py-3">
                   {heading}
@@ -141,6 +166,15 @@ export function ApplicationList({
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {formatDate(application.updatedAt)}
+                </td>
+                <td className="min-w-56 px-4 py-4 align-top">
+                  <ApplicationDeleteControl
+                    compact
+                    applicationId={application.id}
+                    companyName={application.companyName}
+                    roleTitle={application.roleTitle}
+                    deleteApplication={deleteApplication}
+                  />
                 </td>
               </tr>
             ))}
@@ -171,7 +205,11 @@ export function ApplicationList({
               <div className="mt-3 space-y-3">
                 {grouped.length > 0 ? (
                   grouped.map((application) => (
-                    <ApplicationCard key={application.id} application={application} />
+                    <ApplicationCard
+                      key={application.id}
+                      application={application}
+                      deleteApplication={deleteApplication}
+                    />
                   ))
                 ) : (
                   <p className="rounded-xl border border-dashed border-[var(--ink-soft)] p-3 text-xs font-semibold leading-5 text-[var(--ink-soft)]">

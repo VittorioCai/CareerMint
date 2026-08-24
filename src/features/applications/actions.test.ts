@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   requireUser: vi.fn(),
   revalidatePath: vi.fn(),
+  redirect: vi.fn(),
   ApplicationRepositoryError: class MockApplicationRepositoryError extends Error {
     code: string;
 
@@ -18,6 +19,7 @@ const mocks = vi.hoisted(() => ({
     listEvents: vi.fn(),
     changeStage: vi.fn(),
     setResumeSource: vi.fn(),
+    remove: vi.fn(),
   },
 }));
 
@@ -29,6 +31,8 @@ vi.mock("next/cache", () => ({
   revalidatePath: mocks.revalidatePath,
 }));
 
+vi.mock("next/navigation", () => ({ redirect: mocks.redirect }));
+
 vi.mock("./repository", () => ({
   applicationRepository: mocks.repository,
   ApplicationRepositoryError: mocks.ApplicationRepositoryError,
@@ -37,6 +41,7 @@ vi.mock("./repository", () => ({
 import {
   changeApplicationStageAction,
   createApplicationAction,
+  deleteApplicationAction,
   setApplicationResumeSourceAction,
 } from "./actions";
 
@@ -73,6 +78,7 @@ describe("application actions", () => {
       id: "11111111-1111-4111-8111-111111111111",
       resumeSourceAssetId: "22222222-2222-4222-8222-222222222222",
     });
+    mocks.repository.remove.mockResolvedValue(undefined);
   });
 
   it("creates an application from validated fields without accepting a user id", async () => {
@@ -216,5 +222,33 @@ describe("application actions", () => {
       error: "application-storage-error",
     });
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
+  });
+
+  it("requires explicit deletion confirmation before mutation", async () => {
+    const formData = new FormData();
+    formData.set("applicationId", "11111111-1111-4111-8111-111111111111");
+    formData.set("confirmed", "false");
+
+    await expect(deleteApplicationAction({}, formData)).resolves.toMatchObject({
+      ok: false,
+      error: "deletion-confirmation-required",
+    });
+    expect(mocks.repository.remove).not.toHaveBeenCalled();
+  });
+
+  it("deletes, revalidates list/dashboard, and redirects only for detail deletion", async () => {
+    const formData = new FormData();
+    formData.set("applicationId", "11111111-1111-4111-8111-111111111111");
+    formData.set("confirmed", "true");
+    formData.set("redirectAfterDelete", "true");
+
+    await deleteApplicationAction({}, formData);
+
+    expect(mocks.repository.remove).toHaveBeenCalledExactlyOnceWith(
+      "11111111-1111-4111-8111-111111111111",
+    );
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/applications");
+    expect(mocks.revalidatePath).toHaveBeenCalledWith("/app");
+    expect(mocks.redirect).toHaveBeenCalledWith("/applications");
   });
 });

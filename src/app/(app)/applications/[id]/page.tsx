@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 
 import {
   changeApplicationStageAction,
+  deleteApplicationAction,
   setApplicationResumeSourceAction,
 } from "@/features/applications/actions";
+import { ApplicationDeleteControl } from "@/features/applications/application-delete-control";
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGE_LABELS,
@@ -86,8 +88,9 @@ function formatDate(value: string | null) {
 
 function Overview({ application }: { application: Application }) {
   return (
-    <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-      <div className="grid gap-3 sm:grid-cols-2">
+    <div className="space-y-5">
+      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-3 sm:grid-cols-2">
         {[
           ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
           ["阶段开始", formatDate(application.stageChangedAt)],
@@ -103,8 +106,8 @@ function Overview({ application }: { application: Application }) {
             <p className="mt-2 break-words text-sm font-black">{value}</p>
           </article>
         ))}
-      </div>
-      <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]">
+        </div>
+        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]">
         <p className="text-xs font-black uppercase tracking-[0.12em]">更新进度</p>
         <h2 className="heading-font mt-2 text-xl font-black">发生了什么？记下来</h2>
         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
@@ -115,6 +118,22 @@ function Overview({ application }: { application: Application }) {
             applicationId={application.id}
             currentStage={application.stage}
             changeStage={changeApplicationStageAction.bind(null, {})}
+          />
+        </div>
+        </aside>
+      </div>
+      <aside className="rounded-2xl border border-[#d89a94] bg-white p-5">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#a83c34]">删除投递记录</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+          删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
+        </p>
+        <div className="mt-4">
+          <ApplicationDeleteControl
+            applicationId={application.id}
+            companyName={application.companyName}
+            roleTitle={application.roleTitle}
+            redirectAfterDelete
+            deleteApplication={deleteApplicationAction.bind(null, {})}
           />
         </div>
       </aside>

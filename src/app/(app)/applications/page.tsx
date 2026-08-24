@@ -4,6 +4,7 @@ import {
   ApplicationList,
   filterApplications,
 } from "@/features/applications/application-list";
+import { deleteApplicationAction } from "@/features/applications/actions";
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGES,
@@ -116,7 +117,11 @@ export default async function ApplicationsPage({
       </div>
 
       <div className="mt-5">
-        <ApplicationList applications={visibleApplications} view={filter.view} />
+        <ApplicationList
+          applications={visibleApplications}
+          view={filter.view}
+          deleteApplication={deleteApplicationAction.bind(null, {})}
+        />
       </div>
     </section>
   );
