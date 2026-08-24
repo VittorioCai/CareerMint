@@ -56,7 +56,7 @@ import {
 } from "@/features/resume-gaps/baseline-selector";
 import { GapAnalysisControl } from "@/features/resume-gaps/gap-analysis-control";
 import { GapPanel } from "@/features/resume-gaps/gap-panel";
-import { isCurrentGapRun, ResumeWorkspace } from "@/features/resume-gaps/resume-workspace";
+import { getResumeWorkspaceMode, isCurrentGapRun, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
 import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
@@ -219,7 +219,7 @@ function ResumePanel({
   return (
     <ResumeWorkspace
       applicationId={application.id}
-      mode={!analysisRun ? "no-jd" : selectedAsset ? "comparison" : "profile-only"}
+      mode={getResumeWorkspaceMode({ analysisRunId: analysisRun?.id ?? null, selectedAssetId: selectedAsset?.id ?? null })}
       baselineSelector={<BaselineSelector
         applicationId={application.id}
         selectedAsset={selectedAsset}
@@ -394,9 +394,7 @@ export default async function ApplicationDetailPage({
     activeTab === "resume"
       ? jdAnalysisRepository.getLatestSucceeded(user.id, id)
       : Promise.resolve(null),
-    activeTab === "resume"
-      ? jdAnalysisRepository.listRequirements(user.id, id)
-      : Promise.resolve([]),
+    Promise.resolve([]),
     activeTab === "resume"
       ? (async () => {
           const latest = await resumeGapRepository.getLatest(user.id, id);
@@ -428,6 +426,26 @@ export default async function ApplicationDetailPage({
       ? getAIProcessingConsentAt(user.id)
       : Promise.resolve("not-requested"),
   ]);
+  const resumeRequirementsForRun = activeTab === "resume" && resumeAnalysisRun
+    ? await jdAnalysisRepository.listRequirements(user.id, id, resumeAnalysisRun.id)
+    : resumeRequirements;
+  let currentGapData = gapData;
+  if (activeTab === "resume" && application.resumeSourceAssetId && resumeAnalysisRun) {
+    const exactLatest = await resumeGapRepository.getLatestForCombination(user.id, id, application.resumeSourceAssetId, resumeAnalysisRun.id);
+    const exactSucceeded = exactLatest?.status === "succeeded"
+      ? exactLatest
+      : await resumeGapRepository.getLatestForCombination(user.id, id, application.resumeSourceAssetId, resumeAnalysisRun.id, true);
+    const selectedGapRuns = selectGapRunPair(exactLatest, exactSucceeded, gapData.latest, gapData.fallback);
+    const itemRun = selectedGapRuns.latest?.status === "succeeded"
+      ? selectedGapRuns.latest
+      : selectedGapRuns.fallback?.status === "succeeded"
+        ? selectedGapRuns.fallback
+        : null;
+    currentGapData = {
+      ...selectedGapRuns,
+      items: itemRun ? await resumeGapRepository.listItems(user.id, itemRun.id) : [],
+    };
+  }
 
   return (
     <section className="min-w-0">
@@ -477,10 +495,10 @@ export default async function ApplicationDetailPage({
           <ResumePanel
             application={application}
             analysisRun={resumeAnalysisRun}
-            requirements={resumeRequirements}
-            latestGapRun={gapData.latest}
-            fallbackGapRun={gapData.fallback}
-            gapItems={gapData.items}
+            requirements={resumeRequirementsForRun}
+            latestGapRun={currentGapData.latest}
+            fallbackGapRun={currentGapData.fallback}
+            gapItems={currentGapData.items}
             versions={resumeVersions}
             availableAssets={resumeAssets.map((asset) => ({
               id: asset.id,

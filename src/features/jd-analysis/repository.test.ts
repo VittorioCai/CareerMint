@@ -4,12 +4,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   createClient: vi.fn(),
+  factsList: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: mocks.createClient }));
 vi.mock("@/features/career-profile/repository", () => ({
-  careerFactRepository: { list: vi.fn() },
+  careerFactRepository: { list: mocks.factsList },
 }));
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
@@ -68,6 +69,24 @@ describe("JD analysis latest-run repository queries", () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
+  });
+
+  it("filters requirements by the selected analysis run when a run id is supplied", async () => {
+    const requirementChain = { select: vi.fn(), eq: vi.fn(), order: vi.fn() };
+    requirementChain.select.mockReturnValue(requirementChain);
+    requirementChain.eq.mockReturnValue(requirementChain);
+    requirementChain.order.mockResolvedValue({ data: [], error: null });
+    const evidenceChain = { select: vi.fn(), eq: vi.fn() };
+    evidenceChain.select.mockReturnValue(evidenceChain);
+    evidenceChain.eq.mockReturnValue(evidenceChain);
+    evidenceChain.eq.mockReturnValue(evidenceChain);
+    evidenceChain.eq.mockReturnValue(evidenceChain);
+    evidenceChain.eq.mockReturnValue(evidenceChain);
+    const client = { from: vi.fn().mockReturnValueOnce(requirementChain).mockReturnValueOnce(evidenceChain) };
+    mocks.createClient.mockResolvedValue(client);
+    const { jdAnalysisRepository } = await import("./repository");
+    await jdAnalysisRepository.listRequirements(userId, applicationId, runId);
+    expect(requirementChain.eq).toHaveBeenCalledWith("analysis_run_id", runId);
   });
 
   it("filters latest succeeded analysis by owner/application/status and uses deterministic ordering", async () => {

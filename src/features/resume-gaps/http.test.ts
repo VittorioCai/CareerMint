@@ -34,9 +34,9 @@ describe("resume gaps POST handler", () => {
   it("rejects malformed/oversized JSON without touching persistence", async () => {
     const dependencies = deps();
     const post = createResumeGapPostHandler(dependencies);
-    const malformed = await post(new Request("http://test", { method: "POST", body: "{", headers: { "content-type": "application/json" } }), context());
+    const malformed = await post(new Request("http://test", { method: "POST", body: "{", headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId } }), context());
     expect(malformed.status).toBe(400);
-    const oversized = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: "x".repeat(1_048_577) }), headers: { "content-type": "application/json" } }), context());
+    const oversized = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: "x".repeat(1_048_577) }), headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId } }), context());
     expect(oversized.status).toBe(413);
     expect(dependencies.createOrGetRun).not.toHaveBeenCalled();
   });
@@ -52,16 +52,34 @@ describe("resume gaps POST handler", () => {
     expect(dependencies.providerFactory).not.toHaveBeenCalled();
 
     dependencies.getAIProcessingConsentAt.mockResolvedValue("2026-08-24T00:00:00Z");
-    const response = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: "validated OCR" }), headers: { "content-type": "application/json" } }), context());
+    const response = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: "validated OCR" }), headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId } }), context());
     expect(response.status).toBe(200);
     await expect(response.json()).resolves.toEqual({ runId: run.id, status: "succeeded", reused: false, errorCode: null });
+  });
+
+  it.each([
+    ["missing", undefined],
+    ["invalid", "not-a-uuid"],
+    ["mismatch", "66666666-6666-4666-8666-666666666666"],
+  ] as const)("rejects a %s resume identity before reading or creating a run", async (_label, headerValue) => {
+    const dependencies = deps();
+    const request = new Request("http://test", {
+      method: "POST",
+      headers: headerValue ? { "x-resume-source-asset-id": headerValue } : undefined,
+    });
+    const response = await createResumeGapPostHandler(dependencies)(request, context());
+    expect(response.status).toBe(409);
+    await expect(response.json()).resolves.toEqual({ error: "resume-source-changed" });
+    expect(dependencies.getOwnedAsset).not.toHaveBeenCalled();
+    expect(dependencies.createOrGetRun).not.toHaveBeenCalled();
+    expect(dependencies.runAnalysis).not.toHaveBeenCalled();
   });
 
   it("delegates every running run to the service so fresh versus stale leases are decided by claim", async () => {
     const dependencies = deps();
     dependencies.createOrGetRun.mockResolvedValue({ ...run, status: "running" });
     const post = createResumeGapPostHandler(dependencies);
-    const response = await post(new Request("http://test", { method: "POST" }), context());
+    const response = await post(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": assetId } }), context());
     expect(response.status).toBe(200);
     expect(dependencies.runAnalysis).toHaveBeenCalledTimes(1);
     expect(dependencies.providerFactory).not.toHaveBeenCalled();
@@ -102,9 +120,9 @@ describe("resume gaps POST handler", () => {
     ];
     const dependencies = deps();
     const post = createResumeGapPostHandler(dependencies);
-    expect((await post(new Request("http://test", { method: "POST" }), context())).status).toBe(200);
+    expect((await post(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": assetId } }), context())).status).toBe(200);
     for (const [, init] of shapes) {
-      const response = await post(new Request("http://test", init), context());
+      const response = await post(new Request("http://test", { ...init, headers: { ...(init.headers as Record<string, string>), "x-resume-source-asset-id": assetId } }), context());
       expect(response.status).toBe(400);
     }
     expect(dependencies.createOrGetRun).toHaveBeenCalledTimes(1);
@@ -116,7 +134,7 @@ describe("resume gaps POST handler", () => {
     const maxBytes = 1_048_576;
     const prefixLength = JSON.stringify({ ocrText: "" }).length;
     const exactText = "x".repeat(maxBytes - prefixLength);
-    const exact = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: exactText }), headers: { "content-type": "application/json" } }), context());
+    const exact = await post(new Request("http://test", { method: "POST", body: JSON.stringify({ ocrText: exactText }), headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId } }), context());
     expect(exact.status).toBe(200);
 
     const stream = new ReadableStream<Uint8Array>({
@@ -126,7 +144,7 @@ describe("resume gaps POST handler", () => {
         controller.close();
       },
     });
-    const streamed = await post(new Request("http://test", { method: "POST", body: stream, headers: { "content-type": "application/json" }, duplex: "half" } as RequestInit & { duplex: "half" }), context());
+    const streamed = await post(new Request("http://test", { method: "POST", body: stream, headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId }, duplex: "half" } as RequestInit & { duplex: "half" }), context());
     expect(streamed.status).toBe(413);
   });
 

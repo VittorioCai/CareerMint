@@ -174,7 +174,7 @@ describe("resume gap analysis route wiring", () => {
   it("composes owner, consent, JD, asset, parser, storage, repository, pricing, and service dependencies", async () => {
     const route = await import("./route");
     const response = await route.POST(
-      new Request("http://test", { method: "POST" }),
+      new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }),
       context(),
     );
 
@@ -213,7 +213,7 @@ describe("resume gap analysis route wiring", () => {
 
   it("provides a deterministic, grounded fake with one covered, one partial, and remaining missing", async () => {
     const route = await import("./route");
-    await route.POST(new Request("http://test", { method: "POST" }), context());
+    await route.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context());
     const serviceDependencies = mocks.createResumeGapService.mock.calls[0][0];
     const provider = serviceDependencies.providerFactory();
     const resumeText =
@@ -247,7 +247,7 @@ describe("resume gap analysis route wiring", () => {
       AI_PRICE_SCHEDULE_JSON: undefined,
     });
     const route = await import("./route");
-    await route.POST(new Request("http://test", { method: "POST" }), context());
+    await route.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context());
     const serviceDependencies = mocks.createResumeGapService.mock.calls[0][0];
     expect(mocks.createDeepSeekAIProvider).not.toHaveBeenCalled();
     serviceDependencies.providerFactory();
@@ -267,7 +267,7 @@ describe("resume gap analysis route wiring", () => {
     });
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const route = await import("./route");
-    await route.POST(new Request("http://test", { method: "POST" }), context());
+    await route.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context());
     expect(warning).toHaveBeenCalledWith("ai-price-config-unavailable");
     expect(warning.mock.calls.flat().join(" ")).not.toContain("resume text");
     warning.mockRestore();
@@ -302,7 +302,7 @@ describe("resume gap analysis route wiring", () => {
     });
     const warning = vi.spyOn(console, "warn").mockImplementation(() => undefined);
     const route = await import("./route");
-    await route.POST(new Request("http://test", { method: "POST" }), context());
+    await route.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context());
 
     const serviceDependencies = mocks.createResumeGapService.mock.calls[0][0];
     expect(serviceDependencies.priceSchedule).toEqual(schedule);
@@ -321,7 +321,7 @@ describe("resume gap analysis route wiring", () => {
     mocks.getCurrentUser.mockResolvedValue(null);
     const earlyRoute = await import("./route");
     expect(
-      (await earlyRoute.POST(new Request("http://test", { method: "POST" }), context())).status,
+      (await earlyRoute.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context())).status,
     ).toBe(401);
     expect(mocks.createDeepSeekAIProvider).not.toHaveBeenCalled();
 
@@ -358,7 +358,7 @@ describe("resume gap analysis route wiring", () => {
     mocks.createOrGet.mockResolvedValue({ ...queuedRun, status: "succeeded" });
     const cachedRoute = await import("./route");
     expect(
-      (await cachedRoute.POST(new Request("http://test", { method: "POST" }), context())).status,
+      (await cachedRoute.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context())).status,
     ).toBe(200);
     expect(mocks.createDeepSeekAIProvider).not.toHaveBeenCalled();
 
@@ -369,7 +369,7 @@ describe("resume gap analysis route wiring", () => {
     });
     mocks.createResumeGapService.mockReturnValue({ run: mocks.serviceRun });
     expect(
-      (await cachedRoute.POST(new Request("http://test", { method: "POST" }), context())).status,
+      (await cachedRoute.POST(new Request("http://test", { method: "POST", headers: { "x-resume-source-asset-id": ids.asset } }), context())).status,
     ).toBe(200);
     expect(mocks.createDeepSeekAIProvider).not.toHaveBeenCalled();
   });

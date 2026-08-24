@@ -253,16 +253,18 @@ async function fail(input: FailJDAnalysisInput): Promise<JDAnalysisRun> {
 async function listRequirements(
   userId: string,
   applicationId: string,
+  analysisRunId?: string,
 ): Promise<JDRequirementRecord[]> {
   const supabase = await createClient();
+  let requirementsQuery = supabase
+    .from("application_requirements")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("application_id", applicationId);
+  if (analysisRunId) requirementsQuery = requirementsQuery.eq("analysis_run_id", analysisRunId);
   const [{ data: rows, error }, { data: evidenceRows, error: evidenceError }] =
     await Promise.all([
-      supabase
-        .from("application_requirements")
-        .select("*")
-        .eq("user_id", userId)
-        .eq("application_id", applicationId)
-        .order("sort_order", { ascending: true }),
+      requirementsQuery.order("sort_order", { ascending: true }),
       supabase
         .from("application_requirement_evidence")
         .select("requirement_id, career_fact_id")

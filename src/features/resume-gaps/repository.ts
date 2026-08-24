@@ -215,6 +215,31 @@ export function createResumeGapRepository(
     return data ? toRun(data as RunRow) : null;
   }
 
+  async function getLatestForCombination(
+    userId: string,
+    applicationId: string,
+    sourceAssetId: string,
+    analysisRunId: string,
+    succeededOnly = false,
+  ) {
+    const supabase = await getClient();
+    let query = supabase
+      .from("resume_gap_runs")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("application_id", applicationId)
+      .eq("source_asset_id", sourceAssetId)
+      .eq("analysis_run_id", analysisRunId);
+    if (succeededOnly) query = query.eq("status", "succeeded");
+    const { data, error } = await query
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (error) throw new ResumeGapRepositoryError(stableError(error));
+    return data ? toRun(data as RunRow) : null;
+  }
+
   async function listItems(userId: string, runId: string): Promise<(ResumeGapItemView & { historical: boolean })[]> {
     const supabase = await getClient();
     const { data, error } = await supabase
@@ -270,7 +295,7 @@ export function createResumeGapRepository(
     return asRun(data as RunRow);
   }
 
-  return { createOrGet, claim, getOwned, getLatest, getLatestSucceeded, listItems, complete, fail };
+  return { createOrGet, claim, getOwned, getLatest, getLatestSucceeded, getLatestForCombination, listItems, complete, fail };
 }
 
 export const resumeGapRepository = createResumeGapRepository();

@@ -168,6 +168,16 @@ describe("resume gap repository", () => {
     expect(second.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
   });
 
+  it("queries the latest run for an exact baseline and JD combination", async () => {
+    const supabase = client();
+    const repository = createResumeGapRepository(async () => supabase as never);
+    await repository.getLatestForCombination(userId, appId, assetId, analysisId);
+    const query = supabase.from.mock.results[0].value;
+    expect(query.eq).toHaveBeenCalledWith("source_asset_id", assetId);
+    expect(query.eq).toHaveBeenCalledWith("analysis_run_id", analysisId);
+    expect(query.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });
+  });
+
   it.each([
     ["application-or-resume-not-found", "P0002"],
     ["invalid-resume-gap", "22023"],

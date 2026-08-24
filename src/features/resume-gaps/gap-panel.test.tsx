@@ -154,6 +154,74 @@ describe("GapPanel", () => {
     expect(screen.getByText(/旧快照记录的简历覆盖了当时分析的要求/)).toBeVisible();
   });
 
+  it("does not claim current coverage when covered current items are mixed with historical missing items", async () => {
+    const user = userEvent.setup();
+    render(
+      <GapPanel
+        baseline={{ id: "asset", originalName: "current.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "current.pdf", sourceAssetId: "asset", analysisRunId: "analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="analysis"
+        items={[item("current-covered", "covered"), { ...item("historical-missing", "missing"), historical: true }]}
+      />,
+    );
+    expect(screen.queryByText(/这份简历已覆盖当前 JD 要求/)).not.toBeInTheDocument();
+    await user.click(screen.getByText(/历史差距快照/));
+    expect(screen.getByText(/未覆盖（旧快照）/)).toBeVisible();
+  });
+
+  it("shows only the historical snapshot area when no current items exist", () => {
+    render(
+      <GapPanel
+        baseline={{ id: "asset", originalName: "current.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "old.pdf", sourceAssetId: "old-asset", analysisRunId: "old-analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="current-analysis"
+        items={[{ ...item("historical-missing-only", "missing"), historical: true }]}
+      />,
+    );
+    expect(screen.getByText("历史快照 1 项")).toBeVisible();
+    expect(screen.queryByLabelText("简历差距摘要")).not.toBeInTheDocument();
+    expect(screen.getByText(/历史差距快照/)).toBeVisible();
+  });
+
+  it("does not show a current retry error for a failed run from an old baseline", () => {
+    render(
+      <GapPanel
+        baseline={{ id: "new-asset", originalName: "new.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "failed", sourceFilename: "old.pdf", sourceAssetId: "old-asset", analysisRunId: "old-analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="current-analysis"
+        items={[]}
+      />,
+    );
+    expect(screen.queryByText("上一次分析失败，请重试。")).not.toBeInTheDocument();
+    expect(screen.getByText("等待分析")).toBeVisible();
+  });
+
+  it("wraps long requirement and evidence text for narrow screens", async () => {
+    const user = userEvent.setup();
+    const longText = "An extremely-long-requirement-url.example.com/with-a-very-long-path-and-no-spaces";
+    const longJd = `${longText}/jd`;
+    const longResume = `${longText}/resume`;
+    render(
+      <GapPanel
+        baseline={{ id: "asset", originalName: "resume.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "resume.pdf", sourceAssetId: "asset", analysisRunId: "analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="analysis"
+        items={[{ ...item("long", "partial"), requirementText: longText, jdSourceExcerpt: longJd, verifiedResumeExcerpt: longResume }]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: new RegExp(longText) }));
+    expect(within(screen.getByRole("button", { name: new RegExp(longText) })).getByText(longText).className).toMatch(/break-words/);
+    expect(screen.getByText(longJd).className).toMatch(/whitespace-pre-wrap/);
+  });
+
   it("keeps historical missing coverage outside current groups and does not invent absent profile evidence", async () => {
     const user = userEvent.setup();
     render(
@@ -172,6 +240,6 @@ describe("GapPanel", () => {
     expect(screen.getByText(/原职业档案证据无法从历史快照重建/)).toBeVisible();
     expect(screen.queryByText(/旧快照记录的简历覆盖了当时分析的要求/)).not.toBeInTheDocument();
     expect(screen.queryByText("职业档案中也没有已确认事实")).not.toBeInTheDocument();
-    expect(within(screen.getByLabelText("简历差距摘要")).getAllByText("0")).toHaveLength(4);
+    expect(screen.queryByLabelText("简历差距摘要")).not.toBeInTheDocument();
   });
 });

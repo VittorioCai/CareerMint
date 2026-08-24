@@ -163,6 +163,10 @@ export function createResumeGapPostHandler(dependencies: ResumeGapPostDependenci
       const requirements = await dependencies.listRequirements(user.id, application.id);
       if (requirements.length === 0) return Response.json({ error: "jd-analysis-required" }, { status: 409 });
       if (!application.resumeSourceAssetId) return Response.json({ error: "resume-source-required" }, { status: 409 });
+      const declaredAssetId = request.headers.get("x-resume-source-asset-id");
+      if (!declaredAssetId || !applicationIdSchema.safeParse(declaredAssetId).success || declaredAssetId !== application.resumeSourceAssetId) {
+        return Response.json({ error: "resume-source-changed" }, { status: 409 });
+      }
       const asset = await dependencies.getOwnedAsset(user.id, application.resumeSourceAssetId);
       if (!asset) return Response.json({ error: "resume-source-required" }, { status: 409 });
 

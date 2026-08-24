@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { OcrProgress, ScannedPdfOcrOptions } from "@/features/source-assets/ocr";
 
@@ -43,6 +43,7 @@ const errorCopy: Record<string, string> = {
   "resume-gap-unavailable": "分析服务暂时不可用，请稍后重试。",
   "resume-gap-failed": "分析失败，请重试或更换文件。",
   "resume-gap-request-failed": "分析请求失败，请稍后重试。",
+  "resume-source-changed": "对照简历已更换，请刷新后重试。",
   "resume-gap-invalid-output": "分析结果格式无效，请重试。",
   unauthorized: "登录状态已失效，请重新登录后重试。",
   "authentication-required": "登录状态已失效，请重新登录后重试。",
@@ -99,6 +100,15 @@ export function GapAnalysisControl({
   const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
   const cachedOcrTextRef = useRef<string | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
+  const mountedRef = useRef(true);
+  useEffect(() => {
+    mountedRef.current = true;
+    return () => {
+    mountedRef.current = false;
+    ocrAbortControllerRef.current?.abort();
+    ocrAbortControllerRef.current = null;
+    };
+  }, []);
   // The page keys this control by asset + JD run so browser OCR state cannot
   // cross-contaminate when a baseline is replaced.
 
@@ -106,7 +116,7 @@ export function GapAnalysisControl({
   const canRecoverWithOcr = isPdf(asset) && error === "resume-text-too-short";
   const existingTask = runStatus === "queued" || runStatus === "running";
 
-  async function submit(ocrText?: string) {
+  async function submit(ocrText?: string, signal?: AbortSignal) {
     setPhase("analyzing");
     setError(null);
     setRunStatus("running");
@@ -114,11 +124,12 @@ export function GapAnalysisControl({
       const response = await request(
         `/api/applications/${applicationId}/resume/gaps/analyze`,
         ocrText === undefined
-          ? { method: "POST" }
+          ? { method: "POST", headers: { "x-resume-source-asset-id": asset.id }, signal }
           : {
               method: "POST",
-              headers: { "content-type": "application/json" },
+              headers: { "content-type": "application/json", "x-resume-source-asset-id": asset.id },
               body: JSON.stringify({ ocrText }),
+              signal,
             },
       );
       const body = await responseBody(response);
@@ -146,6 +157,7 @@ export function GapAnalysisControl({
       setReused(body.reused === true);
       refreshPage();
     } catch (caught) {
+      if (!mountedRef.current) return;
       setPhase("failed");
       setRunStatus("failed");
       setError(errorCode(caught));
@@ -186,9 +198,11 @@ export function GapAnalysisControl({
         aborted.name = "AbortError";
         throw aborted;
       }
+      if (!mountedRef.current) return;
       cachedOcrTextRef.current = text;
-      await submit(text);
+      await submit(text, controller.signal);
     } catch (caught) {
+      if (!mountedRef.current) return;
       setPhase("failed");
       if (errorName(caught) === "AbortError" || controller.signal.aborted) {
         setError("AbortError");

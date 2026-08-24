@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from "@testing-library/react";
+import { StrictMode } from "react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -46,6 +47,7 @@ describe("GapAnalysisControl", () => {
     await waitFor(() => expect(request).toHaveBeenCalledOnce());
     expect(request.mock.calls[0][0]).toBe(`/api/applications/${appId}/resume/gaps/analyze`);
     expect(request.mock.calls[0][1]).toMatchObject({ method: "POST" });
+    expect(request.mock.calls[0][1]).toMatchObject({ headers: { "x-resume-source-asset-id": assetId } });
     expect(refresh).toHaveBeenCalledOnce();
   });
 
@@ -89,7 +91,7 @@ describe("GapAnalysisControl", () => {
     await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
     expect(request.mock.calls[2][1]).toMatchObject({
       method: "POST",
-      headers: { "content-type": "application/json" },
+      headers: { "content-type": "application/json", "x-resume-source-asset-id": assetId },
       body: JSON.stringify({ ocrText: "Verified resume text" }),
     });
   });
@@ -198,11 +200,59 @@ describe("GapAnalysisControl", () => {
     ["ai-provider-timeout", "分析服务请求超时"],
     ["resume-gap-unavailable", "分析服务暂时不可用"],
     ["resume-gap-failed", "分析失败"],
+    ["resume-source-changed", "对照简历已更换"],
   ] as const)("maps the service error code %s to an actionable message", async (errorCode, copy) => {
     const user = userEvent.setup();
     const { request } = renderControl();
     request.mockResolvedValueOnce(new Response(JSON.stringify({ errorCode }), { status: 500 }));
     await user.click(screen.getByRole("button", { name: "分析简历差距" }));
     expect(await screen.findByRole("alert")).toHaveTextContent(copy);
+  });
+
+  it("aborts in-flight OCR on unmount so the old asset never posts after a baseline switch", async () => {
+    const user = userEvent.setup();
+    let resolveOcr!: (text: string) => void;
+    const ocrPdf = vi.fn(() => new Promise<string>((resolve) => { resolveOcr = resolve; }));
+    const old = renderControl({ ocrPdf });
+    old.request
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "failed", errorCode: "resume-text-too-short" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(new Blob(["%PDF"], { type: "application/pdf" }), { status: 200 }));
+    await user.click(screen.getByRole("button", { name: "分析简历差距" }));
+    await user.click(await screen.findByRole("button", { name: "在本机识别扫描版 PDF" }));
+    await waitFor(() => expect(ocrPdf).toHaveBeenCalledOnce());
+    old.unmount();
+    renderControl({ asset: { id: "new-asset", originalName: "new.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" } });
+    resolveOcr("old asset text");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    expect(old.request).toHaveBeenCalledTimes(2);
+    expect(old.request.mock.calls.some((call) => call[1] && typeof call[1] === "object" && "body" in call[1])).toBe(false);
+  });
+
+  it("keeps the control mounted under StrictMode while deferred OCR completes", async () => {
+    const user = userEvent.setup();
+    let resolveOcr!: (text: string) => void;
+    const request = vi.fn<typeof fetch>();
+    const ocrPdf = vi.fn(() => new Promise<string>((resolve) => { resolveOcr = resolve; }));
+    render(
+      <StrictMode>
+        <GapAnalysisControl
+          applicationId={appId}
+          asset={{ id: assetId, originalName: "resume.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+          initialRun={null}
+          request={request}
+          ocrPdf={ocrPdf}
+        />
+      </StrictMode>,
+    );
+    request
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "failed", errorCode: "resume-text-too-short" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(new Blob(["%PDF"], { type: "application/pdf" }), { status: 200 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ status: "succeeded" }), { status: 200 }));
+    await user.click(screen.getByRole("button", { name: "分析简历差距" }));
+    await user.click(await screen.findByRole("button", { name: "在本机识别扫描版 PDF" }));
+    await waitFor(() => expect(ocrPdf).toHaveBeenCalledOnce());
+    resolveOcr("strict mode text");
+    await waitFor(() => expect(request).toHaveBeenCalledTimes(3));
+    expect(request.mock.calls[2][1]).toMatchObject({ signal: expect.any(AbortSignal) });
   });
 });

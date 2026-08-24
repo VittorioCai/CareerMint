@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { ResumeWorkspace, getResumeWorkspaceMode, isCurrentGapRun } from "./resume-workspace";
+import { ResumeWorkspace, getResumeWorkspaceMode, isCurrentGapRun, selectGapRunPair } from "./resume-workspace";
 
 describe("resume workspace", () => {
   it("keeps no-JD, profile-only, and comparison modes explicit", () => {
@@ -56,5 +56,13 @@ describe("resume workspace", () => {
     const run = { sourceAssetId: "old-asset", analysisRunId: "jd" };
     expect(isCurrentGapRun(run, "new-asset", "jd")).toBe(false);
     expect(isCurrentGapRun(run, "old-asset", "jd")).toBe(true);
+  });
+
+  it.each([
+    ["B failed", { status: "failed" as const, id: "b" }, { status: "succeeded" as const, id: "b" }],
+    ["B succeeded", { status: "succeeded" as const, id: "b" }, { status: "succeeded" as const, id: "b" }],
+  ])("prefers exact A/J results when switching back from %s", (_label, latest, fallback) => {
+    const exact = { status: "succeeded" as const, id: "a" };
+    expect(selectGapRunPair(exact, null, latest, fallback)).toEqual({ latest: exact, fallback: null });
   });
 });

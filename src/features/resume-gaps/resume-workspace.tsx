@@ -10,6 +10,22 @@ type ResumeWorkspaceVersion = {
 };
 
 export type ResumeWorkspaceMode = "no-jd" | "profile-only" | "comparison";
+type GapRunStatus = "queued" | "running" | "succeeded" | "failed";
+
+export function selectGapRunPair<T extends { status: GapRunStatus }>(
+  exactLatest: T | null,
+  exactSucceeded: T | null,
+  latest: T | null,
+  fallback: T | null,
+) {
+  if (exactLatest || exactSucceeded) {
+    return {
+      latest: exactLatest ?? exactSucceeded,
+      fallback: exactLatest?.status === "succeeded" ? null : exactSucceeded,
+    };
+  }
+  return { latest, fallback };
+}
 
 export function getResumeWorkspaceMode({
   analysisRunId,
