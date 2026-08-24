@@ -4,6 +4,9 @@ import {
   classifyGap,
   classifyProfileOnlyRequirement,
   explainGap,
+  resumeGapAIResultSchema,
+  resumeGapEstimatedCostSchema,
+  resumeGapItemSchema,
   resumeGapProviderOutputSchema,
   sanitizeResumeGapOutput,
   selectPriorityRequirements,
@@ -222,12 +225,19 @@ function item(
 
 describe("deterministic resume gap classification", () => {
   it("maps coverage and profile evidence to stable display groups", () => {
-    expect(classifyGap(item("covered", []))).toBe("covered");
+    expect([
+      classifyGap(item("covered", [])),
+      classifyGap(item("partial", [])),
+      classifyGap(item("missing", [{} as never])),
+      classifyGap(item("missing", [])),
+    ]).toEqual([
+      "covered",
+      "partial_coverage",
+      "resume_omission",
+      "missing_evidence",
+    ]);
     expect(classifyGap(item("covered", [{} as never]))).toBe("covered");
-    expect(classifyGap(item("partial", []))).toBe("partial_coverage");
     expect(classifyGap(item("partial", [{} as never]))).toBe("partial_coverage");
-    expect(classifyGap(item("missing", [{} as never]))).toBe("resume_omission");
-    expect(classifyGap(item("missing", []))).toBe("missing_evidence");
   });
 
   it("explains each group locally and reports confirmed fact count for omissions", () => {
@@ -279,6 +289,32 @@ describe("JD requirement summary and priority selection", () => {
     ]);
   });
 
+  it("uses one final evidence rank ordered by sortOrder regardless of priority", () => {
+    const evidence = [
+      { ...requirements[0], sortOrder: 8, matchStatus: "evidence" as const },
+      { ...requirements[2], sortOrder: 2, matchStatus: "evidence" as const },
+      {
+        ...requirements[0],
+        id: "00000000-0000-4000-8000-000000000000",
+        sortOrder: 2,
+        matchStatus: "evidence" as const,
+      },
+    ];
+
+    expect(selectPriorityRequirements(evidence).map((requirement) => requirement.id)).toEqual([
+      "00000000-0000-4000-8000-000000000000",
+      thirdId,
+      firstId,
+    ]);
+  });
+
+  it("clamps the caller limit to the hard maximum of five", () => {
+    expect(selectPriorityRequirements(prioritized, 100)).toHaveLength(5);
+    expect(selectPriorityRequirements(prioritized, Number.POSITIVE_INFINITY)).toHaveLength(0);
+    expect(selectPriorityRequirements(prioritized, Number.NaN)).toHaveLength(0);
+    expect(selectPriorityRequirements(prioritized, -1)).toHaveLength(0);
+  });
+
   it("summarizes total, core, confirmed evidence, and core attention", () => {
     expect(summarizeRequirements(prioritized)).toEqual({
       total: 7,
@@ -286,5 +322,79 @@ describe("JD requirement summary and priority selection", () => {
       evidence: 2,
       attention: 3,
     });
+  });
+});
+
+describe("stored resume-gap DTOs and safe metadata", () => {
+  const historicalItem = {
+    id: firstId,
+    runId: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+    applicationId: "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb",
+    userId: "cccccccc-cccc-4ccc-8ccc-cccccccccccc",
+    requirementId: null,
+    requirementText: "SQL",
+    category: "skill",
+    priority: "core",
+    jdSourceExcerpt: "SQL experience is required.",
+    resumeCoverage: "missing",
+    verifiedResumeExcerpt: null,
+    sortOrder: 0,
+  };
+
+  it("parses a historical item whose deleted requirement ID is null", () => {
+    expect(resumeGapItemSchema.parse(historicalItem).requirementId).toBeNull();
+  });
+
+  it("accepts valid safe usage and cost metadata without transforming it", () => {
+    expect(
+      resumeGapAIResultSchema.safeParse({
+        provider: "deepseek",
+        model: "deepseek-chat",
+        requestId: "req_123:ok",
+        usage: {
+          inputCacheHitTokens: 1,
+          inputCacheMissTokens: 2,
+          outputTokens: 3,
+        },
+        priceScheduleVersion: "2026-08-24:v1",
+      }).success,
+    ).toBe(true);
+    expect(
+      resumeGapEstimatedCostSchema.safeParse({
+        amount: 0.01,
+        currency: "USD",
+        scheduleVersion: "2026-08-24:v1",
+        tier: "default",
+      }).success,
+    ).toBe(true);
+  });
+
+  it("rejects untrimmed or invalid request IDs and cost schedule versions", () => {
+    for (const requestId of [" req_123", "req 123", "req_123 ", ""]) {
+      expect(
+        resumeGapAIResultSchema.safeParse({
+          provider: "deepseek",
+          model: "deepseek-chat",
+          requestId,
+          usage: {
+            inputCacheHitTokens: 1,
+            inputCacheMissTokens: 2,
+            outputTokens: 3,
+          },
+          priceScheduleVersion: "2026-08-24:v1",
+        }).success,
+      ).toBe(false);
+    }
+
+    for (const scheduleVersion of [" 2026-08-24:v1", "2026 08", "2026-08-24:v1 ", ""]) {
+      expect(
+        resumeGapEstimatedCostSchema.safeParse({
+          amount: 0,
+          currency: "USD",
+          scheduleVersion,
+          tier: "default",
+        }).success,
+      ).toBe(false);
+    }
   });
 });

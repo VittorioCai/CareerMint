@@ -6,6 +6,7 @@ import {
   unicodeCodePointLength,
 } from "@/features/extraction/evidence";
 import {
+  requirementCategorySchema,
   requirementPrioritySchema,
   type ConfirmedFactForAnalysis,
   type RequirementCategory,
@@ -147,7 +148,7 @@ export type ResumeGapItem = {
   runId: string;
   applicationId: string;
   userId: string;
-  requirementId: string;
+  requirementId: string | null;
   requirementText: string;
   category: RequirementCategory;
   priority: z.infer<typeof requirementPrioritySchema>;
@@ -163,6 +164,47 @@ export type ResumeGapItemView = ResumeGapItem & {
   matchStatus?: RequirementMatchStatus;
   matchReason?: string | null;
 };
+
+const storedText = (max: number) =>
+  z
+    .string()
+    .min(1)
+    .max(max)
+    .refine((value) => value.trim().length > 0);
+
+const storedToken = (max: number) =>
+  storedText(max).regex(/^[A-Za-z0-9._:-]+$/u);
+
+export const resumeGapItemSchema = z
+  .object({
+    id: z.uuid(),
+    runId: z.uuid(),
+    applicationId: z.uuid(),
+    userId: z.uuid(),
+    requirementId: z.uuid().nullable(),
+    requirementText: storedText(500),
+    category: requirementCategorySchema,
+    priority: requirementPrioritySchema,
+    jdSourceExcerpt: storedText(1000),
+    resumeCoverage: resumeCoverageSchema,
+    verifiedResumeExcerpt: storedText(1000).nullable(),
+    sortOrder: z.number().int().min(0).max(79),
+    createdAt: z.string().optional(),
+  })
+  .strict()
+  .superRefine((item, context) => {
+    const missingExcerpt = item.verifiedResumeExcerpt === null;
+    if (
+      (item.resumeCoverage === "missing" && !missingExcerpt) ||
+      (item.resumeCoverage !== "missing" && missingExcerpt)
+    ) {
+      context.addIssue({
+        code: "custom",
+        path: ["verifiedResumeExcerpt"],
+        message: "Resume excerpt must match coverage.",
+      });
+    }
+  });
 
 export function classifyGap(item: ResumeGapItemView): ResumeGapGroup {
   if (item.resumeCoverage === "covered") return "covered";
@@ -215,6 +257,7 @@ export function classifyProfileOnlyRequirement(
 }
 
 function priorityRank(requirement: ResumeGapRequirement) {
+  if (requirement.matchStatus === "evidence") return 5;
   if (requirement.priority === "core") {
     if (requirement.matchStatus === "none") return 0;
     if (requirement.matchStatus === "needs_user") return 1;
@@ -235,7 +278,11 @@ export function selectPriorityRequirements(
   requirements: ResumeGapRequirement[],
   limit = 5,
 ): ResumeGapRequirement[] {
-  if (limit <= 0) return [];
+  // The priority view is intentionally capped at five. Invalid numeric input
+  // is treated as requesting no rows rather than bypassing that hard cap.
+  if (!Number.isFinite(limit)) return [];
+  const safeLimit = Math.max(0, Math.min(5, Math.floor(limit)));
+  if (safeLimit === 0) return [];
   return requirements
     .map((requirement, index) => ({
       requirement,
@@ -244,12 +291,18 @@ export function selectPriorityRequirements(
       order: requirement.sortOrder ?? index,
     }))
     .sort(
-      (left, right) =>
-        left.rank - right.rank ||
-        left.order - right.order ||
-        left.index - right.index,
+      (left, right) => {
+        const rankDifference = left.rank - right.rank;
+        if (rankDifference !== 0) return rankDifference;
+        const orderDifference = left.order - right.order;
+        if (orderDifference !== 0) return orderDifference;
+        if (left.rank === 5 && left.requirement.id !== right.requirement.id) {
+          return left.requirement.id < right.requirement.id ? -1 : 1;
+        }
+        return left.index - right.index;
+      },
     )
-    .slice(0, limit)
+    .slice(0, safeLimit)
     .map(({ requirement }) => requirement);
 }
 
@@ -280,17 +333,17 @@ export const resumeGapAIUsageSchema = z.object({
 }).strict();
 
 export const resumeGapAIResultSchema = z.object({
-  provider: z.string().trim().min(1).max(80),
-  model: z.string().trim().min(1).max(160),
-  requestId: z.string().trim().min(1).max(200).nullable(),
+  provider: storedText(80),
+  model: storedText(160),
+  requestId: storedToken(200).nullable(),
   usage: resumeGapAIUsageSchema,
-  priceScheduleVersion: z.string().trim().min(1).max(80).nullable(),
+  priceScheduleVersion: storedText(80).nullable(),
 }).strict();
 
 export const resumeGapEstimatedCostSchema = z.object({
   amount: z.number().nonnegative(),
   currency: z.literal("USD"),
-  scheduleVersion: z.string().trim().min(1).max(80),
+  scheduleVersion: storedToken(80),
   tier: z.enum(["default", "peak"]),
 }).strict();
 
@@ -314,6 +367,39 @@ export const resumeGapRunStatusSchema = z.enum([
 ]);
 
 export type ResumeGapRunStatus = z.infer<typeof resumeGapRunStatusSchema>;
+
+export const resumeGapRunSchema = z
+  .object({
+    id: z.uuid(),
+    applicationId: z.uuid(),
+    userId: z.uuid(),
+    analysisRunId: z.uuid(),
+    sourceAssetId: z.uuid().nullable(),
+    sourceFilename: storedText(260),
+    sourceSha256: z.string().regex(/^[0-9a-f]{64}$/u),
+    inputHash: z.string().regex(/^[0-9a-f]{64}$/u),
+    provider: storedText(80),
+    model: storedText(160),
+    status: resumeGapRunStatusSchema,
+    attemptCount: z.number().int().min(0).max(1000),
+    result: resumeGapRunResultSchema.nullable(),
+    errorCode: storedText(120).nullable(),
+    errorMessage: storedText(500).nullable(),
+    createdAt: z.string(),
+    updatedAt: z.string(),
+    startedAt: z.string().nullable().optional(),
+    finishedAt: z.string().nullable().optional(),
+  })
+  .strict()
+  .superRefine((run, context) => {
+    if ((run.errorCode === null) !== (run.errorMessage === null)) {
+      context.addIssue({
+        code: "custom",
+        path: ["errorCode"],
+        message: "errorCode and errorMessage must be set together.",
+      });
+    }
+  });
 
 export type ResumeGapRun = {
   id: string;
