@@ -281,23 +281,16 @@ begin
     raise exception 'invalid-resume-gap-input' using errcode = '22023';
   end if;
 
-  select * into owned_application
-  from public.applications
-  where id = target_application_id and user_id = current_user_id
+  -- Match complete_application_analysis's order: selected analysis run ->
+  -- all analysis runs -> all requirements -> application -> source. Do not
+  -- hold the application while waiting on an analysis run.
+  select * into owned_analysis
+  from public.application_analysis_runs
+  where id = target_analysis_run_id and user_id = current_user_id
   for update;
-  if owned_application.id is null then
-    raise exception 'application-or-resume-not-found' using errcode = 'P0002';
-  end if;
-
-  select * into owned_asset from public.source_assets
-  where id = target_source_asset_id and user_id = current_user_id
-  for update;
-  -- Match the JD completion lock order: application -> all analysis runs ->
-  -- that run's requirements. This serializes newest-run and requirement
-  -- decisions with concurrent JD replacement.
   for locked_analysis in
     select * from public.application_analysis_runs
-    where application_id = target_application_id
+    where application_id = owned_analysis.application_id
       and user_id = current_user_id
     order by created_at, id
     for update
@@ -308,15 +301,25 @@ begin
   end loop;
   for locked_requirement in
     select * from public.application_requirements
-    where analysis_run_id = target_analysis_run_id
-      and application_id = target_application_id
+    where application_id = owned_analysis.application_id
       and user_id = current_user_id
     order by id
     for update
   loop
-    locked_requirement_count := locked_requirement_count + 1;
+    if locked_requirement.analysis_run_id = target_analysis_run_id then
+      locked_requirement_count := locked_requirement_count + 1;
+    end if;
   end loop;
+  select * into owned_application
+  from public.applications
+  where id = owned_analysis.application_id and user_id = current_user_id
+  for update;
+  select * into owned_asset from public.source_assets
+  where id = target_source_asset_id and user_id = current_user_id
+  for update;
   if owned_asset.id is null or owned_analysis.id is null
+    or owned_application.id is null
+    or owned_application.id <> target_application_id
     or owned_analysis.status <> 'succeeded'
     or owned_application.resume_source_asset_id is distinct from owned_asset.id
     or locked_requirement_count < 1 then
@@ -327,7 +330,13 @@ begin
     where newer.application_id = target_application_id
       and newer.user_id = current_user_id
       and newer.status = 'succeeded'
-      and newer.created_at > owned_analysis.created_at
+      and exists (
+        select 1 from public.application_requirements newer_requirement
+        where newer_requirement.analysis_run_id = newer.id
+          and newer_requirement.application_id = target_application_id
+          and newer_requirement.user_id = current_user_id
+      )
+      and (newer.created_at, newer.id) > (owned_analysis.created_at, owned_analysis.id)
   ) then
     raise exception 'invalid-resume-gap-input' using errcode = '22023';
   end if;
@@ -405,6 +414,10 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
+  gap_application_id uuid;
+  gap_analysis_run_id uuid;
+  selected_analysis public.application_analysis_runs%rowtype;
+  analysis_row public.application_analysis_runs%rowtype;
   locked_application public.applications%rowtype;
   locked_asset public.source_assets%rowtype;
   locked_analysis public.application_analysis_runs%rowtype;
@@ -434,19 +447,42 @@ begin
     raise exception 'invalid-resume-gap-result' using errcode = '22023';
   end if;
 
-  -- Lock the application, selected source, analysis run, and its requirement
-  -- rows in this order. This serializes selection/JD replacement with output.
+  -- Match complete_application_analysis's order: selected analysis run ->
+  -- all analysis runs -> all requirements -> application -> source. Read the
+  -- gap binding first without locking, then acquire locks in that order.
+  select application_id, analysis_run_id
+  into gap_application_id, gap_analysis_run_id
+  from public.resume_gap_runs
+  where id = target_run_id;
+  select * into selected_analysis
+  from public.application_analysis_runs
+  where id = gap_analysis_run_id and user_id = current_user_id
+  for update;
+  for analysis_row in
+    select * from public.application_analysis_runs
+    where application_id = selected_analysis.application_id
+      and user_id = current_user_id
+    order by created_at, id
+    for update
+  loop
+    if analysis_row.id = gap_analysis_run_id then
+      locked_analysis := analysis_row;
+    end if;
+  end loop;
+  for locked_requirement in
+    select * from public.application_requirements
+    where application_id = selected_analysis.application_id
+      and user_id = current_user_id
+    order by id
+    for update
+  loop
+    null;
+  end loop;
   select * into locked_application from public.applications
-  where id = (select application_id from public.resume_gap_runs where id = target_run_id)
-    and user_id = current_user_id
+  where id = selected_analysis.application_id and user_id = current_user_id
   for update;
   select * into locked_asset from public.source_assets
   where id = locked_application.resume_source_asset_id
-    and user_id = current_user_id
-  for update;
-  select * into locked_analysis from public.application_analysis_runs
-  where id = (select analysis_run_id from public.resume_gap_runs where id = target_run_id)
-    and application_id = locked_application.id
     and user_id = current_user_id
   for update;
   select * into owned_run from public.resume_gap_runs
@@ -468,8 +504,14 @@ begin
       select 1 from public.application_analysis_runs newer
       where newer.application_id = owned_run.application_id
         and newer.user_id = current_user_id
-        and newer.status = 'succeeded'
-        and newer.created_at > locked_analysis.created_at
+      and newer.status = 'succeeded'
+      and exists (
+        select 1 from public.application_requirements newer_requirement
+        where newer_requirement.analysis_run_id = newer.id
+          and newer_requirement.application_id = owned_run.application_id
+          and newer_requirement.user_id = current_user_id
+      )
+      and (newer.created_at, newer.id) > (locked_analysis.created_at, locked_analysis.id)
     )
     or locked_analysis.application_id <> owned_run.application_id
     or locked_analysis.user_id <> current_user_id

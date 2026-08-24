@@ -2,13 +2,35 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(56);
+select plan(60);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
 select has_column('public', 'applications', 'resume_source_asset_id', 'applications can select a resume source asset');
 select results_eq($$select has_function_privilege('anon', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'anon cannot execute the internal JSON helper');
 select results_eq($$select has_function_privilege('authenticated', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'authenticated cannot execute the internal JSON helper');
+select results_eq(
+  $$select (
+    strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_analysis_runs')
+      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_requirements')
+      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_requirements')
+      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.applications')
+      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.applications')
+      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.source_assets')
+  )::text$$,
+  array['true'], 'resume gap creation locks analysis, requirements, application, then source'
+);
+select results_eq(
+  $$select (
+    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_analysis_runs')
+      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_requirements')
+      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_requirements')
+      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.applications')
+      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.applications')
+      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.source_assets')
+  )::text$$,
+  array['true'], 'resume gap completion locks analysis, requirements, application, then source'
+);
 select results_eq(
   $$
     select (c.confdeltype = 'n')::text
@@ -380,6 +402,25 @@ select results_eq($$select status::text from public.resume_gap_runs where id = c
 set local role postgres;
 update public.source_assets set sha256 = repeat('a', 64) where id = '11111111-1111-4111-8111-111111111111';
 set local role authenticated;
+
+-- Same-timestamp succeeded JD runs use UUID as a deterministic tie-break.
+set local role postgres;
+update public.application_analysis_runs
+set created_at = '2026-08-24 12:00:00+00'
+where id in (current_setting('test.analysis_run')::uuid, current_setting('test.queued_analysis')::uuid);
+set local role authenticated;
+select set_config('test.lex_latest_run', (select max(id::text) from public.application_analysis_runs where id in (current_setting('test.analysis_run')::uuid, current_setting('test.queued_analysis')::uuid)), true);
+select set_config('test.lex_earlier_run', (select min(id::text) from public.application_analysis_runs where id in (current_setting('test.analysis_run')::uuid, current_setting('test.queued_analysis')::uuid)), true);
+select throws_ok(
+  $$select public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.lex_earlier_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('2', 63) || '3', 'test-provider', 'test-model')$$,
+  '22023', 'invalid-resume-gap-input', 'an earlier same-timestamp succeeded JD run is stale by UUID tie-break'
+);
+select set_config('test.lex_latest_gap_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.lex_latest_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('2', 63) || '4', 'test-provider', 'test-model')), true);
+select results_eq(
+  $$select analysis_run_id::text from public.resume_gap_runs where id = current_setting('test.lex_latest_gap_run')::uuid$$,
+  array[current_setting('test.lex_latest_run')],
+  'the lexicographically latest same-timestamp succeeded JD run is accepted'
+);
 
 -- Selection changes and hash reuse cannot complete or rebind a prior run.
 select set_config('test.snapshot_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('c', 64), 'test-provider', 'test-model')), true);
