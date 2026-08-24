@@ -216,6 +216,7 @@ as $$
 declare
   current_user_id uuid := auth.uid();
   owned_application public.applications%rowtype;
+  candidate_asset public.source_assets%rowtype;
   owned_asset public.source_assets%rowtype;
   selected_application public.applications%rowtype;
 begin
@@ -226,16 +227,20 @@ begin
   -- Source deletion acquires the source row before the referencing application
   -- row for ON DELETE SET NULL. Match that order for non-null selections.
   if target_source_asset_id is not null then
-    select * into owned_asset
+    select * into candidate_asset
     from public.source_assets
     where id = target_source_asset_id and user_id = current_user_id;
-    if owned_asset.id is null then
+    if candidate_asset.id is null or candidate_asset.user_id <> current_user_id then
       raise exception 'application-or-resume-not-found' using errcode = 'P0002';
     end if;
+    owned_asset := null;
     select * into owned_asset
     from public.source_assets
     where id = target_source_asset_id and user_id = current_user_id
     for update;
+    if owned_asset.id is null or owned_asset.user_id <> current_user_id then
+      raise exception 'application-or-resume-not-found' using errcode = 'P0002';
+    end if;
   end if;
 
   select * into owned_application

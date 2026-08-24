@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(78);
+select plan(80);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
@@ -32,24 +32,35 @@ select results_eq(
 );
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'into owned_asset')
-      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'into owned_application')
+    strpos(lower(regexp_replace(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_asset from public.source_assets where id = target_source_asset_id and user_id = current_user_id for update') > 0
+      and strpos(lower(regexp_replace(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_asset from public.source_assets where id = target_source_asset_id and user_id = current_user_id for update')
+        < strpos(lower(regexp_replace(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_application from public.applications where id = owned_analysis.application_id and user_id = current_user_id for update')
   )::text$$,
   array['true'], 'resume gap creation locks source before application to match source deletion FK order'
 );
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'into locked_asset')
-      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'into locked_application')
+    strpos(lower(regexp_replace(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into locked_asset from public.source_assets where id = candidate_source_asset_id and user_id = current_user_id for update') > 0
+      and strpos(lower(regexp_replace(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into locked_asset from public.source_assets where id = candidate_source_asset_id and user_id = current_user_id for update')
+        < strpos(lower(regexp_replace(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into locked_application from public.applications where id = selected_analysis.application_id and user_id = current_user_id for update')
   )::text$$,
   array['true'], 'resume gap completion locks source before application to match source deletion FK order'
 );
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), 'into owned_asset')
-      < strpos(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), 'into owned_application')
+    strpos(lower(regexp_replace(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_asset from public.source_assets where id = target_source_asset_id and user_id = current_user_id for update') > 0
+      and strpos(lower(regexp_replace(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_asset from public.source_assets where id = target_source_asset_id and user_id = current_user_id for update')
+        < strpos(lower(regexp_replace(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), '[[:space:]]+', ' ', 'g')), 'select * into owned_application from public.applications where id = target_application_id and user_id = current_user_id for update')
   )::text$$,
   array['true'], 'source selection locks a non-null source before the application'
+);
+select results_eq(
+  $$select (
+    regexp_count(lower(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure)), 'candidate_asset\.id is null') = 1
+      and regexp_count(lower(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure)), 'owned_asset\.id is null') = 1
+      and strpos(lower(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure)), 'owned_asset := null') > 0
+  )::text$$,
+  array['true'], 'source selection clears and revalidates the locked asset after the locking read'
 );
 select results_eq(
   $$select count(*)::text from pg_indexes where schemaname = 'public' and indexname = 'resume_gap_items_run_order_idx'$$,
@@ -564,6 +575,7 @@ set local role postgres;
 create extension if not exists dblink;
 select dblink_connect('gap_lock_a', 'host=db port=5432 dbname=postgres user=postgres password=postgres');
 select dblink_connect('gap_lock_b', 'host=db port=5432 dbname=postgres user=postgres password=postgres');
+select dblink_exec('gap_lock_a', $$delete from auth.users where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'$$);
 select dblink_exec('gap_lock_a', $$insert into auth.users (
   id, aud, role, email, encrypted_password, email_confirmed_at,
   raw_app_meta_data, raw_user_meta_data, created_at, updated_at
@@ -571,7 +583,7 @@ select dblink_exec('gap_lock_a', $$insert into auth.users (
   'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'authenticated', 'authenticated',
   'gap-c@example.com', 'test-password-hash', now(),
   '{"provider":"email","providers":["email"]}', '{}', now(), now()
-) on conflict (id) do nothing$$);
+)$$);
 select dblink_exec('gap_lock_a', $$delete from public.interview_questions where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'$$);
 select dblink_exec('gap_lock_a', $$insert into public.source_assets (
   id, user_id, original_name, content_type, storage_path, size_bytes, sha256, status
@@ -589,19 +601,18 @@ select dblink_exec('gap_lock_a', $$insert into public.source_assets (
   status = excluded.status$$);
 select dblink_exec('gap_lock_a', $$set role authenticated$$);
 select dblink_exec('gap_lock_a', $$set request.jwt.claims = '{"sub":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","role":"authenticated"}'$$);
-select dblink_exec('gap_lock_a', $$do $body$
-declare created_application uuid;
-begin
-  select id into created_application from public.create_application(
+select set_config('test.concurrent_app', (
+  select result from dblink('gap_lock_a', $$select id::text from public.create_application(
     'Deadlock Co', 'Product Analyst', 'Berlin', 'hybrid', 'site',
     'https://example.com/jobs/concurrency', 'Concurrency test application requiring stable source and application locking.'
-  );
-  perform public.set_application_resume_source(created_application, '77777777-7777-4777-8777-777777777777');
+  )$$) as rows(result text)
+), true);
+select dblink_exec('gap_lock_a', format($$set test.concurrent_app = %L$$, current_setting('test.concurrent_app')));
+select dblink_exec('gap_lock_a', $$do $body$
+begin
+  perform public.set_application_resume_source(current_setting('test.concurrent_app')::uuid, '77777777-7777-4777-8777-777777777777');
 end
 $body$;$$);
-select set_config('test.concurrent_app', (
-  select result from dblink('gap_lock_a', $$select id::text from public.applications where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' order by created_at desc limit 1$$) as rows(result text)
-), true);
 select dblink_exec('gap_lock_a', $$reset role$$);
 select dblink_exec('gap_lock_a', $$begin$$);
 select dblink_exec('gap_lock_a', $$set local lock_timeout = '2s'$$);
@@ -613,22 +624,26 @@ select dblink_exec('gap_lock_b', $$set local statement_timeout = '5s'$$);
 select dblink_exec('gap_lock_b', $$set local role authenticated$$);
 select dblink_exec('gap_lock_b', $$set request.jwt.claims = '{"sub":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","role":"authenticated"}'$$);
 select dblink_exec('gap_lock_b', format($$set test.concurrent_app = %L$$, current_setting('test.concurrent_app')));
-select dblink_send_query('gap_lock_a', $$delete from public.source_assets where id = '77777777-7777-4777-8777-777777777777'$$);
-select pg_sleep(0.2);
+select dblink_exec('gap_lock_b', $$set test.concurrent_outcome = 'unset'$$);
 select dblink_send_query('gap_lock_b', $$do $body$
 begin
   perform public.set_application_resume_source(current_setting('test.concurrent_app')::uuid, '77777777-7777-4777-8777-777777777777');
-exception when others then
-  null;
+  perform set_config('test.concurrent_outcome', 'unexpected-success', false);
+exception when sqlstate 'P0002' then
+  perform set_config('test.concurrent_outcome', 'expected-p0002', false);
 end
 $body$;$$);
+select pg_sleep(0.2);
+select dblink_send_query('gap_lock_a', $$delete from public.source_assets where id = '77777777-7777-4777-8777-777777777777'$$);
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['1'], 'source deletion session completes without deadlock');
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['0'], 'source deletion async result is fully drained');
 select dblink_exec('gap_lock_a', $$commit$$);
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_b') as rows(result text)$$, array['1'], 'source selection session completes without deadlock');
 select results_eq($$select count(*)::text from dblink_get_result('gap_lock_b') as rows(result text)$$, array['0'], 'source selection async result is fully drained');
+select results_eq($$select result from dblink('gap_lock_b', $inner$select current_setting('test.concurrent_outcome')$inner$) as rows(result text)$$, array['expected-p0002'], 'source selection race reports only the expected not-found outcome');
 select dblink_exec('gap_lock_b', $$commit$$);
 select results_eq($$select (resume_source_asset_id is null)::text from public.applications where id = current_setting('test.concurrent_app')::uuid$$, array['true'], 'bounded source-delete race leaves the application safely unselected');
+select dblink_exec('gap_lock_a', $$delete from auth.users where id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'$$);
 select dblink_disconnect('gap_lock_a');
 select dblink_disconnect('gap_lock_b');
 set local role authenticated;
