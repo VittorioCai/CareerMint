@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
 import { GapPanel, summaryCellClass } from "./gap-panel";
+import { markItemsHistoricalUnlessCurrent } from "./resume-workspace";
 
 type GapFactFixture = { id: string; title: string; description: string; sourceExcerpt: string | null };
 
@@ -161,19 +162,27 @@ describe("GapPanel", () => {
   });
 
   it("marks a succeeded result for a previous baseline as stale instead of current", () => {
+    const run = { status: "succeeded" as const, sourceFilename: "old.pdf", sourceAssetId: "old-asset", analysisRunId: "same-analysis" };
     render(
       <GapPanel
         baseline={{ id: "new-asset", originalName: "new.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
         requirements={[]}
-        run={{ status: "succeeded", sourceFilename: "old.pdf", sourceAssetId: "old-asset", analysisRunId: "same-analysis" }}
-        fallbackRun={{ status: "succeeded", sourceFilename: "old.pdf", sourceAssetId: "old-asset", analysisRunId: "same-analysis" }}
+        run={run}
+        fallbackRun={run}
         currentAnalysisRunId="same-analysis"
-        items={[item("e5555555-5555-4555-8555-555555555555", "covered")]}
+        items={markItemsHistoricalUnlessCurrent(
+          [item("e5555555-5555-4555-8555-555555555555", "covered")],
+          run,
+          "new-asset",
+          "same-analysis",
+        )}
       />,
     );
     expect(screen.getByRole("alert")).toHaveTextContent("上一份简历或上一版 JD");
     expect(screen.getByRole("alert")).toHaveTextContent("old.pdf");
-    expect(screen.getByText(/旧快照记录的简历覆盖了当时分析的要求/)).toBeVisible();
+    expect(screen.getByText("历史快照 1 项")).toBeVisible();
+    expect(screen.queryByLabelText("简历差距摘要")).not.toBeInTheDocument();
+    expect(screen.queryByText(/旧快照记录的简历覆盖了当时分析的要求/)).not.toBeInTheDocument();
   });
 
   it("does not claim current coverage when covered current items are mixed with historical missing items", async () => {

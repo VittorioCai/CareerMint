@@ -402,6 +402,15 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
       ocrText: expect.stringContaining("理解并推进这份岗位描述中的核心职责"),
     });
     await expect(page.getByText("简历差距结果", { exact: true })).toBeVisible();
+    await expect(page.getByText("等待分析", { exact: true })).toHaveCount(0);
+    const ocrGapSummary = page.getByLabel("简历差距摘要");
+    for (const label of ["简历漏写", "部分覆盖", "缺少证据", "已经覆盖"]) {
+      await expect(ocrGapSummary.getByText(label, { exact: true })).toBeVisible();
+    }
+    const coveredDetails = page.locator("details").filter({ hasText: /已经覆盖/ });
+    await coveredDetails.locator("summary").click();
+    const ocrGapRow = coveredDetails.getByRole("button", { name: /理解并推进这份岗位描述中的核心职责/ });
+    await expect(ocrGapRow).toHaveAttribute("aria-expanded", "false");
     const secondApplication = await account
       .from("applications")
       .select("resume_source_asset_id")

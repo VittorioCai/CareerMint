@@ -56,7 +56,7 @@ import {
 } from "@/features/resume-gaps/baseline-selector";
 import { GapAnalysisControl } from "@/features/resume-gaps/gap-analysis-control";
 import { GapPanel } from "@/features/resume-gaps/gap-panel";
-import { getResumeWorkspaceMode, isCurrentGapRun, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
+import { getResumeWorkspaceMode, isCurrentGapRun, markItemsHistoricalUnlessCurrent, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
 import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
@@ -441,9 +441,15 @@ export default async function ApplicationDetailPage({
       : selectedGapRuns.fallback?.status === "succeeded"
         ? selectedGapRuns.fallback
         : null;
+    const items = itemRun ? await resumeGapRepository.listItems(user.id, itemRun.id) : [];
     currentGapData = {
       ...selectedGapRuns,
-      items: itemRun ? await resumeGapRepository.listItems(user.id, itemRun.id) : [],
+      items: markItemsHistoricalUnlessCurrent(
+        items,
+        itemRun,
+        application.resumeSourceAssetId,
+        resumeAnalysisRun.id,
+      ),
     };
   }
 

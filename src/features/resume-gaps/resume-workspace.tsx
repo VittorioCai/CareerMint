@@ -52,6 +52,16 @@ export function isCurrentGapRun(
   );
 }
 
+export function markItemsHistoricalUnlessCurrent<T extends { historical: boolean }>(
+  items: T[],
+  run: { sourceAssetId: string | null; analysisRunId: string } | null,
+  selectedAssetId: string | null,
+  analysisRunId: string | null,
+): T[] {
+  if (isCurrentGapRun(run, selectedAssetId, analysisRunId)) return items;
+  return items.map((item) => ({ ...item, historical: true }));
+}
+
 export function ResumeWorkspace({
   applicationId,
   mode,

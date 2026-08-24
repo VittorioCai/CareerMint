@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { ResumeWorkspace, getResumeWorkspaceMode, isCurrentGapRun, selectGapRunPair } from "./resume-workspace";
+import { ResumeWorkspace, getResumeWorkspaceMode, isCurrentGapRun, markItemsHistoricalUnlessCurrent, selectGapRunPair } from "./resume-workspace";
 
 describe("resume workspace", () => {
   it("keeps no-JD, profile-only, and comparison modes explicit", () => {
@@ -56,6 +56,17 @@ describe("resume workspace", () => {
     const run = { sourceAssetId: "old-asset", analysisRunId: "jd" };
     expect(isCurrentGapRun(run, "new-asset", "jd")).toBe(false);
     expect(isCurrentGapRun(run, "old-asset", "jd")).toBe(true);
+  });
+
+  it("marks generic old-baseline items historical even when the JD is unchanged", () => {
+    const items = markItemsHistoricalUnlessCurrent(
+      [{ id: "item", historical: false }],
+      { sourceAssetId: "old-asset", analysisRunId: "jd" },
+      "new-asset",
+      "jd",
+    );
+
+    expect(items).toEqual([{ id: "item", historical: true }]);
   });
 
   it.each([

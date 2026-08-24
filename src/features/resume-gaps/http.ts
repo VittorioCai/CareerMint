@@ -24,7 +24,7 @@ export type ResumeGapPostDependencies = {
   getApplication(userId: string, applicationId: string): Promise<ResumeGapApplication | null>;
   getAIProcessingConsentAt(userId: string): Promise<string | null>;
   getLatestSucceededAnalysis(userId: string, applicationId: string): Promise<Pick<JDAnalysisRun, "id" | "applicationId" | "userId" | "status"> | null>;
-  listRequirements(userId: string, applicationId: string): Promise<ResumeGapServiceRequirement[]>;
+  listRequirements(userId: string, applicationId: string, analysisRunId: string): Promise<ResumeGapServiceRequirement[]>;
   getOwnedAsset(userId: string, assetId: string): Promise<SourceAsset | null>;
   createOrGetRun(input: {
     applicationId: string;
@@ -160,7 +160,7 @@ export function createResumeGapPostHandler(dependencies: ResumeGapPostDependenci
         analysisRun.userId !== user.id ||
         analysisRun.applicationId !== application.id
       ) return Response.json({ error: "jd-analysis-required" }, { status: 409 });
-      const requirements = await dependencies.listRequirements(user.id, application.id);
+      const requirements = await dependencies.listRequirements(user.id, application.id, analysisRun.id);
       if (requirements.length === 0) return Response.json({ error: "jd-analysis-required" }, { status: 409 });
       if (!application.resumeSourceAssetId) return Response.json({ error: "resume-source-required" }, { status: 409 });
       const declaredAssetId = request.headers.get("x-resume-source-asset-id");

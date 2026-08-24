@@ -189,7 +189,7 @@ describe("resume gap analysis route wiring", () => {
     expect(mocks.getAIProcessingConsentAt).toHaveBeenCalledWith(ids.user);
     expect(mocks.getApplication).toHaveBeenCalledWith(ids.user, ids.application);
     expect(mocks.getLatestSucceededAnalysis).toHaveBeenCalledWith(ids.user, ids.application);
-    expect(mocks.listRequirements).toHaveBeenCalledWith(ids.user, ids.application);
+    expect(mocks.listRequirements).toHaveBeenCalledWith(ids.user, ids.application, ids.analysis);
     expect(mocks.getOwnedAsset).toHaveBeenCalledWith(ids.user, ids.asset);
     expect(mocks.createOrGet).toHaveBeenCalledWith(
       expect.objectContaining({
