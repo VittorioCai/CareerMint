@@ -231,6 +231,41 @@ describe("RequirementsPanel", () => {
     );
   });
 
+  it("clears disclosures when requirements change under the same analysis run", async () => {
+    const user = userEvent.setup();
+    const { rerender } = render(
+      <RequirementsPanel
+        requirements={requirements}
+        analysisRunId="same-run"
+        sourceText={sourceText}
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /Core no evidence/ });
+    await user.click(row);
+    expect(row).toHaveAttribute("aria-expanded", "true");
+
+    await user.click(screen.getByRole("button", { name: "全部要求" }));
+    await user.click(screen.getByRole("button", { name: /技能关键词/ }));
+    expect(screen.getByRole("button", { name: /技能关键词/ })).toHaveAttribute(
+      "aria-expanded",
+      "true",
+    );
+
+    rerender(
+      <RequirementsPanel
+        requirements={requirements.slice(0, 5)}
+        analysisRunId="same-run"
+        sourceText={sourceText}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: /技能关键词/ })).toHaveAttribute(
+      "aria-expanded",
+      "false",
+    );
+  });
+
   it("names a missing JD source instead of rendering an empty source view", async () => {
     const user = userEvent.setup();
     render(<RequirementsPanel requirements={requirements} sourceText="" />);

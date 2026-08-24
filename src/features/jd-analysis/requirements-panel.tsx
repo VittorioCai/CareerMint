@@ -246,8 +246,9 @@ export function RequirementsPanel({
   sourceUrl?: string | null;
 }) {
   const [view, setView] = useState<LocalView>("priority");
-  const datasetKey =
-    analysisRunId ?? requirements[0]?.analysisRunId ?? "empty-analysis";
+  const runKey = analysisRunId ?? requirements[0]?.analysisRunId ?? "empty-analysis";
+  const requirementsFingerprint = requirements.map((requirement) => requirement.id).join(",");
+  const datasetKey = `${runKey}:${requirementsFingerprint}`;
   const [disclosure, setDisclosure] = useState<DisclosureState>(() =>
     emptyDisclosureState(datasetKey),
   );

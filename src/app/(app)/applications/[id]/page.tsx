@@ -137,6 +137,7 @@ function JdPanel({
     <div className="space-y-6">
       <AnalysisControl
         applicationId={application.id}
+        analysisRunId={analysisRun?.id ?? null}
         initialStatus={analysisRun?.status ?? null}
         initialResult={
           analysisRun?.result

@@ -35,12 +35,14 @@ async function responseBody(response: Response) {
 
 export function AnalysisControl({
   applicationId,
+  analysisRunId,
   initialStatus,
   initialResult,
   request = fetch,
   refresh,
 }: {
   applicationId: string;
+  analysisRunId?: string | null;
   initialStatus: JDAnalysisRun["status"] | null;
   initialResult?: AnalysisSummary | null;
   request?: typeof fetch;
@@ -51,13 +53,14 @@ export function AnalysisControl({
   const [success, setSuccess] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [needsConsent, setNeedsConsent] = useState(false);
+  const statusSourceKey = `${analysisRunId ?? "none"}:${initialStatus ?? "none"}`;
   const [statusState, setStatusState] = useState<{
-    source: JDAnalysisRun["status"] | null;
+    sourceKey: string;
     value: JDAnalysisRun["status"] | null;
-  }>(() => ({ source: initialStatus, value: initialStatus }));
+  }>(() => ({ sourceKey: statusSourceKey, value: initialStatus }));
 
-  if (statusState.source !== initialStatus) {
-    setStatusState({ source: initialStatus, value: initialStatus });
+  if (statusState.sourceKey !== statusSourceKey) {
+    setStatusState({ sourceKey: statusSourceKey, value: initialStatus });
   }
 
   const currentStatus = statusState.value;

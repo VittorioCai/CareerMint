@@ -167,11 +167,12 @@ describe("AnalysisControl", () => {
       }),
     );
     const user = userEvent.setup();
-    render(
+    const { rerender } = render(
       <AnalysisControl
         applicationId={applicationId}
         initialStatus="succeeded"
         initialResult={resultSummary}
+        analysisRunId="run-2"
         request={request}
       />,
     );
@@ -181,6 +182,29 @@ describe("AnalysisControl", () => {
     expect(screen.getByText("上次分析未完成，可重试")).toBeVisible();
     expect(screen.getByRole("button", { name: "重新分析 JD" })).toBeVisible();
     expect(screen.queryByText("最近一次分析已完成")).not.toBeInTheDocument();
+
+    rerender(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus="succeeded"
+        initialResult={resultSummary}
+        analysisRunId="run-2"
+        request={request}
+      />,
+    );
+    expect(screen.getByText("上次分析未完成，可重试")).toBeVisible();
+
+    rerender(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus="succeeded"
+        initialResult={resultSummary}
+        analysisRunId="run-3"
+        request={request}
+      />,
+    );
+    expect(screen.getByText("最近一次分析已完成")).toBeVisible();
+    expect(screen.getByRole("button", { name: "重新检查匹配" })).toBeVisible();
   });
 
   it("resets local status when the server prop changes to a new run", async () => {
