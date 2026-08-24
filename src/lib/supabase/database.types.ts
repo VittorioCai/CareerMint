@@ -296,6 +296,7 @@ export type Database = {
           location: string | null
           next_action: string | null
           next_action_due_at: string | null
+          resume_source_asset_id: string | null
           role_title: string
           source: string | null
           stage: Database["public"]["Enums"]["application_stage"]
@@ -314,6 +315,7 @@ export type Database = {
           location?: string | null
           next_action?: string | null
           next_action_due_at?: string | null
+          resume_source_asset_id?: string | null
           role_title: string
           source?: string | null
           stage?: Database["public"]["Enums"]["application_stage"]
@@ -332,6 +334,7 @@ export type Database = {
           location?: string | null
           next_action?: string | null
           next_action_due_at?: string | null
+          resume_source_asset_id?: string | null
           role_title?: string
           source?: string | null
           stage?: Database["public"]["Enums"]["application_stage"]
@@ -340,7 +343,15 @@ export type Database = {
           user_id?: string
           workplace_mode?: Database["public"]["Enums"]["workplace_mode"]
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "applications_resume_source_asset_id_fkey"
+            columns: ["resume_source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "source_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       career_facts: {
         Row: {
@@ -738,6 +749,164 @@ export type Database = {
           user_id?: string
         }
         Relationships: []
+      }
+      resume_gap_items: {
+        Row: {
+          application_id: string
+          category: string
+          created_at: string
+          id: string
+          jd_source_excerpt: string
+          priority: string
+          requirement_id: string | null
+          requirement_text: string
+          resume_coverage: Database["public"]["Enums"]["resume_coverage"]
+          run_id: string
+          sort_order: number
+          user_id: string
+          verified_resume_excerpt: string | null
+        }
+        Insert: {
+          application_id: string
+          category: string
+          created_at?: string
+          id?: string
+          jd_source_excerpt: string
+          priority: string
+          requirement_id?: string | null
+          requirement_text: string
+          resume_coverage: Database["public"]["Enums"]["resume_coverage"]
+          run_id: string
+          sort_order: number
+          user_id: string
+          verified_resume_excerpt?: string | null
+        }
+        Update: {
+          application_id?: string
+          category?: string
+          created_at?: string
+          id?: string
+          jd_source_excerpt?: string
+          priority?: string
+          requirement_id?: string | null
+          requirement_text?: string
+          resume_coverage?: Database["public"]["Enums"]["resume_coverage"]
+          run_id?: string
+          sort_order?: number
+          user_id?: string
+          verified_resume_excerpt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_gap_items_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_gap_items_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "application_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_gap_items_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "resume_gap_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      resume_gap_runs: {
+        Row: {
+          analysis_run_id: string
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_run_id: string
+          application_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash: string
+          model: string
+          provider: string
+          result?: Json | null
+          source_asset_id?: string | null
+          source_filename: string
+          source_sha256: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_run_id?: string
+          application_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash?: string
+          model?: string
+          provider?: string
+          result?: Json | null
+          source_asset_id?: string | null
+          source_filename?: string
+          source_sha256?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_gap_runs_analysis_run_id_fkey"
+            columns: ["analysis_run_id"]
+            isOneToOne: false
+            referencedRelation: "application_analysis_runs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_gap_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_gap_runs_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "source_assets"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       resume_generation_runs: {
         Row: {
@@ -1167,8 +1336,7 @@ export type Database = {
         Returns: {
           candidate_id: string
           disposition: string
-          // The duplicate-common disposition intentionally returns no question.
-          question_id: string | null
+          question_id: string
         }[]
       }
       add_interview_question: {
@@ -1231,6 +1399,7 @@ export type Database = {
           location: string | null
           next_action: string | null
           next_action_due_at: string | null
+          resume_source_asset_id: string | null
           role_title: string
           source: string | null
           stage: Database["public"]["Enums"]["application_stage"]
@@ -1260,6 +1429,10 @@ export type Database = {
       }
       claim_processing_job: {
         Args: { target_job_id: string }
+        Returns: boolean
+      }
+      claim_resume_gap: {
+        Args: { target_lease_seconds: number; target_run_id: string }
         Returns: boolean
       }
       claim_resume_generation: {
@@ -1300,12 +1473,12 @@ export type Database = {
       }
       complete_interview_question_generation: {
         Args: {
+          expected_attempt_count: number
           target_ai_usage: Json
           target_candidates: Json
           target_estimated_cost: Json
           target_rejected_candidate_count: number
           target_request_id: string
-          expected_attempt_count: number
           target_run_id: string
         }
         Returns: {
@@ -1369,6 +1542,42 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      complete_resume_gap: {
+        Args: {
+          target_ai_usage: Json
+          target_attempt_count: number
+          target_estimated_cost: Json
+          target_items: Json
+          target_run_id: string
+        }
+        Returns: {
+          analysis_run_id: string
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_gap_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       complete_resume_generation: {
         Args: {
           accepted_suggestions: Json
@@ -1421,6 +1630,7 @@ export type Database = {
           location: string | null
           next_action: string | null
           next_action_due_at: string | null
+          resume_source_asset_id: string | null
           role_title: string
           source: string | null
           stage: Database["public"]["Enums"]["application_stage"]
@@ -1499,6 +1709,43 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "interview_question_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_or_get_resume_gap: {
+        Args: {
+          target_analysis_run_id: string
+          target_application_id: string
+          target_input_hash: string
+          target_model: string
+          target_provider: string
+          target_source_asset_id: string
+        }
+        Returns: {
+          analysis_run_id: string
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_gap_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1674,6 +1921,41 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fail_resume_gap: {
+        Args: {
+          target_attempt_count: number
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: {
+          analysis_run_id: string
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          provider: string
+          result: Json | null
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_gap_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fail_resume_generation: {
         Args: {
           target_error_code: string
@@ -1801,6 +2083,34 @@ export type Database = {
         Args: { target_user_id: string }
         Returns: number
       }
+      set_application_resume_source: {
+        Args: { target_application_id: string; target_source_asset_id: string }
+        Returns: {
+          applied_at: string | null
+          company_name: string
+          created_at: string
+          id: string
+          jd_text: string
+          job_url: string | null
+          location: string | null
+          next_action: string | null
+          next_action_due_at: string | null
+          resume_source_asset_id: string | null
+          role_title: string
+          source: string | null
+          stage: Database["public"]["Enums"]["application_stage"]
+          stage_changed_at: string
+          updated_at: string
+          user_id: string
+          workplace_mode: Database["public"]["Enums"]["workplace_mode"]
+        }
+        SetofOptions: {
+          from: "*"
+          to: "applications"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       update_interview_question: {
         Args: {
           target_answer_outline: string
@@ -1841,6 +2151,7 @@ export type Database = {
       fact_confirmation_status: "pending" | "confirmed" | "needs_detail"
       processing_job_kind: "resume_extract"
       processing_job_status: "queued" | "running" | "succeeded" | "failed"
+      resume_coverage: "covered" | "partial" | "missing"
       source_asset_status: "uploaded" | "extracting" | "ready" | "failed"
       workplace_mode: "unspecified" | "onsite" | "hybrid" | "remote"
     }
@@ -1985,8 +2296,10 @@ export const Constants = {
       fact_confirmation_status: ["pending", "confirmed", "needs_detail"],
       processing_job_kind: ["resume_extract"],
       processing_job_status: ["queued", "running", "succeeded", "failed"],
+      resume_coverage: ["covered", "partial", "missing"],
       source_asset_status: ["uploaded", "extracting", "ready", "failed"],
       workplace_mode: ["unspecified", "onsite", "hybrid", "remote"],
     },
   },
 } as const
+
