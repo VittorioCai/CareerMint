@@ -35,6 +35,7 @@ function createFakes() {
       sha256: "a".repeat(64),
     }),
     allocateId: vi.fn().mockReturnValue(assetId),
+    findCanonicalAssetByHash: vi.fn().mockResolvedValue(null),
     uploadSource: vi
       .fn()
       .mockResolvedValue(`${userId}/${assetId}/source.pdf`),
@@ -94,8 +95,66 @@ describe("POST /api/source-assets", () => {
       }),
     );
     expect(fakes.createAsset).toHaveBeenCalledTimes(1);
-    expect(payload).toEqual({ id: assetId, originalName: "resume.pdf" });
+    expect(payload).toEqual({
+      id: assetId,
+      originalName: "resume.pdf",
+      reused: false,
+    });
     expect(JSON.stringify(payload)).not.toContain("storagePath");
     expect(JSON.stringify(payload)).not.toContain(userId);
+  });
+
+  it("reuses the owned canonical asset before uploading identical bytes", async () => {
+    const fakes = createFakes();
+    fakes.findCanonicalAssetByHash.mockResolvedValue({
+      id: "22222222-2222-4222-8222-222222222222",
+      originalName: "canonical.pdf",
+    });
+    const post = createSourceAssetPostHandler(fakes);
+
+    const response = await post(uploadRequest());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "22222222-2222-4222-8222-222222222222",
+      originalName: "canonical.pdf",
+      reused: true,
+    });
+    expect(fakes.findCanonicalAssetByHash).toHaveBeenCalledWith(
+      userId,
+      "a".repeat(64),
+    );
+    expect(fakes.allocateId).not.toHaveBeenCalled();
+    expect(fakes.uploadSource).not.toHaveBeenCalled();
+    expect(fakes.createAsset).not.toHaveBeenCalled();
+  });
+
+  it("cleans up a racing upload and returns the canonical winner", async () => {
+    const fakes = createFakes();
+    fakes.findCanonicalAssetByHash
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        id: "33333333-3333-4333-8333-333333333333",
+        originalName: "winner.pdf",
+      });
+    fakes.createAsset.mockRejectedValue(
+      Object.assign(new Error("source-asset-conflict"), {
+        code: "source-asset-conflict",
+      }),
+    );
+    const post = createSourceAssetPostHandler(fakes);
+
+    const response = await post(uploadRequest());
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toEqual({
+      id: "33333333-3333-4333-8333-333333333333",
+      originalName: "winner.pdf",
+      reused: true,
+    });
+    expect(fakes.removeSources).toHaveBeenCalledWith([
+      `${userId}/${assetId}/source.pdf`,
+    ]);
+    expect(fakes.findCanonicalAssetByHash).toHaveBeenCalledTimes(2);
   });
 });

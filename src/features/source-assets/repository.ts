@@ -17,6 +17,7 @@ export type SourceAsset = {
   storagePath: string;
   sizeBytes: number;
   sha256: string;
+  duplicateOfId: string | null;
   status: SourceAssetStatus;
   errorCode: string | null;
   createdAt: string;
@@ -48,6 +49,7 @@ function toSourceAsset(row: SourceAssetRow): SourceAsset {
     storagePath: row.storage_path,
     sizeBytes: row.size_bytes,
     sha256: row.sha256,
+    duplicateOfId: row.duplicate_of_id,
     status: row.status,
     errorCode: row.error_code,
     createdAt: row.created_at,
@@ -89,11 +91,29 @@ export async function listAssets(userId: string): Promise<SourceAsset[]> {
     .from("source_assets")
     .select("*")
     .eq("user_id", userId)
+    .is("duplicate_of_id", null)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
 
   if (error) throw new SourceAssetRepositoryError(storageError(error.code));
   return (data ?? []).map(toSourceAsset);
+}
+
+export async function findCanonicalAssetByHash(
+  userId: string,
+  sha256: string,
+): Promise<SourceAsset | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("source_assets")
+    .select("*")
+    .eq("user_id", userId)
+    .eq("sha256", sha256)
+    .is("duplicate_of_id", null)
+    .maybeSingle();
+
+  if (error) throw new SourceAssetRepositoryError(storageError(error.code));
+  return data ? toSourceAsset(data) : null;
 }
 
 export async function getOwnedAsset(

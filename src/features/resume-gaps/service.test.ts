@@ -20,6 +20,7 @@ const asset: SourceAsset = {
   storagePath: `${userId}/asset/source.pdf`,
   sizeBytes: 12,
   sha256: "a".repeat(64),
+  duplicateOfId: null,
   status: "ready",
   errorCode: null,
   createdAt: "2026-08-24T00:00:00.000Z",

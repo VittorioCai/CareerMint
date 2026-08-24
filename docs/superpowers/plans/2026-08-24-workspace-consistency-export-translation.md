@@ -73,11 +73,11 @@
 - Create: `src/app/api/source-assets/[id]/preview/route.test.ts`
 - Modify: `src/features/source-assets/parsers/docx.ts`
 
-- [ ] **Step 1: Write failing repository tests**
+- [x] **Step 1: Write failing repository tests**
 
   Assert that `listAssets(userId)` adds `duplicate_of_id is null`, that `findCanonicalByHash(userId, sha256)` is owner-scoped, and that returned `SourceAsset` objects expose `duplicateOfId`. Add an insert-conflict test that can identify the canonical winner after PostgreSQL reports the partial-unique violation.
 
-- [ ] **Step 2: Write failing upload-route tests**
+- [x] **Step 2: Write failing upload-route tests**
 
   Cover:
 
@@ -86,25 +86,25 @@
   - a concurrent unique violation removes the just-uploaded object, fetches the canonical winner, and returns it;
   - no test or error output contains file bytes, extracted text, or SHA-256.
 
-- [ ] **Step 3: Run focused tests and confirm red**
+- [x] **Step 3: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/source-assets/repository.test.ts src/app/api/source-assets/route.test.ts`
 
   Expected: failures for missing canonical lookup/filter and the old unconditional upload response.
 
-- [ ] **Step 4: Implement canonical upload reuse**
+- [x] **Step 4: Implement canonical upload reuse**
 
   Add `duplicateOfId` mapping, canonical-list filtering, and `findCanonicalByHash` to the repository. Change the HTTP dependency contract so validation/hash calculation happens before object upload, reuse returns the existing owned asset, and the race path cleans up only its newly created storage object before returning the winner.
 
-- [ ] **Step 5: Write failing preview tests**
+- [x] **Step 5: Write failing preview tests**
 
   Test authenticated ownership, 404 for another user's asset, PDF inline byte streaming, DOCX-to-sanitized-text rendering, unsupported types, private/no-store headers, `nosniff`, safe filename handling, and absence of OCR/AI dependencies.
 
-- [ ] **Step 6: Implement the private preview route**
+- [x] **Step 6: Implement the private preview route**
 
   Reuse `getOwnedAsset` and `downloadSource`. Return owned PDFs with `application/pdf` and inline disposition. Parse owned DOCX through the existing Mammoth-based parser and return escaped/sanitized UTF-8 plain text. Add `Cache-Control: private, no-store`, `X-Content-Type-Options: nosniff`, and a restrictive CSP. Do not create signed public URLs and do not call extraction, OCR, or AI.
 
-- [ ] **Step 7: Run focused tests and commit**
+- [x] **Step 7: Run focused tests and commit**
 
   Run: `pnpm vitest run src/features/source-assets src/app/api/source-assets`
 
