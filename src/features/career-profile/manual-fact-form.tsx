@@ -22,6 +22,7 @@ export function ManualFactForm({
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [factType, setFactType] = useState<FactType>("skill");
   const [values, setValues] = useState<FactFormValues>({});
   const [fieldErrors, setFieldErrors] = useState<
@@ -43,11 +44,19 @@ export function ManualFactForm({
     }
     setBusy(true);
     setError(null);
+    setErrorCode(null);
     setFieldErrors({});
     const result = await createFact(input);
     setBusy(false);
     if (result.ok) setOpen(false);
-    else setError("内容没有保存，请检查必填项和日期格式。");
+    else {
+      setErrorCode(result.error);
+      setError(
+        result.error === "invalid-input"
+          ? "内容没有保存，请检查必填项和日期格式。"
+          : "暂时无法保存这条事实，请稍后重试。",
+      );
+    }
   }
 
   if (!open) {
@@ -99,7 +108,7 @@ export function ManualFactForm({
           setFieldErrors((current) => ({ ...current, [field]: undefined }));
         }}
       />
-      {error ? <p role="alert" className="text-sm font-bold text-[var(--error)] sm:col-span-2">{error}</p> : null}
+      {error ? <p role="alert" data-error-code={errorCode ?? undefined} className="text-sm font-bold text-[var(--error)] sm:col-span-2">{error}</p> : null}
       <div className="flex flex-wrap gap-2 sm:col-span-2">
         <button type="submit" className="button-primary min-h-10 px-4 text-sm font-black" disabled={busy}>{busy ? "保存中…" : "保存为待确认"}</button>
         <button

@@ -206,8 +206,8 @@ test("complete private career-profile foundation flow", async ({
 
   await page.getByRole("button", { name: "＋ 手动添加事实" }).click();
   await page.getByLabel("类型").selectOption("skill");
-  await page.getByLabel("标题").last().fill("SQL");
-  await page.getByLabel("描述").last().fill("Advanced SQL analysis");
+  await page.getByLabel("技能名称").fill("SQL");
+  await page.getByLabel("熟练程度或使用场景").fill("Advanced SQL analysis");
   await page.getByRole("button", { name: "保存为待确认" }).click();
   const manualSkill = page.locator("article", { hasText: "Advanced SQL analysis" });
   await expect(manualSkill).toBeVisible();

@@ -366,25 +366,25 @@
 - Create: `tests/e2e/application-delete.spec.ts`
 - Modify: `docs/superpowers/plans/2026-08-24-workspace-consistency-export-translation.md`
 
-- [ ] **Step 1: Write the failing dashboard copy test**
+- [x] **Step 1: Write the failing dashboard copy test**
 
   Mock zero applications and assert `添加第一份 JD`; mock one or more applications and assert `添加 JD` while `添加第一份 JD` is absent, independent of profile-completion state.
 
-- [ ] **Step 2: Run the focused test and confirm red**
+- [x] **Step 2: Run the focused test and confirm red**
 
   Run: `pnpm vitest run src/features/applications/dashboard-copy.test.ts`
 
   Expected: the nonzero case fails because copy is currently hard-coded.
 
-- [ ] **Step 3: Implement the count-based copy rule**
+- [x] **Step 3: Implement the count-based copy rule**
 
   Derive the label from the already-loaded `applications.length` and keep the existing destination and styling.
 
-- [ ] **Step 4: Complete E2E coverage**
+- [x] **Step 4: Complete E2E coverage**
 
   Cover exact duplicate upload reuse, private preview, resume-first setup, explicit translated JD analysis, no-evidence-first ordering, current-gap Markdown download, category-specific language entry, and two-step application deletion. Update the fake AI fixture to provide all required translation fields. Do not call real DeepSeek or OCR.
 
-- [ ] **Step 5: Run staged verification**
+- [x] **Step 5: Run staged verification**
 
   Run:
 
@@ -400,7 +400,7 @@
 
   Expected: every command exits 0. Record any environment-only E2E limitation explicitly; do not replace a failing check with a success claim.
 
-- [ ] **Step 6: Inspect the final production UI locally**
+- [x] **Step 6: Inspect the final production UI locally**
 
   Start the app with test/mocked AI configuration and verify at desktop width and a phone viewport:
 
@@ -410,7 +410,7 @@
   - export and delete actions;
   - keyboard focus, visible status text, and no horizontal overflow.
 
-- [ ] **Step 7: Commit the final UI/copy/E2E changes**
+- [x] **Step 7: Commit the final UI/copy/E2E changes**
 
   ```bash
   git add src/app/\(app\)/app/page.tsx src/features/applications/dashboard-copy.ts src/features/applications/dashboard-copy.test.ts src/app/api/applications/\[id\]/analyze/route.ts tests/e2e docs/superpowers/plans/2026-08-24-workspace-consistency-export-translation.md

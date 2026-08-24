@@ -21,7 +21,7 @@ vi.mock("./repository", () => ({
 
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 
-import { confirmFactAction } from "./actions";
+import { confirmFactAction, createFactAction } from "./actions";
 import { buildCareerFactUpdate } from "./schemas";
 
 describe("career fact actions", () => {
@@ -67,5 +67,26 @@ describe("career fact actions", () => {
       confirmation_status: "pending",
       confirmed_at: null,
     });
+  });
+
+  it("accepts the normalized language fact from the category form", async () => {
+    mocks.repository.create.mockResolvedValue({ id: "fact-language" });
+    const input = {
+      factType: "language" as const,
+      data: {
+        title: "德语",
+        organization: null,
+        startDate: null,
+        endDate: null,
+        description: "熟练程度：B2\n证书或证明：Goethe B2",
+        skills: [],
+      },
+    };
+
+    await expect(createFactAction(input)).resolves.toEqual({ ok: true });
+    expect(mocks.repository.create).toHaveBeenCalledWith(
+      "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+      input,
+    );
   });
 });

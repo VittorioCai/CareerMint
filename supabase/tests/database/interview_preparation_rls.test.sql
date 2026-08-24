@@ -243,7 +243,14 @@ select throws_ok(
 reset role;
 
 select results_eq(
-  $$select count(*)::bigint from public.interview_questions$$,
+  $$
+    select count(*)::bigint
+    from public.interview_questions
+    where user_id in (
+      'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'::uuid,
+      'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb'::uuid
+    )
+  $$,
   array[11::bigint],
   'failed cross-owner operations did not create extra questions'
 );

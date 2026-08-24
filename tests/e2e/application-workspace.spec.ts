@@ -234,6 +234,38 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
       };
     });
     await prepareAccount(page, account, email, userId);
+
+    await page.goto("/profile");
+    await page.getByRole("button", { name: "＋ 手动添加事实" }).click();
+    await page.getByRole("combobox", { name: "类型" }).selectOption("language");
+    await page.getByRole("textbox", { name: "语言" }).fill("德语");
+    await page.getByRole("textbox", { name: "熟练程度" }).fill("B2");
+    await page.getByRole("textbox", { name: "证书或证明（可选）" }).fill("Goethe B2");
+    await page.getByRole("button", { name: "保存为待确认" }).click();
+    const languageFormError = page.locator("[data-error-code]");
+    if (await languageFormError.count()) {
+      throw new Error(
+        `language-fact-save-${await languageFormError.getAttribute("data-error-code")}`,
+      );
+    }
+    await expect(page.getByRole("button", { name: "＋ 手动添加事实" })).toBeVisible();
+    const languageFact = await account
+      .from("career_facts")
+      .select("fact_type,data,confirmation_status")
+      .eq("user_id", userId)
+      .eq("fact_type", "language")
+      .single();
+    if (languageFact.error) throw languageFact.error;
+    expect(languageFact.data.confirmation_status).toBe("pending");
+    expect(languageFact.data.data).toEqual({
+      title: "德语",
+      organization: null,
+      startDate: null,
+      endDate: null,
+      description: "熟练程度：B2\n证书或证明：Goethe B2",
+      skills: [],
+    });
+
     const factId = await insertConfirmedFact(account, userId);
 
     const first = await createApplication(page, "Acme GmbH", "Product Manager");
@@ -254,6 +286,17 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
 
     await analyzeJD(page, first.detailUrl);
     await page.goto(`${first.detailUrl}?tab=jd`);
+    const orderedRequirementRows = await page
+      .locator('button[aria-controls^="requirement-detail-"]')
+      .allTextContents();
+    expect(orderedRequirementRows[0]).toContain("需要十年量子计算领导经验");
+    expect(orderedRequirementRows[1]).toContain("理解并推进这份岗位描述中的核心职责");
+    await page.getByRole("button", { name: "JD 内容", exact: true }).click();
+    const translatedJdDisclosure = page.getByText("JD 中文翻译", { exact: true });
+    await expect(translatedJdDisclosure.locator("xpath=..")).not.toHaveAttribute("open", "");
+    await translatedJdDisclosure.click();
+    await expect(page.getByText(`中文翻译：${jdText}`, { exact: true })).toBeVisible();
+    await page.getByRole("button", { name: "重点", exact: true }).click();
     const requirementRow = page.getByRole("button", { name: /理解并推进这份岗位描述中的核心职责/ });
     await expect(requirementRow).toHaveAttribute("aria-expanded", "false");
     expect(await page.getByText("JD 来源摘录", { exact: true }).count()).toBe(0);
@@ -297,6 +340,21 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     await gapRow.click();
     await expect(page.getByText("JD 摘录", { exact: true })).toBeVisible();
     await expect(page.getByText("确定性说明", { exact: true })).toBeVisible();
+    const markdownResponsePromise = page.waitForResponse(
+      (response) =>
+        new URL(response.url()).pathname.endsWith("/resume/gaps/export") &&
+        response.request().method() === "GET",
+    );
+    await page.getByRole("button", { name: "导出 Markdown", exact: true }).click();
+    const markdownResponse = await markdownResponsePromise;
+    expect(markdownResponse.ok()).toBe(true);
+    expect(markdownResponse.headers()["content-type"]).toContain("text/markdown");
+    expect(markdownResponse.headers()["content-disposition"]).toContain(".md");
+    await expect(
+      page.getByText("Markdown 已下载。文件只包含当前未解决差距。", {
+        exact: true,
+      }),
+    ).toBeVisible();
     if (visualQa) {
       await page.screenshot({ path: "/tmp/job-buddy-resume-desktop.png", fullPage: false });
     }
@@ -402,11 +460,60 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     if (secondGapRunsBefore.error) throw secondGapRunsBefore.error;
     expect(secondGapRunsBefore.count).toBe(0);
 
+    const assetsBeforeDuplicate = await account
+      .from("source_assets")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId);
+    if (assetsBeforeDuplicate.error) throw assetsBeforeDuplicate.error;
+    await uploadBaseline(
+      page,
+      "tests/fixtures/resume-en.pdf",
+      new RegExp(`/applications/${second.applicationId}\\?tab=resume$`),
+    );
+    await expect
+      .poll(async () => {
+        const reusedBaseline = await account
+          .from("applications")
+          .select("resume_source_asset_id")
+          .eq("id", second.applicationId)
+          .single();
+        if (reusedBaseline.error) throw reusedBaseline.error;
+        return reusedBaseline.data.resume_source_asset_id;
+      })
+      .toBe(firstAssetId);
+    const assetsAfterDuplicate = await account
+      .from("source_assets")
+      .select("id", { count: "exact" })
+      .eq("user_id", userId);
+    if (assetsAfterDuplicate.error) throw assetsAfterDuplicate.error;
+    expect(assetsAfterDuplicate.count).toBe(assetsBeforeDuplicate.count);
+
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "预览 resume-en.pdf", exact: true }),
+    ).toBeVisible();
+    await page.getByRole("button", { name: "上传新简历", exact: true }).click();
+
     await uploadBaseline(
       page,
       "tests/fixtures/resume-scanned.pdf",
       new RegExp(`/applications/${second.applicationId}\\?tab=resume$`),
     );
+    await expect
+      .poll(async () => {
+        const selected = await account
+          .from("applications")
+          .select("resume_source_asset_id")
+          .eq("id", second.applicationId)
+          .single();
+        if (selected.error) throw selected.error;
+        return selected.data.resume_source_asset_id;
+      })
+      .not.toBe(firstAssetId);
+    await page.reload();
+    await expect(
+      page.getByRole("button", { name: "预览 resume-scanned.pdf", exact: true }),
+    ).toBeVisible();
     await expect(page).toHaveURL(new RegExp(`/applications/${second.applicationId}\\?tab=resume$`));
     await expect(page.getByRole("heading", { name: "简历差距结果" })).toBeVisible();
     await expect(page.getByRole("button", { name: "分析简历差距", exact: true })).toBeVisible();
@@ -417,8 +524,15 @@ test("covers the application workspace JD and resume-gap paths", async ({ page }
     );
     await page.getByRole("button", { name: "分析简历差距", exact: true }).click();
     const firstScannedResponse = await firstScannedResponsePromise;
-    expect(firstScannedResponse.ok()).toBe(true);
-    expect(await firstScannedResponse.json()).toEqual(
+    const firstScannedBody = await firstScannedResponse.json();
+    expect({
+      ok: firstScannedResponse.ok(),
+      status: firstScannedResponse.status(),
+      body: firstScannedBody,
+    }).toEqual(
+      expect.objectContaining({ ok: true }),
+    );
+    expect(firstScannedBody).toEqual(
       expect.objectContaining({ status: "failed", errorCode: "resume-text-too-short" }),
     );
     await expect(page.getByRole("button", { name: "在本机识别扫描版 PDF", exact: true })).toBeVisible();

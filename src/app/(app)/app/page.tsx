@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { getOwnedProfile } from "@/features/account/repository";
+import { dashboardJDActionLabel } from "@/features/applications/dashboard-copy";
 import { applicationRepository } from "@/features/applications/repository";
 import { APPLICATION_STAGE_LABELS } from "@/features/applications/schemas";
 import { summarizeApplications } from "@/features/applications/summary";
@@ -85,7 +86,7 @@ export default async function DashboardPage() {
           已确认 {confirmedCount} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。
         </p>
         <Link href="/applications/new" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-black">
-          添加第一份 JD →
+          {dashboardJDActionLabel(applications.length)} →
         </Link>
       </article>
     );
