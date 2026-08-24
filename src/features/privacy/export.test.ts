@@ -55,6 +55,14 @@ describe("buildAccountExport", () => {
           companyName: "Acme GmbH",
           roleTitle: "Product Manager",
           jdText: "Private owned JD text",
+          resumeSourceAssetId: "11111111-1111-4111-8111-111111111111",
+        },
+        {
+          id: "44444444-4444-4444-8444-444444444444",
+          userId,
+          companyName: "Owned Second Company",
+          roleTitle: "Analyst",
+          jdText: "Second owned JD",
         },
         {
           id: "77777777-7777-4777-8777-777777777777",
@@ -94,6 +102,109 @@ describe("buildAccountExport", () => {
           userId,
           applicationId: "33333333-3333-4333-8333-333333333333",
           status: "succeeded",
+        },
+      ]),
+      listResumeGapRuns: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-9999-4999-8999-999999999999",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          analysisRunId: "55555555-5555-4555-8555-555555555555",
+          sourceAssetId: "11111111-1111-4111-8111-111111111111",
+          sourceFilename: "resume.pdf",
+          sourceSha256: "a".repeat(64),
+          inputHash: "b".repeat(64),
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: {
+            acceptedItemCount: 1,
+            coveredItemCount: 0,
+            partialItemCount: 0,
+            missingItemCount: 1,
+            fullResumeText: "PARSED FULL RESUME MUST NOT EXPORT",
+            providerRawResponse: "RAW PROVIDER RESPONSE MUST NOT EXPORT",
+          },
+          errorCode: null,
+          errorMessage: "PRIVATE PROVIDER ERROR MUST NOT EXPORT",
+          errorStack: "PRIVATE STACK MUST NOT EXPORT",
+          createdAt: "2026-08-22T00:00:00.000Z",
+          updatedAt: "2026-08-22T00:01:00.000Z",
+          startedAt: "2026-08-22T00:00:30.000Z",
+          finishedAt: "2026-08-22T00:01:00.000Z",
+          signedUrl: "https://private.example/signed",
+          storageCredential: "private-storage-secret",
+        },
+        {
+          id: "bbbbbbbb-9999-4999-8999-999999999999",
+          userId: otherUserId,
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          analysisRunId: "bbbbbbbb-5555-4555-8555-555555555555",
+          sourceAssetId: null,
+          sourceFilename: "other.pdf",
+          sourceSha256: "c".repeat(64),
+          inputHash: "d".repeat(64),
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: null,
+          errorCode: null,
+          errorMessage: null,
+          createdAt: "2026-08-22T00:00:00.000Z",
+          updatedAt: "2026-08-22T00:01:00.000Z",
+          startedAt: "2026-08-22T00:00:30.000Z",
+          finishedAt: "2026-08-22T00:01:00.000Z",
+        },
+      ]),
+      listResumeGapItems: vi.fn().mockResolvedValue([
+        {
+          id: "aaaaaaaa-aaaa-4aaa-8aaa-111111111111",
+          runId: "aaaaaaaa-9999-4999-8999-999999999999",
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          userId,
+          requirementId: "66666666-6666-4666-8666-666666666666",
+          requirementText: "Advanced SQL",
+          category: "skill",
+          priority: "core",
+          jdSourceExcerpt: "Use SQL for business analysis.",
+          resumeCoverage: "missing",
+          verifiedResumeExcerpt: null,
+          sortOrder: 0,
+          createdAt: "2026-08-22T00:01:00.000Z",
+          fullJdText: "FULL ADDITIONAL JD MUST NOT EXPORT",
+          signedUrl: "https://private.example/signed-item",
+        },
+        {
+          id: "cccccccc-cccc-4ccc-8ccc-111111111111",
+          runId: "aaaaaaaa-9999-4999-8999-999999999999",
+          applicationId: "44444444-4444-4444-8444-444444444444",
+          userId,
+          requirementId: null,
+          requirementText: "Cross-application item must not export",
+          category: "skill",
+          priority: "core",
+          jdSourceExcerpt: "Cross-application source",
+          resumeCoverage: "missing",
+          verifiedResumeExcerpt: null,
+          sortOrder: 1,
+          createdAt: "2026-08-22T00:01:00.000Z",
+        },
+        {
+          id: "bbbbbbbb-bbbb-4bbb-8bbb-111111111111",
+          runId: "bbbbbbbb-9999-4999-8999-999999999999",
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          userId: otherUserId,
+          requirementId: null,
+          requirementText: "Other user's secret",
+          category: "skill",
+          priority: "core",
+          jdSourceExcerpt: "Other user's source",
+          resumeCoverage: "missing",
+          verifiedResumeExcerpt: null,
+          sortOrder: 0,
+          createdAt: "2026-08-22T00:01:00.000Z",
         },
       ]),
       listResumeSuggestions: vi.fn().mockResolvedValue([
@@ -271,6 +382,7 @@ describe("buildAccountExport", () => {
       "application-workspaces.json",
       "interview-preparation.json",
       "profile.json",
+      "resume-gaps.json",
       "source-assets.json",
     ].sort());
     const profileJson = await zip.file("profile.json")!.async("string");
@@ -281,6 +393,7 @@ describe("buildAccountExport", () => {
     const interviewJson = await zip
       .file("interview-preparation.json")!
       .async("string");
+    const resumeGapsJson = await zip.file("resume-gaps.json")!.async("string");
     expect(profileJson).toContain("Lin Chen");
     expect(profileJson).toContain("SQL");
     expect(profileJson).not.toContain("Other user secret");
@@ -290,6 +403,8 @@ describe("buildAccountExport", () => {
     expect(JSON.stringify(Object.keys(zip.files))).not.toContain(otherUserId);
     expect(applicationsJson).toContain("Acme GmbH");
     expect(applicationsJson).toContain("Private owned JD text");
+    expect(applicationsJson).toContain("resumeSourceAssetId");
+    expect(applicationsJson).toContain("11111111-1111-4111-8111-111111111111");
     expect(applicationsJson).toContain("Advanced SQL");
     expect(applicationsJson).toContain("resumeRuns");
     expect(applicationsJson).toContain("resumeSuggestions");
@@ -331,6 +446,49 @@ describe("buildAccountExport", () => {
     expect(interviewJson).not.toContain("PROVIDER RAW SECRET MUST NOT EXPORT");
     expect(interviewJson).not.toContain("Cross-application candidate");
     expect(interviewJson).not.toContain("Cross-user candidate");
+    const resumeGapsExport = JSON.parse(resumeGapsJson) as {
+      schemaVersion: string;
+      generatedAt: string;
+      runs: Array<Record<string, unknown>>;
+      items: Array<Record<string, unknown>>;
+    };
+    expect(resumeGapsExport.schemaVersion).toBe("resume-gap-history-v1");
+    expect(resumeGapsExport.generatedAt).toMatch(/Z$/);
+    expect(resumeGapsExport.runs).toHaveLength(1);
+    expect(resumeGapsExport.runs[0]).toMatchObject({
+      id: "aaaaaaaa-9999-4999-8999-999999999999",
+      applicationId: "33333333-3333-4333-8333-333333333333",
+      baselineAssetId: "11111111-1111-4111-8111-111111111111",
+      sourceFilename: "resume.pdf",
+      status: "succeeded",
+      attemptCount: 1,
+      provider: "deepseek",
+      model: "deepseek-chat",
+    });
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("inputHash");
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("result");
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("errorMessage");
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("errorStack");
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("signedUrl");
+    expect(resumeGapsExport.runs[0]).not.toHaveProperty("storageCredential");
+    expect(resumeGapsExport.items).toHaveLength(1);
+    expect(resumeGapsExport.items[0]).toMatchObject({
+      id: "aaaaaaaa-aaaa-4aaa-8aaa-111111111111",
+      runId: "aaaaaaaa-9999-4999-8999-999999999999",
+      applicationId: "33333333-3333-4333-8333-333333333333",
+      requirementId: "66666666-6666-4666-8666-666666666666",
+      requirementText: "Advanced SQL",
+      jdSourceExcerpt: "Use SQL for business analysis.",
+      resumeCoverage: "missing",
+      verifiedResumeExcerpt: null,
+    });
+    expect(resumeGapsJson).not.toContain("PARSED FULL RESUME MUST NOT EXPORT");
+    expect(resumeGapsJson).not.toContain("RAW PROVIDER RESPONSE MUST NOT EXPORT");
+    expect(resumeGapsJson).not.toContain("FULL ADDITIONAL JD MUST NOT EXPORT");
+    expect(resumeGapsJson).not.toContain("PRIVATE STACK MUST NOT EXPORT");
+    expect(resumeGapsJson).not.toContain("private.example");
+    expect(resumeGapsJson).not.toContain("Other user's secret");
+    expect(resumeGapsJson).not.toContain("Cross-application item must not export");
     expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
       `${userId}/asset/source.pdf`,
     );

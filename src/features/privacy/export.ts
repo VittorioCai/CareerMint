@@ -46,6 +46,40 @@ type ExportAsset = OwnedRecord & {
   createdAt?: string;
 };
 
+type ResumeGapExportRun = OwnedRecord & {
+  id: string;
+  applicationId: string;
+  analysisRunId: string;
+  sourceAssetId: string | null;
+  sourceFilename: string;
+  sourceSha256: string;
+  provider: string;
+  model: string;
+  status: string;
+  attemptCount: number;
+  result?: unknown;
+  errorCode?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  startedAt?: string | null;
+  finishedAt?: string | null;
+};
+
+type ResumeGapExportItem = OwnedRecord & {
+  id: string;
+  runId: string;
+  applicationId: string;
+  requirementId: string | null;
+  requirementText: string;
+  category: string;
+  priority: string;
+  jdSourceExcerpt: string;
+  resumeCoverage: string;
+  verifiedResumeExcerpt: string | null;
+  sortOrder: number;
+  createdAt: string;
+};
+
 export type AccountExportDependencies = {
   getProfile(userId: string): Promise<OwnedRecord | null>;
   listFacts(userId: string): Promise<OwnedRecord[]>;
@@ -65,6 +99,8 @@ export type AccountExportDependencies = {
   listResumeRuns(
     userId: string,
   ): Promise<Array<OwnedRecord & ApplicationChildRecord & { id: string }>>;
+  listResumeGapRuns(userId: string): Promise<ResumeGapExportRun[]>;
+  listResumeGapItems(userId: string): Promise<ResumeGapExportItem[]>;
   listResumeSuggestions(
     userId: string,
     runId: string,
@@ -102,6 +138,74 @@ function publicAssetMetadata(asset: ExportAsset) {
     sha256: asset.sha256 ?? null,
     status: asset.status ?? null,
     createdAt: asset.createdAt ?? null,
+  };
+}
+
+function safeResumeGapCounts(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const result = value as Record<string, unknown>;
+  const fields = [
+    "acceptedItemCount",
+    "coveredItemCount",
+    "partialItemCount",
+    "missingItemCount",
+  ] as const;
+  if (
+    !fields.every(
+      (field) =>
+        typeof result[field] === "number" &&
+        Number.isSafeInteger(result[field]) &&
+        (result[field] as number) >= 0,
+    )
+  ) {
+    return null;
+  }
+  return Object.fromEntries(
+    fields.map((field) => [field, result[field]]),
+  );
+}
+
+function publicResumeGapRun(
+  run: ResumeGapExportRun,
+  ownedAssetIds: ReadonlySet<string>,
+) {
+  return {
+    id: run.id,
+    applicationId: run.applicationId,
+    baselineAssetId:
+      run.sourceAssetId && ownedAssetIds.has(run.sourceAssetId)
+        ? run.sourceAssetId
+        : null,
+    analysisRunId: run.analysisRunId,
+    sourceFilename: run.sourceFilename,
+    sourceSha256: run.sourceSha256,
+    provider: run.provider,
+    model: run.model,
+    status: run.status,
+    attemptCount: run.attemptCount,
+    counts: safeResumeGapCounts(run.result),
+    errorCode: safeErrorCode(run.errorCode),
+    createdAt: run.createdAt,
+    updatedAt: run.updatedAt,
+    startedAt: run.startedAt ?? null,
+    finishedAt: run.finishedAt ?? null,
+  };
+}
+
+function publicResumeGapItem(item: ResumeGapExportItem) {
+  return {
+    id: item.id,
+    runId: item.runId,
+    applicationId: item.applicationId,
+    requirementId: item.requirementId,
+    requirementText: item.requirementText,
+    category: item.category,
+    priority: item.priority,
+    jdSourceExcerpt: item.jdSourceExcerpt,
+    resumeCoverage: item.resumeCoverage,
+    verifiedResumeExcerpt: item.verifiedResumeExcerpt,
+    sortOrder: item.sortOrder,
+    createdAt: item.createdAt,
   };
 }
 
@@ -231,6 +335,8 @@ export async function buildAccountExport(
     allApplications,
     allAnalysisRuns,
     allResumeRuns,
+    allResumeGapRuns,
+    allResumeGapItems,
     allInterviewQuestions,
     allInterviewGenerationRuns,
     allInterviewGenerationCandidates,
@@ -242,6 +348,8 @@ export async function buildAccountExport(
       dependencies.listApplications(userId),
       dependencies.listAnalysisRuns(userId),
       dependencies.listResumeRuns(userId),
+      dependencies.listResumeGapRuns(userId),
+      dependencies.listResumeGapItems(userId),
       dependencies.listInterviewQuestions(userId),
       dependencies.listInterviewGenerationRuns(userId),
       dependencies.listInterviewGenerationCandidates(userId),
@@ -249,6 +357,7 @@ export async function buildAccountExport(
   const ownedProfile = profile?.userId === userId ? profile : null;
   const facts = allFacts.filter((fact) => fact.userId === userId);
   const assets = allAssets.filter((asset) => asset.userId === userId);
+  const ownedAssetIds = new Set(assets.map((asset) => asset.id));
   const applications = allApplications.filter(
     (application) => application.userId === userId,
   );
@@ -260,6 +369,20 @@ export async function buildAccountExport(
   );
   const resumeRuns = allResumeRuns.filter(
     (run) => run.userId === userId && applicationIds.has(run.applicationId),
+  );
+  const resumeGapRuns = allResumeGapRuns.filter(
+    (run) => run.userId === userId && applicationIds.has(run.applicationId),
+  );
+  const resumeGapRunIds = new Set(resumeGapRuns.map((run) => run.id));
+  const resumeGapRunApplications = new Map(
+    resumeGapRuns.map((run) => [run.id, run.applicationId]),
+  );
+  const resumeGapItems = allResumeGapItems.filter(
+    (item) =>
+      item.userId === userId &&
+      applicationIds.has(item.applicationId) &&
+      resumeGapRunIds.has(item.runId) &&
+      resumeGapRunApplications.get(item.runId) === item.applicationId,
   );
   const interviewQuestions = allInterviewQuestions
     .filter((question) => question.userId === userId)
@@ -366,6 +489,21 @@ export async function buildAccountExport(
     "interview-preparation.json",
     JSON.stringify(
       { questions: interviewQuestions, generationRuns, generationCandidates },
+      null,
+      2,
+    ),
+  );
+  zip.file(
+    "resume-gaps.json",
+    JSON.stringify(
+      {
+        schemaVersion: "resume-gap-history-v1",
+        generatedAt: new Date().toISOString(),
+        runs: resumeGapRuns.map((run) =>
+          publicResumeGapRun(run, ownedAssetIds),
+        ),
+        items: resumeGapItems.map(publicResumeGapItem),
+      },
       null,
       2,
     ),
