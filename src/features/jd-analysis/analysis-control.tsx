@@ -28,11 +28,13 @@ async function responseBody(response: Response) {
 export function AnalysisControl({
   applicationId,
   initialStatus,
+  initialResult,
   request = fetch,
   refresh,
 }: {
   applicationId: string;
   initialStatus: JDAnalysisRun["status"] | null;
+  initialResult?: JDAnalysisRun["result"];
   request?: typeof fetch;
   refresh?: () => void;
 }) {
@@ -99,16 +101,40 @@ export function AnalysisControl({
           ? "检查分析状态"
           : "开始分析 JD";
 
+  const stateLabel =
+    initialStatus === "succeeded"
+      ? "最近一次分析已完成"
+      : initialStatus === "failed"
+        ? "上次分析未完成，可重试"
+        : initialStatus === "running" || initialStatus === "queued"
+          ? "分析任务进行中"
+          : "尚未分析这份 JD";
+
+  function formatCost(amount: number) {
+    return amount.toFixed(6).replace(/0+$/, "").replace(/\.$/, "");
+  }
+
   return (
-    <section className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-4 shadow-[3px_3px_0_var(--ink)] sm:p-5">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em]">
-            JD 与职业事实匹配
+    <section className="dense-surface p-4 sm:px-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
+            <p className="text-sm font-black">JD 与职业事实匹配</p>
+            <p className="text-xs font-bold text-[var(--ink-muted)]">{stateLabel}</p>
+          </div>
+          <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+            只有点击后，系统才会发送这份 JD 和已确认职业事实；相同资料会复用已有结果。
           </p>
-          <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-            只有点击后，系统才会发送这份 JD 和已确认职业事实给 AI。待确认事实不会成为匹配证据；相同资料会复用已有结果。
-          </p>
+          {initialResult ? (
+            <p className="mt-1 flex flex-wrap gap-x-3 text-xs font-bold text-[var(--ink-muted)]">
+              <span>上次结果：{initialResult.acceptedRequirementCount} 项要求</span>
+              {initialResult.estimatedCost ? (
+                <span>
+                  预计成本 ${formatCost(initialResult.estimatedCost.amount)} {initialResult.estimatedCost.currency}
+                </span>
+              ) : null}
+            </p>
+          ) : null}
         </div>
         <button
           type="button"

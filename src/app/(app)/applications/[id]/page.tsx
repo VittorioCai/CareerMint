@@ -138,24 +138,13 @@ function JdPanel({
       <AnalysisControl
         applicationId={application.id}
         initialStatus={analysisRun?.status ?? null}
+        initialResult={analysisRun?.result ?? null}
       />
-      <RequirementsPanel requirements={requirements} />
-      <article className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-6">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] pb-4">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">原始快照</p>
-            <h2 className="heading-font mt-1 text-xl font-black">JD 原文</h2>
-          </div>
-          {application.jobUrl ? (
-            <a href={application.jobUrl} target="_blank" rel="noreferrer" className="button-secondary inline-flex min-h-10 items-center px-4 text-xs font-black">
-              打开原岗位 ↗
-            </a>
-          ) : null}
-        </div>
-        <div className="mt-5 whitespace-pre-wrap break-words text-sm font-medium leading-7 text-[var(--ink-muted)]">
-          {application.jdText}
-        </div>
-      </article>
+      <RequirementsPanel
+        requirements={requirements}
+        sourceText={application.jdText}
+        sourceUrl={application.jobUrl}
+      />
     </div>
   );
 }

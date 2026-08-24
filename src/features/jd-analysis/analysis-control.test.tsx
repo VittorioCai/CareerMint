@@ -120,4 +120,38 @@ describe("AnalysisControl", () => {
       expect(screen.getByRole("button", { name: "重新分析 JD" })).toBeEnabled(),
     );
   });
+
+  it("shows the real latest result count and cost in the compact status row", () => {
+    render(
+      <AnalysisControl
+        applicationId={applicationId}
+        initialStatus="succeeded"
+        initialResult={{
+          acceptedRequirementCount: 6,
+          rejectedRequirementCount: 1,
+          rejectedEvidenceCount: 2,
+          ai: {
+            provider: "deepseek",
+            model: "deepseek-chat",
+            requestId: null,
+            usage: {
+              inputCacheHitTokens: 0,
+              inputCacheMissTokens: 100,
+              outputTokens: 50,
+            },
+            priceScheduleVersion: "2026-01",
+          },
+          estimatedCost: {
+            amount: 0.012,
+            currency: "USD",
+            scheduleVersion: "2026-01",
+            tier: "default",
+          },
+        }}
+      />,
+    );
+
+    expect(screen.getByText("上次结果：6 项要求")).toBeVisible();
+    expect(screen.getByText("预计成本 $0.012 USD")).toBeVisible();
+  });
 });
