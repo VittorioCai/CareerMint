@@ -2,17 +2,19 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(60);
+select plan(61);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
 select has_column('public', 'applications', 'resume_source_asset_id', 'applications can select a resume source asset');
 select results_eq($$select has_function_privilege('anon', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'anon cannot execute the internal JSON helper');
 select results_eq($$select has_function_privilege('authenticated', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'authenticated cannot execute the internal JSON helper');
+select results_eq($$select (lower(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure)) like '%target_source_asset_id uuid default null%')::text$$, array['true'], 'source selection RPC exposes an optional null skip argument');
 select results_eq(
   $$select (
     strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select application_id, user_id') > 0
       and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select application_id, user_id') < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'for locked_analysis')
+      and strpos(substring(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure) from 1 for strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'for locked_analysis')), 'for update') = 0
       and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'for locked_analysis') < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select * into owned_analysis')
       and regexp_count(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'order by created_at, id[[:space:]]+for update') = 1
   )::text$$,
@@ -22,6 +24,7 @@ select results_eq(
   $$select (
     strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') > 0
       and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')
+      and strpos(substring(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure) from 1 for strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')), 'for update') = 0
       and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select * into locked_application')
       and regexp_count(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'order by created_at, id[[:space:]]+for update') = 1
   )::text$$,

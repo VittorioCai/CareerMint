@@ -1336,7 +1336,7 @@ export type Database = {
         Returns: {
           candidate_id: string
           disposition: string
-          question_id: string
+          question_id: string | null
         }[]
       }
       add_interview_question: {
@@ -2088,7 +2088,7 @@ export type Database = {
         Returns: number
       }
       set_application_resume_source: {
-        Args: { target_application_id: string; target_source_asset_id: string }
+        Args: { target_application_id: string; target_source_asset_id?: string }
         Returns: {
           applied_at: string | null
           company_name: string
@@ -2306,4 +2306,3 @@ export const Constants = {
     },
   },
 } as const
-

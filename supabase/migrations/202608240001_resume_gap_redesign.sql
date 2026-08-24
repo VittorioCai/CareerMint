@@ -209,7 +209,7 @@ for each row execute function public.touch_resume_gap_run_updated_at();
 
 create function public.set_application_resume_source(
   target_application_id uuid,
-  target_source_asset_id uuid
+  target_source_asset_id uuid default null
 )
 returns public.applications
 language plpgsql
