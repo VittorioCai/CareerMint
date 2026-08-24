@@ -1,0 +1,140 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-08-24T23:30:00+02:00",
+  "title": "Design System: 求职搭子",
+  "extensions": {
+    "colorMeta": {
+      "mint-sidebar": {
+        "role": "primary",
+        "displayName": "工作台薄荷绿",
+        "canonical": "#bdebd7",
+        "tonalRamp": ["#17382a", "#24533f", "#367158", "#55977a", "#7fbea2", "#a8ddc6", "#d5f3e6", "#f0fbf6"]
+      },
+      "cream-action": {
+        "role": "primary",
+        "displayName": "行动奶油黄",
+        "canonical": "#fff2a8",
+        "tonalRamp": ["#3a300d", "#5a4b16", "#7e6922", "#a98d36", "#d5b957", "#efd97f", "#fff0b0", "#fff9df"]
+      },
+      "coral-urgent": {
+        "role": "secondary",
+        "displayName": "紧急珊瑚红",
+        "canonical": "#ff796d",
+        "tonalRamp": ["#421713", "#65231e", "#8d312a", "#bc493f", "#e66358", "#ff8f84", "#ffc2bc", "#ffe9e6"]
+      },
+      "mist-blue-info": {
+        "role": "secondary",
+        "displayName": "解释雾霾蓝",
+        "canonical": "#c8ddff",
+        "tonalRamp": ["#182942", "#263f62", "#3c5c88", "#5f80b1", "#88a9d7", "#b3cef2", "#d8e8ff", "#f1f7ff"]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "粗圆标题",
+        "purpose": "页面主标题和核心板块标题。"
+      },
+      "body": {
+        "displayName": "工作台正文",
+        "purpose": "中英文混排、长 JD 和证据说明。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "selected-sticker",
+        "value": "2px 2px 0 #293733",
+        "purpose": "当前导航和步骤。"
+      },
+      {
+        "name": "primary-action",
+        "value": "4px 4px 0 #293733",
+        "purpose": "当前工作区唯一的主操作。"
+      },
+      {
+        "name": "brand-sticker",
+        "value": "8px 8px 0 #293733",
+        "purpose": "首页主状态等少量品牌表面。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "state-transition",
+        "value": "160ms cubic-bezier(0.22, 1, 0.36, 1)",
+        "purpose": "按钮、折叠和焦点状态反馈。"
+      }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "lg", "value": "1024px" },
+      { "name": "xl", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "当前工作区唯一的主要下一步。",
+      "html": "<button class=\"ds-btn-primary\">继续下一步</button>",
+      "css": ".ds-btn-primary { background: var(--cream, #fff2a8); color: var(--ink, #293733); border: 2px solid var(--ink, #293733); border-radius: 12px; padding: 12px 20px; font-weight: 800; box-shadow: 4px 4px 0 var(--ink, #293733); transition: transform 160ms cubic-bezier(0.22,1,0.36,1), box-shadow 160ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-primary:hover { transform: translate(-1px,-1px); box-shadow: 5px 5px 0 var(--ink, #293733); } .ds-btn-primary:focus-visible { outline: 3px solid var(--mist-blue, #c8ddff); outline-offset: 3px; } .ds-btn-primary:active { transform: translate(2px,2px); box-shadow: 1px 1px 0 var(--ink, #293733); }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "更换、取消和次要操作。",
+      "html": "<button class=\"ds-btn-secondary\">预览简历</button>",
+      "css": ".ds-btn-secondary { background: var(--white, #fffdf8); color: var(--ink, #293733); border: 2px solid var(--ink, #293733); border-radius: 12px; padding: 12px 20px; font-weight: 800; transition: transform 160ms cubic-bezier(0.22,1,0.36,1); } .ds-btn-secondary:hover { transform: translate(-1px,-1px); } .ds-btn-secondary:focus-visible { outline: 3px solid var(--mist-blue, #c8ddff); outline-offset: 3px; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "用于 JD、档案和筛选字段。",
+      "html": "<input class=\"ds-input\" placeholder=\"输入内容\" />",
+      "css": ".ds-input { min-height: 48px; width: 100%; background: var(--white, #fffdf8); color: var(--ink, #293733); border: 1.5px solid var(--ink-soft, #94a09b); border-radius: 12px; padding: 12px 14px; font: 500 15px/1.5 system-ui, sans-serif; } .ds-input:hover { border-color: var(--ink-muted, #596761); } .ds-input:focus { border-color: var(--ink, #293733); box-shadow: 0 0 0 3px var(--mist-blue, #c8ddff); outline: none; }"
+    },
+    {
+      "name": "Status Chip",
+      "kind": "chip",
+      "refersTo": "status-chip",
+      "description": "同时用符号、文字和颜色表达匹配状态。",
+      "html": "<span class=\"ds-chip\">— 没有证据</span>",
+      "css": ".ds-chip { display: inline-flex; align-items: center; border: 1px solid var(--ink, #293733); border-radius: 999px; background: var(--coral, #ff796d); color: var(--ink, #293733); padding: 4px 8px; font: 800 11px/1 system-ui, sans-serif; }"
+    },
+    {
+      "name": "Active Navigation",
+      "kind": "nav",
+      "description": "当前页面或工作区标签。",
+      "html": "<a class=\"ds-nav-active\" href=\"#\">简历</a>",
+      "css": ".ds-nav-active { display: inline-flex; min-height: 44px; align-items: center; background: var(--white, #fffdf8); color: var(--ink, #293733); border: 2px solid var(--ink, #293733); border-radius: 12px; padding: 10px 16px; font-weight: 800; text-decoration: none; box-shadow: 2px 2px 0 var(--ink, #293733); } .ds-nav-active:focus-visible { outline: 3px solid var(--mist-blue, #c8ddff); outline-offset: 3px; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "贴纸求职工作台",
+    "overview": "界面像一张被认真整理过的求职桌面：薄荷色侧栏提供稳定方向，奶油黄标记下一步，珊瑚红只提醒真正需要关注的内容。贴纸语言提供亲和力，但数据密集区域保持安静、平整和容易扫描。设计必须让任务先于装饰。",
+    "keyCharacteristics": [
+      "温暖但不幼稚的薄荷贴纸语言",
+      "以渐进披露控制信息密度",
+      "原文、翻译、证据三层清晰分离",
+      "状态优先、装饰克制",
+      "桌面高效，手机保留关键操作"
+    ],
+    "rules": [
+      { "name": "Fixed Meaning", "body": "同一种颜色在不同页面必须表达同一种状态，不得把珊瑚红用于普通装饰。", "section": "colors" },
+      { "name": "One Display Voice", "body": "粗圆标题只建立层级，不进入按钮、表格数据或长段正文。", "section": "typography" },
+      { "name": "Flat by Default", "body": "表格、正文、预览和折叠列表禁止使用阴影。", "section": "elevation" }
+    ],
+    "dos": [
+      "Do 把“没有证据”和“需要判断”排在有证据内容之前。",
+      "Do 在长列表中使用细分隔和折叠，保持首屏可扫描。",
+      "Do 为删除、导出、确认和长任务提供明确反馈。"
+    ],
+    "donts": [
+      "Don't 做以聊天框为中心、把结构化任务藏进对话的通用 AI 工具。",
+      "Don't 做卡片层层嵌套、每个元素都有粗描边和阴影的幼稚贴纸界面。",
+      "Don't 做信息无优先级、证据和原文一次性全部展开的拥挤后台。",
+      "Don't 使用紫色渐变、玻璃拟态和模板化 SaaS 仪表盘。"
+    ]
+  }
+}
