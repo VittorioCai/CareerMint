@@ -10,6 +10,15 @@ import type { ResumeAssetOption } from "./baseline-selector";
 
 type GapRunStatus = "queued" | "running" | "succeeded" | "failed";
 
+export type BrowserOcrHook = (
+  file: File,
+  options?: ScannedPdfOcrOptions,
+) => Promise<string>;
+
+declare global {
+  var __JOB_BUDDY_E2E_OCR__: BrowserOcrHook | undefined;
+}
+
 export type GapRunSummary = {
   status: GapRunStatus;
   errorCode?: string | null;
@@ -56,7 +65,18 @@ const errorCopy: Record<string, string> = {
   "network-error": "网络暂时不可用，请重试。",
 };
 
+export function resolveBrowserOcrHook(
+  environment: string | undefined = process.env.NODE_ENV,
+  candidate: BrowserOcrHook | undefined = globalThis.__JOB_BUDDY_E2E_OCR__,
+) {
+  return environment !== "production" && typeof candidate === "function"
+    ? candidate
+    : null;
+}
+
 const defaultOcrPdf = async (file: File, options?: ScannedPdfOcrOptions) => {
+  const injected = resolveBrowserOcrHook();
+  if (injected) return injected(file, options);
   const { extractScannedPdfText } = await import("@/features/source-assets/ocr");
   return extractScannedPdfText(file, options);
 };
@@ -104,9 +124,9 @@ export function GapAnalysisControl({
   useEffect(() => {
     mountedRef.current = true;
     return () => {
-    mountedRef.current = false;
-    ocrAbortControllerRef.current?.abort();
-    ocrAbortControllerRef.current = null;
+      mountedRef.current = false;
+      ocrAbortControllerRef.current?.abort();
+      ocrAbortControllerRef.current = null;
     };
   }, []);
   // The page keys this control by asset + JD run so browser OCR state cannot

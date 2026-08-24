@@ -102,6 +102,7 @@ function FactEvidence({ facts }: { facts: GapFact[] }) {
         <Link href="/profile" className="text-xs font-black underline underline-offset-4">查看职业档案</Link>
       </div>
       {facts.map((fact) => <p key={fact.id} className="mt-1 break-words whitespace-pre-wrap font-semibold">{factLabel(fact)}</p>)}
+      {!facts.length ? <p className="mt-1 break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">暂无已确认职业事实。</p> : null}
     </div>
   );
 }
@@ -138,7 +139,7 @@ function GapRow({ item }: { item: GapItem }) {
         <div className="space-y-4 pb-4 text-sm">
           <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">JD 摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.jdSourceExcerpt}</p></div>
           {item.verifiedResumeExcerpt ? <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">已验证的简历摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.verifiedResumeExcerpt}</p></div> : null}
-          {item.profileEvidence.length ? <FactEvidence facts={item.profileEvidence} /> : null}
+          <FactEvidence facts={item.profileEvidence} />
           <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">确定性说明</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{explainGap(item)}</p></div>
         </div>
       ) : null}

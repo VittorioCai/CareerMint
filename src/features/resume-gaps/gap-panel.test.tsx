@@ -108,6 +108,28 @@ describe("GapPanel", () => {
     expect(profile.compareDocumentPosition(explanation) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
+  it("keeps an explicit empty profile-evidence section in expanded partial and covered rows", async () => {
+    const user = userEvent.setup();
+    render(
+      <GapPanel
+        baseline={{ id: "asset", originalName: "resume.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "resume.pdf", sourceAssetId: "asset", analysisRunId: "analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="analysis"
+        items={[item("partial-empty", "partial"), item("covered-empty", "covered")]}
+      />,
+    );
+    await user.click(screen.getByRole("button", { name: /partial requirement/ }));
+    expect(screen.getByText("暂无已确认职业事实。" )).toBeVisible();
+    expect(screen.getByRole("link", { name: "查看职业档案" })).toHaveAttribute("href", "/profile");
+    const coveredSummary = screen.getAllByText("已经覆盖").find((element) => element.closest("summary"));
+    await user.click(coveredSummary!.closest("summary")!);
+    await user.click(screen.getByRole("button", { name: /covered requirement/ }));
+    expect(screen.getAllByText("暂无已确认职业事实。" )).toHaveLength(2);
+    expect(screen.getAllByRole("link", { name: "查看职业档案" })).toHaveLength(2);
+  });
+
   it("shows needs-user guidance beside a current gap status", () => {
     render(
       <GapPanel
