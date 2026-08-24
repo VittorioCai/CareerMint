@@ -1,5 +1,9 @@
 import { defineConfig, devices } from "@playwright/test";
 
+import { loadLocalSupabaseEnv } from "./src/lib/e2e/local-supabase-env";
+
+loadLocalSupabaseEnv(process.env);
+
 export default defineConfig({
   testDir: "./tests/e2e",
   globalSetup: "./tests/e2e/global-setup.ts",
