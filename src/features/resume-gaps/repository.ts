@@ -265,6 +265,7 @@ export function createResumeGapRepository(
         profileEvidence: sameRun ? requirement?.evidence ?? [] : [],
         matchStatus: sameRun ? requirement?.matchStatus : undefined,
         matchReason: sameRun ? requirement?.matchReason : null,
+        translationZh: sameRun ? requirement?.translationZh : null,
         historical: !sameRun,
       };
     });

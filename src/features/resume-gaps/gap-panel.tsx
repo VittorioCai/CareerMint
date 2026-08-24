@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import type { RequirementMatchStatus } from "@/features/jd-analysis/schemas";
+import { compareRequirements } from "@/features/jd-analysis/requirement-order";
 
 import {
   classifyGap,
@@ -24,7 +25,9 @@ type GapFact = {
 type GapProfileRequirement = {
   id: string;
   text: string;
+  translationZh?: string | null;
   priority: "core" | "supporting";
+  sortOrder?: number;
   matchStatus: RequirementMatchStatus;
   evidence: GapFact[];
   sourceExcerpt?: string | null;
@@ -33,7 +36,9 @@ type GapProfileRequirement = {
 type GapItem = {
   id: string;
   requirementText: string;
+  translationZh?: string | null;
   priority: "core" | "supporting";
+  sortOrder?: number;
   jdSourceExcerpt: string;
   resumeCoverage: ResumeCoverage;
   verifiedResumeExcerpt: string | null;
@@ -75,6 +80,31 @@ const profileLabels: Record<ProfileOnlyGroup, string> = {
 
 const priorityLabel = (priority: "core" | "supporting") => priority === "core" ? "核心" : "补充";
 const normalizeFactText = (value: string) => value.replace(/\s+/g, " ").trim().toLocaleLowerCase();
+
+function orderGapRows<T extends {
+  matchStatus?: RequirementMatchStatus;
+  priority: "core" | "supporting";
+  sortOrder?: number;
+}>(rows: readonly T[]) {
+  return rows
+    .map((row, index) => ({ row, index }))
+    .sort(
+      (left, right) =>
+        compareRequirements(
+          {
+            matchStatus: left.row.matchStatus ?? "none",
+            priority: left.row.priority,
+            sortOrder: left.row.sortOrder ?? left.index,
+          },
+          {
+            matchStatus: right.row.matchStatus ?? "none",
+            priority: right.row.priority,
+            sortOrder: right.row.sortOrder ?? right.index,
+          },
+        ) || left.index - right.index,
+    )
+    .map(({ row }) => row);
+}
 
 export function summaryCellClass(index: number) {
   return [
@@ -120,11 +150,15 @@ function ProfileOnlyRow({ requirement }: { requirement: GapProfileRequirement })
   return (
     <div className="border-t border-[var(--line)] first:border-t-0">
       <button type="button" className="flex min-h-14 w-full items-center justify-between gap-3 py-3 text-left" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <span className="min-w-0 break-words whitespace-pre-wrap text-sm font-black">{requirement.text}</span>
+        <span className="min-w-0">
+          <span className="block break-words whitespace-pre-wrap text-sm font-black">{requirement.text}</span>
+          {requirement.translationZh ? <span className="mt-1 block break-words whitespace-pre-wrap text-xs font-semibold text-[var(--ink-muted)]">{requirement.translationZh}</span> : null}
+        </span>
         <span className="flex shrink-0 items-center gap-2"><span className="text-xs font-bold text-[var(--ink-muted)]">{priorityLabel(requirement.priority)}</span><StatusSymbol label={profileLabels[group]} /></span>
       </button>
       {open ? (
         <div className="space-y-3 pb-4 text-sm">
+          {!requirement.translationZh ? <p className="font-semibold text-[var(--ink-muted)]">这份历史分析没有保存中文翻译。</p> : null}
           {requirement.evidence.length ? <FactEvidence facts={requirement.evidence} /> : <p className="font-semibold text-[var(--ink-muted)]">暂无已确认职业事实。</p>}
           {requirement.sourceExcerpt ? <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">JD 摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{requirement.sourceExcerpt}</p></div> : null}
         </div>
@@ -139,11 +173,15 @@ function GapRow({ item }: { item: GapItem }) {
   return (
     <div className="border-t border-[var(--line)] first:border-t-0">
       <button type="button" className="flex min-h-14 w-full items-center justify-between gap-3 py-3 text-left" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <span className="min-w-0 break-words whitespace-pre-wrap text-sm font-black">{item.requirementText}</span>
+        <span className="min-w-0">
+          <span className="block break-words whitespace-pre-wrap text-sm font-black">{item.requirementText}</span>
+          {item.translationZh ? <span className="mt-1 block break-words whitespace-pre-wrap text-xs font-semibold text-[var(--ink-muted)]">{item.translationZh}</span> : null}
+        </span>
         <span className="flex shrink-0 items-center gap-2"><span className="text-xs font-bold text-[var(--ink-muted)]">{priorityLabel(item.priority)}</span><StatusSymbol label={gapLabels[group]} />{item.matchStatus === "needs_user" ? <span className="text-xs font-bold text-[var(--ink-muted)]">需要用户判断</span> : null}</span>
       </button>
       {open ? (
         <div className="space-y-4 pb-4 text-sm">
+          {!item.translationZh ? <p className="font-semibold text-[var(--ink-muted)]">这份历史分析没有保存中文翻译。</p> : null}
           <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">JD 摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.jdSourceExcerpt}</p></div>
           {item.verifiedResumeExcerpt ? <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">已验证的简历摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.verifiedResumeExcerpt}</p></div> : null}
           <FactEvidence facts={item.profileEvidence} />
@@ -160,9 +198,9 @@ function HistoricalRow({ item }: { item: GapItem }) {
   return (
     <div className="border-t border-[var(--line)] first:border-t-0">
       <button type="button" className="flex min-h-14 w-full items-center justify-between gap-3 py-3 text-left" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-        <span className="min-w-0 break-words whitespace-pre-wrap text-sm font-black">{item.requirementText}</span><span className="status-chip bg-white">{coverage}</span>
+        <span className="min-w-0"><span className="block break-words whitespace-pre-wrap text-sm font-black">{item.requirementText}</span>{item.translationZh ? <span className="mt-1 block break-words whitespace-pre-wrap text-xs font-semibold text-[var(--ink-muted)]">{item.translationZh}</span> : null}</span><span className="status-chip bg-white">{coverage}</span>
       </button>
-      {open ? <div className="space-y-3 pb-4 text-sm"><div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">JD 摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.jdSourceExcerpt}</p></div>{item.verifiedResumeExcerpt ? <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">已验证的简历摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.verifiedResumeExcerpt}</p></div> : null}<p className="break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">原职业档案证据无法从历史快照重建。</p></div> : null}
+      {open ? <div className="space-y-3 pb-4 text-sm">{!item.translationZh ? <p className="break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">旧快照未保存中文翻译。</p> : null}<div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">JD 摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.jdSourceExcerpt}</p></div>{item.verifiedResumeExcerpt ? <div><p className="text-xs font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">已验证的简历摘录</p><p className="mt-1 break-words whitespace-pre-wrap font-semibold">{item.verifiedResumeExcerpt}</p></div> : null}<p className="break-words whitespace-pre-wrap font-semibold text-[var(--ink-muted)]">原职业档案证据无法从历史快照重建。</p></div> : null}
     </div>
   );
 }
@@ -178,7 +216,7 @@ export function GapPanel({ baseline, requirements, run, fallbackRun, items, curr
         <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Resume view</p><h2 id="profile-only-title" className="heading-font mt-1 text-2xl font-black">仅职业档案模式</h2></div><span className="status-chip bg-[var(--cream)]">不比较简历</span></div>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">选择一份对照简历后，才会显示简历覆盖情况。这里仅显示已确认职业档案与 JD 的匹配状态。</p>
         <div className="mt-5 grid grid-cols-2 sm:grid-cols-4" aria-label="职业档案摘要">{(Object.keys(profileLabels) as ProfileOnlyGroup[]).map((group, index) => <div key={group} className={summaryCellClass(index)}><p className="text-xs font-bold text-[var(--ink-muted)]">{profileLabels[group]}</p><p className="mt-1 text-xl font-black">{profileCounts[group]}</p></div>)}</div>
-        <div className="mt-5 border-t border-[var(--line)]">{requirements.length ? requirements.map((requirement) => <ProfileOnlyRow key={requirement.id} requirement={requirement} />) : <p className="py-5 text-sm font-semibold text-[var(--ink-muted)]">完成 JD 分析后，这里会显示职业档案匹配结果。</p>}</div>
+        <div className="mt-5 border-t border-[var(--line)]">{requirements.length ? orderGapRows(requirements).map((requirement) => <ProfileOnlyRow key={requirement.id} requirement={requirement} />) : <p className="py-5 text-sm font-semibold text-[var(--ink-muted)]">完成 JD 分析后，这里会显示职业档案匹配结果。</p>}</div>
       </section>
     );
   }
@@ -191,10 +229,10 @@ export function GapPanel({ baseline, requirements, run, fallbackRun, items, curr
   const showCurrentAnalysis = Boolean(displayRun && !historicalOnly);
   const stale = (run !== null && run.status !== "succeeded" && fallbackRun?.status === "succeeded") || historicalItems.length > 0 || Boolean(displayRun && (displayRun.sourceAssetId !== baseline.id || (currentAnalysisRunId !== null && displayRun.analysisRunId !== currentAnalysisRunId)));
   const grouped = {
-    resume_omission: currentItems.filter((item) => classifyGap(item) === "resume_omission"),
-    partial_coverage: currentItems.filter((item) => classifyGap(item) === "partial_coverage"),
-    missing_evidence: currentItems.filter((item) => classifyGap(item) === "missing_evidence"),
-    covered: currentItems.filter((item) => classifyGap(item) === "covered"),
+    resume_omission: orderGapRows(currentItems.filter((item) => classifyGap(item) === "resume_omission")),
+    partial_coverage: orderGapRows(currentItems.filter((item) => classifyGap(item) === "partial_coverage")),
+    missing_evidence: orderGapRows(currentItems.filter((item) => classifyGap(item) === "missing_evidence")),
+    covered: orderGapRows(currentItems.filter((item) => classifyGap(item) === "covered")),
   };
   const actionGroups = (["resume_omission", "partial_coverage", "missing_evidence"] as const).filter((group) => grouped[group].length > 0);
   return (

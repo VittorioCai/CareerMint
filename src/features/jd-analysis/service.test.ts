@@ -65,6 +65,8 @@ function createFakes() {
         acceptedRequirementCount: input.requirements.length,
         rejectedRequirementCount: input.rejectedRequirementCount,
         rejectedEvidenceCount: input.rejectedEvidenceCount,
+        jdTranslationZh: input.jdTranslationZh,
+        translationAvailable: true,
         ai: input.aiUsage,
         estimatedCost: input.estimatedCost,
       },
@@ -78,10 +80,13 @@ function createFakes() {
   const provider = {
     analyzeJobDescription: vi.fn().mockResolvedValue({
       data: {
+        jdTranslationZh:
+          "在国际市场推动产品探索。要求具备高级 SQL 经验。",
         requirements: [
           {
             category: "skill",
             text: "Advanced SQL",
+            translationZh: "高级 SQL",
             sourceExcerpt: "Advanced SQL experience is required.",
             priority: "core",
             matchStatus: "evidence",
@@ -91,6 +96,7 @@ function createFakes() {
           {
             category: "responsibility",
             text: "Invented budget ownership",
+            translationZh: "虚构的预算管理职责",
             sourceExcerpt: "Own a €50M budget.",
             priority: "core",
             matchStatus: "evidence",
@@ -135,6 +141,8 @@ describe("JD analysis service", () => {
     });
     expect(fakes.runs.complete).toHaveBeenCalledWith({
       runId,
+      jdTranslationZh:
+        "在国际市场推动产品探索。要求具备高级 SQL 经验。",
       requirements: [
         expect.objectContaining({
           text: "Advanced SQL",

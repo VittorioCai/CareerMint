@@ -23,10 +23,12 @@ function fakeProvider(): Pick<AIProvider, "analyzeJobDescription"> {
       const firstFact = input.confirmedFacts[0];
       return {
         data: {
+          jdTranslationZh: `中文翻译：${input.jdText.trim()}`,
           requirements: [
             {
               category: "responsibility",
               text: "理解并推进这份岗位描述中的核心职责",
+              translationZh: "理解并推进这份岗位描述中的核心职责",
               sourceExcerpt,
               priority: "core",
               matchStatus: firstFact ? "partial" : "none",

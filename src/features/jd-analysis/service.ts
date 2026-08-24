@@ -12,6 +12,7 @@ import {
 
 export type CompleteJDAnalysisInput = {
   runId: string;
+  jdTranslationZh: string;
   requirements: JDRequirement[];
   rejectedRequirementCount: number;
   rejectedEvidenceCount: number;
@@ -110,6 +111,7 @@ export function createJDAnalysisService(
 
         return await dependencies.runs.complete({
           runId: input.run.id,
+          jdTranslationZh: sanitized.jdTranslationZh,
           requirements: sanitized.requirements,
           rejectedRequirementCount: sanitized.rejectedRequirementCount,
           rejectedEvidenceCount: sanitized.rejectedEvidenceCount,

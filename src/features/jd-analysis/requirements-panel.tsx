@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useState } from "react";
 
 import {
-  selectPriorityRequirements,
   summarizeRequirements,
 } from "@/features/resume-gaps/schemas";
+import { orderRequirements } from "./requirement-order";
 
 import type {
   JDRequirementRecord,
@@ -132,8 +132,16 @@ function RequirementDisclosure({
 
       {expanded ? (
         <div id={detailId} className="border-t border-[var(--line)] px-4 pb-4 pt-3 sm:px-5">
+          <section>
+            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+              中文翻译
+            </p>
+            <p className="mt-1 whitespace-pre-wrap break-words text-sm font-semibold leading-6">
+              {requirement.translationZh ?? "这份历史分析没有保存中文翻译。"}
+            </p>
+          </section>
           {requirement.matchReason ? (
-            <section>
+            <section className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                 匹配理由
               </p>
@@ -144,7 +152,7 @@ function RequirementDisclosure({
           ) : null}
 
           {requirement.evidence.length > 0 ? (
-            <section className={requirement.matchReason ? "mt-4" : undefined}>
+            <section className="mt-4">
               <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                 已确认职业事实及来源
               </p>
@@ -178,7 +186,7 @@ function RequirementDisclosure({
             </section>
           ) : null}
 
-          <section className={requirement.matchReason || requirement.evidence.length > 0 ? "mt-4" : undefined}>
+          <section className="mt-4">
             <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
               JD 来源摘录
             </p>
@@ -238,11 +246,13 @@ export function RequirementsPanel({
   requirements,
   analysisRunId,
   sourceText,
+  sourceTranslationZh,
   sourceUrl,
 }: {
   requirements: JDRequirementRecord[];
   analysisRunId?: string | null;
   sourceText: string;
+  sourceTranslationZh?: string | null;
   sourceUrl?: string | null;
 }) {
   const [view, setView] = useState<LocalView>("priority");
@@ -260,9 +270,7 @@ export function RequirementsPanel({
   const { openPriorityId, openAllIds, openCategories } = disclosure;
 
   const summary = summarizeRequirements(requirements);
-  const priorityRequirements = selectPriorityRequirements(requirements)
-    .map((selected) => requirements.find((requirement) => requirement.id === selected.id))
-    .filter((requirement): requirement is JDRequirementRecord => Boolean(requirement));
+  const priorityRequirements = orderRequirements(requirements).slice(0, 5);
   const safeSourceUrl =
     typeof sourceUrl === "string" && isSafeExternalUrl(sourceUrl) ? sourceUrl : null;
 
@@ -297,7 +305,7 @@ export function RequirementsPanel({
   const viewButtons: Array<{ value: LocalView; label: string }> = [
     { value: "priority", label: "重点" },
     { value: "all", label: "全部要求" },
-    { value: "source", label: "JD 原文" },
+    { value: "source", label: "JD 内容" },
   ];
 
   return (
@@ -393,8 +401,10 @@ export function RequirementsPanel({
             </p>
           </div>
           {requirements.length > 0 ? categories.map((category) => {
-            const grouped = requirements.filter(
-              (requirement) => requirement.category === category.value,
+            const grouped = orderRequirements(
+              requirements.filter(
+                (requirement) => requirement.category === category.value,
+              ),
             );
             if (grouped.length === 0) return null;
             const expanded = openCategories.has(category.value);
@@ -433,7 +443,7 @@ export function RequirementsPanel({
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                 不可变快照
               </p>
-              <h3 className="heading-font mt-1 text-xl font-black">JD 原文</h3>
+              <h3 className="heading-font mt-1 text-xl font-black">JD 内容</h3>
             </div>
             {safeSourceUrl ? (
               <a
@@ -446,8 +456,25 @@ export function RequirementsPanel({
               </a>
             ) : null}
           </div>
-          <div className="whitespace-pre-wrap break-words px-4 py-5 text-sm font-medium leading-7 text-[var(--ink-muted)] sm:px-5">
-            {sourceText.trim() ? sourceText : "没有保存的 JD 原文"}
+          <div className="divide-y divide-[var(--line)]">
+            <details>
+              <summary className="cursor-pointer px-4 py-4 text-sm font-black sm:px-5">
+                JD 中文翻译
+              </summary>
+              <div className="whitespace-pre-wrap break-words px-4 pb-5 text-sm font-medium leading-7 text-[var(--ink-muted)] sm:px-5">
+                {sourceTranslationZh?.trim()
+                  ? sourceTranslationZh
+                  : "这份历史分析没有保存 JD 中文翻译。重新分析后即可生成。"}
+              </div>
+            </details>
+            <details>
+              <summary className="cursor-pointer px-4 py-4 text-sm font-black sm:px-5">
+                JD 原文
+              </summary>
+              <div className="whitespace-pre-wrap break-words px-4 pb-5 text-sm font-medium leading-7 text-[var(--ink-muted)] sm:px-5">
+                {sourceText.trim() ? sourceText : "没有保存的 JD 原文"}
+              </div>
+            </details>
           </div>
         </article>
       ) : null}

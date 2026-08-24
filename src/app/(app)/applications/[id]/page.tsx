@@ -174,6 +174,7 @@ function JdPanel({
         requirements={requirements}
         analysisRunId={analysisRun?.id ?? null}
         sourceText={application.jdText}
+        sourceTranslationZh={analysisRun?.result?.jdTranslationZh ?? null}
         sourceUrl={application.jobUrl}
       />
     </div>
@@ -259,7 +260,9 @@ function ResumePanel({
             requirements={requirements.map((requirement) => ({
               id: requirement.id,
               text: requirement.text,
+              translationZh: requirement.translationZh,
               priority: requirement.priority,
+              sortOrder: requirement.sortOrder,
               sourceExcerpt: requirement.sourceExcerpt,
               matchStatus: requirement.matchStatus,
               evidence: requirement.evidence.map((fact) => ({
@@ -284,7 +287,9 @@ function ResumePanel({
             items={gapItems.map((item) => ({
               id: item.id,
               requirementText: item.requirementText,
+              translationZh: item.translationZh,
               priority: item.priority,
+              sortOrder: item.sortOrder,
               jdSourceExcerpt: item.jdSourceExcerpt,
               resumeCoverage: item.resumeCoverage,
               verifiedResumeExcerpt: item.verifiedResumeExcerpt,

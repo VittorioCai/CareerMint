@@ -284,18 +284,18 @@ describe("JD requirement summary and priority selection", () => {
   it("selects at most five requirements in attention-first rank order", () => {
     expect(selectPriorityRequirements(prioritized).map((requirement) => requirement.id)).toEqual([
       "55555555-5555-4555-8555-555555555555",
-      "66666666-6666-4666-8666-666666666666",
-      secondId,
       "44444444-4444-4444-8444-444444444444",
+      "66666666-6666-4666-8666-666666666666",
       unknownId,
+      secondId,
     ]);
     expect(selectPriorityRequirements(prioritized, 2).map((requirement) => requirement.id)).toEqual([
       "55555555-5555-4555-8555-555555555555",
-      "66666666-6666-4666-8666-666666666666",
+      "44444444-4444-4444-8444-444444444444",
     ]);
   });
 
-  it("uses one final evidence rank ordered by sortOrder regardless of priority", () => {
+  it("keeps core evidence before supporting evidence, then uses stable source order", () => {
     const evidence = [
       { ...requirements[0], sortOrder: 8, matchStatus: "evidence" as const },
       { ...requirements[2], sortOrder: 2, matchStatus: "evidence" as const },
@@ -308,9 +308,9 @@ describe("JD requirement summary and priority selection", () => {
     ];
 
     expect(selectPriorityRequirements(evidence).map((requirement) => requirement.id)).toEqual([
-      thirdId,
       "00000000-0000-4000-8000-000000000000",
       firstId,
+      thirdId,
     ]);
   });
 

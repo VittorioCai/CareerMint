@@ -214,6 +214,7 @@ describe("resume gap repository", () => {
       applicationId: appId,
       category: "skill",
       text: "Advanced SQL",
+      translationZh: "高级 SQL",
       sourceExcerpt: itemRow.jd_source_excerpt,
       priority: "core",
       matchStatus: "evidence",
@@ -223,6 +224,7 @@ describe("resume gap repository", () => {
     }]);
     const repository = createResumeGapRepository(async () => supabase as never);
     const items = await repository.listItems(userId, runId);
+    expect(items[0]?.translationZh).toBe("高级 SQL");
     expect(items[0]).toMatchObject({ historical: false, matchStatus: "evidence", profileEvidence: [] });
 
     supabase.from.mockReturnValueOnce({

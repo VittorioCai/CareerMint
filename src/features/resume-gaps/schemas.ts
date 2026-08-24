@@ -12,6 +12,7 @@ import {
   type RequirementCategory,
   type RequirementMatchStatus,
 } from "@/features/jd-analysis/schemas";
+import { orderRequirements } from "@/features/jd-analysis/requirement-order";
 
 export const resumeCoverageSchema = z.enum(["covered", "partial", "missing"]);
 
@@ -55,6 +56,7 @@ export type ResumeGapRequirement = ResumeGapProviderRequirement;
 /** Current JD views must carry an explicit match status. */
 export type ResumeGapCurrentRequirement = ResumeGapProviderRequirement & {
   sortOrder: number;
+  translationZh?: string | null;
   sourceExcerpt?: string;
   matchStatus: RequirementMatchStatus;
   matchReason?: string | null;
@@ -205,6 +207,7 @@ export type ResumeGapItem = z.infer<typeof resumeGapItemSchema>;
 
 export type ResumeGapItemView = ResumeGapItem & {
   profileEvidence: ConfirmedFactForAnalysis[];
+  translationZh?: string | null;
   matchStatus?: RequirementMatchStatus;
   matchReason?: string | null;
 };
@@ -266,27 +269,6 @@ export function classifyProfileOnlyRequirement(
   }
 }
 
-function priorityRank(requirement: ResumeGapCurrentRequirement) {
-  if (!requirement.matchStatus) {
-    throw new Error("resume-gap-invalid-requirement");
-  }
-  if (requirement.matchStatus === "evidence") return 5;
-  if (requirement.priority === "core") {
-    if (requirement.matchStatus === "none") return 0;
-    if (requirement.matchStatus === "needs_user") return 1;
-    if (requirement.matchStatus === "partial") return 2;
-    return 5;
-  }
-  if (requirement.matchStatus === "none") return 3;
-  if (
-    requirement.matchStatus === "needs_user" ||
-    requirement.matchStatus === "partial"
-  ) {
-    return 4;
-  }
-  return 6;
-}
-
 export function selectPriorityRequirements(
   requirements: ResumeGapCurrentRequirement[],
   limit = 5,
@@ -296,24 +278,10 @@ export function selectPriorityRequirements(
   if (!Number.isFinite(limit)) return [];
   const safeLimit = Math.max(0, Math.min(5, Math.floor(limit)));
   if (safeLimit === 0) return [];
-  return requirements
-    .map((requirement, index) => ({
-      requirement,
-      index,
-      rank: priorityRank(requirement),
-      order: requirement.sortOrder,
-    }))
-    .sort(
-      (left, right) => {
-        const rankDifference = left.rank - right.rank;
-        if (rankDifference !== 0) return rankDifference;
-        const orderDifference = left.order - right.order;
-        if (orderDifference !== 0) return orderDifference;
-        return left.index - right.index;
-      },
-    )
-    .slice(0, safeLimit)
-    .map(({ requirement }) => requirement);
+  if (requirements.some((requirement) => !requirement.matchStatus)) {
+    throw new Error("resume-gap-invalid-requirement");
+  }
+  return orderRequirements(requirements).slice(0, safeLimit);
 }
 
 export function summarizeRequirements(requirements: ResumeGapCurrentRequirement[]) {

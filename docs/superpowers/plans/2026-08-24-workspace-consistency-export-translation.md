@@ -187,33 +187,33 @@
 - Modify: `src/features/resume-gaps/gap-panel.tsx`
 - Modify: `src/features/resume-gaps/gap-panel.test.tsx`
 
-- [ ] **Step 1: Write failing schema/provider tests**
+- [x] **Step 1: Write failing schema/provider tests**
 
   Require bounded, trimmed `jdTranslationZh` and `translationZh` in new provider output. Assert the prompt requests one JSON object containing structure, matches, and translations without a second provider call. Add invalid/missing translation cases and update the fake provider fixture.
 
-- [ ] **Step 2: Write failing cache/repository compatibility tests**
+- [x] **Step 2: Write failing cache/repository compatibility tests**
 
   Assert the analysis schema version changes from `jd-analysis-v1` to `jd-analysis-v2`, identical v2 inputs reuse results, and v1 rows do not. New rows must persist translations. Legacy rows without translations must still parse as readable historical results and expose a `translationAvailable`-style state rather than crashing.
 
-- [ ] **Step 3: Write failing presentation tests**
+- [x] **Step 3: Write failing presentation tests**
 
   Build mixed requirements and assert shared ordering is `none → needs_user → partial → evidence`, then core before supporting, then original stable order. Verify collapsed category summaries, expanded content order (Chinese, reason, evidence, source excerpt), old-run fallback copy, and the two independently collapsed source disclosures `JD 中文翻译` and `JD 原文`.
 
-- [ ] **Step 4: Run focused tests and confirm red**
+- [x] **Step 4: Run focused tests and confirm red**
 
   Run: `pnpm vitest run src/features/jd-analysis src/features/extraction/deepseek-extractor.test.ts src/features/resume-gaps/gap-panel.test.tsx`
 
   Expected: failures for absent translation fields, v1 cache version, and old evidence-first ordering.
 
-- [ ] **Step 5: Implement the expanded single-call contract**
+- [x] **Step 5: Implement the expanded single-call contract**
 
   Update Zod/types, prompt, provider parsing, service sanitation, repository/RPC payload, and fake output. Store full translation in the run result and requirement translations on rows. Keep legacy read schemas permissive only for stored old runs; current provider output remains strict. Never replace original source text with translation.
 
-- [ ] **Step 6: Implement one shared comparator and progressive disclosure**
+- [x] **Step 6: Implement one shared comparator and progressive disclosure**
 
   Add a pure stable comparator and use it in the priority view, all category expansions, and resume-gap groups. Render source text and translations in readable wrapped blocks with existing product colors, thin separators in dense lists, semantic disclosure controls, and status text in addition to color.
 
-- [ ] **Step 7: Run focused tests and commit**
+- [x] **Step 7: Run focused tests and commit**
 
   Run: `pnpm vitest run src/features/jd-analysis src/features/extraction src/features/resume-gaps`
 

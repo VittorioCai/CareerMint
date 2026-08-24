@@ -2,7 +2,10 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-import { createApplicationAnalysisPostHandler } from "./http";
+import {
+  applicationAnalysisSchemaVersion,
+  createApplicationAnalysisPostHandler,
+} from "./http";
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const applicationId = "11111111-1111-4111-8111-111111111111";
@@ -64,6 +67,10 @@ function context(id = applicationId) {
 
 describe("application JD analysis POST handler", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("uses the translated v2 schema in the cache identity", () => {
+    expect(applicationAnalysisSchemaVersion).toBe("jd-analysis-v2");
+  });
 
   it("rejects unauthenticated requests before reading application data", async () => {
     const dependencies = createDependencies();

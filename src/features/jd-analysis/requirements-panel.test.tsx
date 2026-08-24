@@ -11,6 +11,7 @@ const base = {
   analysisRunId: "22222222-2222-4222-8222-222222222222",
   applicationId: "33333333-3333-4333-8333-333333333333",
   sourceExcerpt: "Advanced SQL experience is required.",
+  translationZh: "需要高级 SQL 经验。",
   matchReason: null,
   evidence: [],
 };
@@ -113,10 +114,10 @@ describe("RequirementsPanel", () => {
     expect(rows).toHaveLength(5);
     expect(rows.map((row) => row.textContent)).toEqual([
       expect.stringContaining("Core no evidence"),
-      expect.stringContaining("Core needs a decision"),
-      expect.stringContaining("Core partial match"),
       expect.stringContaining("Supporting no evidence"),
+      expect.stringContaining("Core needs a decision"),
       expect.stringContaining("Supporting needs a decision"),
+      expect.stringContaining("Core partial match"),
     ]);
     expect(screen.queryByText("Advanced SQL analysis")).not.toBeInTheDocument();
     expect(screen.queryByText("Advanced SQL experience is required.")).not.toBeInTheDocument();
@@ -174,7 +175,8 @@ describe("RequirementsPanel", () => {
       "false",
     );
 
-    await user.click(screen.getByRole("button", { name: "JD 原文" }));
+    await user.click(screen.getByRole("button", { name: "JD 内容" }));
+    await user.click(screen.getByText("JD 原文", { selector: "summary" }));
     expect(screen.getByText(/We are looking for a product leader/)).toBeVisible();
     expect(screen.getByRole("link", { name: "打开原岗位 ↗" })).toHaveAttribute(
       "href",
@@ -270,7 +272,8 @@ describe("RequirementsPanel", () => {
     const user = userEvent.setup();
     render(<RequirementsPanel requirements={requirements} sourceText="" />);
 
-    await user.click(screen.getByRole("button", { name: "JD 原文" }));
+    await user.click(screen.getByRole("button", { name: "JD 内容" }));
+    await user.click(screen.getByText("JD 原文", { selector: "summary" }));
     expect(screen.getByText("没有保存的 JD 原文")).toBeVisible();
   });
 
@@ -289,11 +292,41 @@ describe("RequirementsPanel", () => {
     expect(screen.getByText(/点击上方“开始分析 JD”/)).toBeVisible();
     expect(screen.queryByText(emptySource)).not.toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "JD 原文" }));
+    await user.click(screen.getByRole("button", { name: "JD 内容" }));
+    await user.click(screen.getByText("JD 原文", { selector: "summary" }));
     expect(screen.getByText(emptySource)).toBeVisible();
     expect(screen.getByRole("link", { name: "打开原岗位 ↗" })).toHaveAttribute(
       "href",
       "https://example.com/jobs/empty",
     );
+  });
+
+  it("shows requirement translations first and keeps full Chinese and original JD independently collapsed", async () => {
+    const user = userEvent.setup();
+    render(
+      <RequirementsPanel
+        requirements={requirements}
+        sourceText={sourceText}
+        sourceTranslationZh="我们正在寻找具备高级 SQL 经验的产品负责人。"
+      />,
+    );
+
+    const row = screen.getByRole("button", { name: /Core no evidence/ });
+    await user.click(row);
+    const translation = screen.getByText("需要高级 SQL 经验。");
+    const excerpt = screen.getByText("Advanced SQL experience is required.");
+    expect(
+      translation.compareDocumentPosition(excerpt) &
+        Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+
+    await user.click(screen.getByRole("button", { name: "JD 内容" }));
+    expect(screen.getByText(/我们正在寻找具备高级 SQL/)).not.toBeVisible();
+    expect(screen.getByText(/We are looking for a product leader/)).not.toBeVisible();
+    await user.click(screen.getByText("JD 中文翻译", { selector: "summary" }));
+    expect(screen.getByText(/我们正在寻找具备高级 SQL/)).toBeVisible();
+    expect(screen.getByText(/We are looking for a product leader/)).not.toBeVisible();
+    await user.click(screen.getByText("JD 原文", { selector: "summary" }));
+    expect(screen.getByText(/We are looking for a product leader/)).toBeVisible();
   });
 });

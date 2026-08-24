@@ -47,9 +47,11 @@ describe("JD analysis schemas", () => {
 
     expect(
       jdAnalysisSchema.parse({
+        jdTranslationZh: "我们正在寻找一位能够推动产品探索的人才。",
         requirements: categories.map((category, index) => ({
           category,
           text: `Requirement ${index}`,
+          translationZh: `要求 ${index}`,
           sourceExcerpt: "Lead product discovery across international markets.",
           priority: index === 0 ? "core" : "supporting",
           matchStatus: matchStates[index % matchStates.length],
@@ -60,13 +62,51 @@ describe("JD analysis schemas", () => {
     ).toHaveLength(categories.length);
   });
 
+  it("requires bounded Chinese translations for the JD and every requirement", () => {
+    const requirement = {
+      category: "skill",
+      text: "Advanced SQL",
+      sourceExcerpt: "Advanced SQL experience is required.",
+      priority: "core",
+      matchStatus: "none",
+      matchReason: null,
+      matchedFactIds: [],
+    };
+
+    expect(
+      jdAnalysisSchema.safeParse({
+        jdTranslationZh: "需要高级 SQL 经验。",
+        requirements: [{ ...requirement, translationZh: "高级 SQL" }],
+      }).success,
+    ).toBe(true);
+    expect(
+      jdAnalysisSchema.safeParse({
+        requirements: [{ ...requirement, translationZh: "高级 SQL" }],
+      }).success,
+    ).toBe(false);
+    expect(
+      jdAnalysisSchema.safeParse({
+        jdTranslationZh: "需要高级 SQL 经验。",
+        requirements: [requirement],
+      }).success,
+    ).toBe(false);
+    expect(
+      jdAnalysisSchema.safeParse({
+        jdTranslationZh: "译".repeat(100_001),
+        requirements: [{ ...requirement, translationZh: "高级 SQL" }],
+      }).success,
+    ).toBe(false);
+  });
+
   it("rejects oversized output and malformed evidence identifiers", () => {
     expect(() =>
       jdAnalysisSchema.parse({
+        jdTranslationZh: "需要 SQL 经验。",
         requirements: [
           {
             category: "skill",
             text: "x".repeat(501),
+            translationZh: "高级 SQL",
             sourceExcerpt: "SQL experience is required.",
             priority: "core",
             matchStatus: "evidence",
@@ -82,6 +122,7 @@ describe("JD analysis schemas", () => {
     const valid = {
       category: "skill" as const,
       text: "😀".repeat(500),
+      translationZh: "高级 SQL",
       sourceExcerpt: "😀".repeat(12),
       priority: "core" as const,
       matchStatus: "partial" as const,
@@ -89,11 +130,12 @@ describe("JD analysis schemas", () => {
       matchedFactIds: [],
     };
 
-    expect(jdAnalysisSchema.safeParse({ requirements: [valid] }).success).toBe(
+    expect(jdAnalysisSchema.safeParse({ jdTranslationZh: "完整翻译", requirements: [valid] }).success).toBe(
       true,
     );
     expect(
       jdAnalysisSchema.safeParse({
+        jdTranslationZh: "完整翻译",
         requirements: [{ ...valid, sourceExcerpt: "😀".repeat(6) }],
       }).success,
     ).toBe(false);
@@ -109,10 +151,12 @@ describe("JD analysis schemas", () => {
       jdText,
       confirmedFacts,
       analysis: {
+        jdTranslationZh: "在国际市场推动产品探索，并使用高级 SQL。",
         requirements: [
           {
             category: "responsibility",
             text: "Lead international product discovery",
+            translationZh: "推动国际产品探索",
             sourceExcerpt:
               "Lead product discovery across international markets.",
             priority: "core",
@@ -123,6 +167,7 @@ describe("JD analysis schemas", () => {
           {
             category: "responsibility",
             text: "  lead INTERNATIONAL product discovery ",
+            translationZh: "推动国际产品探索",
             sourceExcerpt:
               "Lead product discovery across international markets.",
             priority: "supporting",
@@ -133,6 +178,7 @@ describe("JD analysis schemas", () => {
           {
             category: "skill",
             text: "Advanced SQL",
+            translationZh: "高级 SQL",
             sourceExcerpt:
               "Advanced SQL experience is required for funnel analysis.",
             priority: "core",
@@ -143,6 +189,7 @@ describe("JD analysis schemas", () => {
           {
             category: "hard_requirement",
             text: "Ten years of leadership",
+            translationZh: "十年领导经验",
             sourceExcerpt: "Ten years of leadership are required.",
             priority: "core",
             matchStatus: "evidence",
@@ -152,6 +199,7 @@ describe("JD analysis schemas", () => {
           {
             category: "preferred",
             text: "Enterprise background",
+            translationZh: "企业背景",
             sourceExcerpt:
               "Lead product discovery across international markets.",
             priority: "supporting",
@@ -164,6 +212,7 @@ describe("JD analysis schemas", () => {
     });
 
     expect(sanitized.requirements).toHaveLength(3);
+    expect(sanitized.jdTranslationZh).toBe("在国际市场推动产品探索，并使用高级 SQL。");
     expect(sanitized.requirements[0].matchedFactIds).toEqual([firstFactId]);
     expect(sanitized.requirements[1].matchedFactIds).toEqual([secondFactId]);
     expect(sanitized.requirements[2]).toMatchObject({

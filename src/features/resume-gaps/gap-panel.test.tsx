@@ -174,6 +174,34 @@ describe("GapPanel", () => {
     expect(screen.getByRole("button", { name: /partial requirement/ })).toHaveTextContent("需要用户判断");
   });
 
+  it("shows Chinese beside the original and orders same-group rows by match status then priority", () => {
+    const rows = [
+      { ...item("evidence", "missing", [fact]), requirementText: "Evidence row", translationZh: "有证据行", matchStatus: "evidence" as const, sortOrder: 0 },
+      { ...item("partial", "missing", [fact]), requirementText: "Partial row", translationZh: "部分匹配行", matchStatus: "partial" as const, sortOrder: 1 },
+      { ...item("none-support", "missing", [fact]), requirementText: "None supporting", translationZh: "无证据补充行", matchStatus: "none" as const, priority: "supporting" as const, sortOrder: 2 },
+      { ...item("none-core", "missing", [fact]), requirementText: "None core", translationZh: "无证据核心行", matchStatus: "none" as const, priority: "core" as const, sortOrder: 3 },
+    ];
+    render(
+      <GapPanel
+        baseline={{ id: "asset", originalName: "resume.pdf", contentType: "application/pdf", createdAt: "2026-08-24T10:00:00.000Z" }}
+        requirements={[]}
+        run={{ status: "succeeded", sourceFilename: "resume.pdf", sourceAssetId: "asset", analysisRunId: "analysis" }}
+        fallbackRun={null}
+        currentAnalysisRunId="analysis"
+        items={rows}
+      />,
+    );
+
+    const buttons = screen.getAllByRole("button", { name: /row|supporting|core/i });
+    expect(buttons.map((button) => button.textContent)).toEqual([
+      expect.stringContaining("None core"),
+      expect.stringContaining("None supporting"),
+      expect.stringContaining("Partial row"),
+      expect.stringContaining("Evidence row"),
+    ]);
+    expect(buttons[0]).toHaveTextContent("无证据核心行");
+  });
+
   it("warns when displaying a prior succeeded snapshot after the latest run failed", () => {
     render(
       <GapPanel

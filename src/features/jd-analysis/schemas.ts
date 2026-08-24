@@ -49,6 +49,7 @@ export const confirmedFactForAnalysisSchema = z.object({
 export const jdRequirementSchema = z.object({
   category: requirementCategorySchema,
   text: unicodeBoundedText(1, 500),
+  translationZh: unicodeBoundedText(1, 1000),
   sourceExcerpt: unicodeBoundedText(12, 1000),
   priority: requirementPrioritySchema,
   matchStatus: requirementMatchStatusSchema,
@@ -57,6 +58,7 @@ export const jdRequirementSchema = z.object({
 });
 
 export const jdAnalysisSchema = z.object({
+  jdTranslationZh: unicodeBoundedText(1, 100000),
   requirements: z.array(jdRequirementSchema).max(80),
 });
 
@@ -69,6 +71,7 @@ export type RequirementCategory = z.infer<typeof requirementCategorySchema>;
 export type RequirementMatchStatus = z.infer<
   typeof requirementMatchStatusSchema
 >;
+export type RequirementPriority = z.infer<typeof requirementPrioritySchema>;
 
 export type JobDescriptionAnalysisInput = {
   jdText: string;
@@ -84,6 +87,8 @@ export type JDAnalysisRunResult = {
   acceptedRequirementCount: number;
   rejectedRequirementCount: number;
   rejectedEvidenceCount: number;
+  jdTranslationZh: string | null;
+  translationAvailable: boolean;
   ai: {
     provider: string;
     model: string;
@@ -113,10 +118,14 @@ export type JDAnalysisRun = {
   createdAt: string;
 };
 
-export type JDRequirementRecord = Omit<JDRequirement, "matchedFactIds"> & {
+export type JDRequirementRecord = Omit<
+  JDRequirement,
+  "matchedFactIds" | "translationZh"
+> & {
   id: string;
   analysisRunId: string;
   applicationId: string;
+  translationZh: string | null;
   sortOrder: number;
   evidence: ConfirmedFactForAnalysis[];
 };
@@ -190,6 +199,7 @@ export function sanitizeJDAnalysis({
   }
 
   return {
+    jdTranslationZh: parsed.jdTranslationZh,
     requirements,
     rejectedRequirementCount,
     rejectedEvidenceCount,

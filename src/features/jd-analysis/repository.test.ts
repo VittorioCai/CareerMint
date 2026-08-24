@@ -75,7 +75,24 @@ describe("JD analysis latest-run repository queries", () => {
     const requirementChain = { select: vi.fn(), eq: vi.fn(), order: vi.fn() };
     requirementChain.select.mockReturnValue(requirementChain);
     requirementChain.eq.mockReturnValue(requirementChain);
-    requirementChain.order.mockResolvedValue({ data: [], error: null });
+    requirementChain.order.mockResolvedValue({
+      data: [
+        {
+          id: "33333333-3333-4333-8333-333333333333",
+          analysis_run_id: runId,
+          application_id: applicationId,
+          category: "skill",
+          requirement_text: "Advanced SQL",
+          translation_zh: "高级 SQL",
+          source_excerpt: "Advanced SQL experience is required.",
+          priority: "core",
+          match_status: "none",
+          match_reason: null,
+          sort_order: 0,
+        },
+      ],
+      error: null,
+    });
     const evidenceChain = { select: vi.fn(), eq: vi.fn() };
     evidenceChain.select.mockReturnValue(evidenceChain);
     evidenceChain.eq.mockReturnValue(evidenceChain);
@@ -85,8 +102,12 @@ describe("JD analysis latest-run repository queries", () => {
     const client = { from: vi.fn().mockReturnValueOnce(requirementChain).mockReturnValueOnce(evidenceChain) };
     mocks.createClient.mockResolvedValue(client);
     const { jdAnalysisRepository } = await import("./repository");
-    await jdAnalysisRepository.listRequirements(userId, applicationId, runId);
+    const requirements = await jdAnalysisRepository.listRequirements(userId, applicationId, runId);
     expect(requirementChain.eq).toHaveBeenCalledWith("analysis_run_id", runId);
+    expect(requirements[0]).toMatchObject({
+      text: "Advanced SQL",
+      translationZh: "高级 SQL",
+    });
   });
 
   it("filters latest succeeded analysis by owner/application/status and uses deterministic ordering", async () => {
@@ -103,6 +124,10 @@ describe("JD analysis latest-run repository queries", () => {
       applicationId,
       userId,
       status: "succeeded",
+      result: {
+        jdTranslationZh: null,
+        translationAvailable: false,
+      },
     });
     expect(client.from).toHaveBeenCalledWith("application_analysis_runs");
     expect(chain.eq).toHaveBeenNthCalledWith(1, "user_id", userId);
@@ -111,6 +136,73 @@ describe("JD analysis latest-run repository queries", () => {
     expect(chain.order).toHaveBeenNthCalledWith(1, "created_at", { ascending: false });
     expect(chain.order).toHaveBeenNthCalledWith(2, "id", { ascending: false });
     expect(chain.limit).toHaveBeenCalledWith(1);
+  });
+
+  it("hydrates a new translated run without breaking legacy results", async () => {
+    queryFixture({
+      data: {
+        ...row,
+        result: {
+          ...row.result,
+          jdTranslationZh: "在国际市场推动产品探索。",
+        },
+      },
+      error: null,
+    });
+    const { jdAnalysisRepository } = await import("./repository");
+
+    await expect(
+      jdAnalysisRepository.getLatestSucceeded(userId, applicationId),
+    ).resolves.toMatchObject({
+      result: {
+        jdTranslationZh: "在国际市场推动产品探索。",
+        translationAvailable: true,
+      },
+    });
+  });
+
+  it("persists the full and per-requirement translations in one completion RPC", async () => {
+    const translatedResult = {
+      ...row.result,
+      jdTranslationZh: "要求具备高级 SQL。",
+    };
+    const rpc = vi.fn().mockResolvedValue({
+      data: { ...row, result: translatedResult },
+      error: null,
+    });
+    mocks.createClient.mockResolvedValue({ rpc });
+    const { jdAnalysisRepository } = await import("./repository");
+
+    await jdAnalysisRepository.complete({
+      runId,
+      jdTranslationZh: "要求具备高级 SQL。",
+      requirements: [
+        {
+          category: "skill",
+          text: "Advanced SQL",
+          translationZh: "高级 SQL",
+          sourceExcerpt: "Advanced SQL experience is required.",
+          priority: "core",
+          matchStatus: "none",
+          matchReason: null,
+          matchedFactIds: [],
+        },
+      ],
+      rejectedRequirementCount: 0,
+      rejectedEvidenceCount: 0,
+      aiUsage: translatedResult.ai,
+      estimatedCost: null,
+    });
+
+    expect(rpc).toHaveBeenCalledWith(
+      "complete_application_analysis",
+      expect.objectContaining({
+        jd_translation_zh: "要求具备高级 SQL。",
+        accepted_requirements: [
+          expect.objectContaining({ translationZh: "高级 SQL" }),
+        ],
+      }),
+    );
   });
 
   it("applies the deterministic id tie-break to the unfiltered latest query", async () => {

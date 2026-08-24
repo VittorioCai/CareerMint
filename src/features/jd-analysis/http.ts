@@ -11,7 +11,7 @@ import type {
 } from "./schemas";
 
 const applicationIdSchema = z.uuid();
-const analysisSchemaVersion = "jd-analysis-v1";
+export const applicationAnalysisSchemaVersion = "jd-analysis-v2";
 
 export type ApplicationAnalysisPostDependencies = {
   getCurrentUser(): Promise<{ id: string } | null>;
@@ -58,7 +58,7 @@ export function buildApplicationAnalysisInputHash(input: {
   return createHash("sha256")
     .update(
       JSON.stringify({
-        schemaVersion: analysisSchemaVersion,
+        schemaVersion: applicationAnalysisSchemaVersion,
         provider: input.provider,
         model: input.model,
         jdText: input.jdText,

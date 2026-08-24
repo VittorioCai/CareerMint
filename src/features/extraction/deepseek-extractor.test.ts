@@ -280,10 +280,13 @@ describe("DeepSeek JD analyzer", () => {
     ],
   };
   const analysis = {
+    jdTranslationZh:
+      "在国际市场推动产品探索。要求具备高级 SQL 经验。",
     requirements: [
       {
         category: "skill",
         text: "Advanced SQL",
+        translationZh: "高级 SQL",
         sourceExcerpt: "Advanced SQL is required.",
         priority: "core",
         matchStatus: "partial",
@@ -311,6 +314,7 @@ describe("DeepSeek JD analyzer", () => {
       `<job_description>\n${input.jdText}\n</job_description>`,
     );
     expect(body.messages[1].content).toContain(input.confirmedFacts[0].id);
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(result).toMatchObject({
       data: analysis,
       provider: "deepseek",
@@ -325,6 +329,32 @@ describe("DeepSeek JD analyzer", () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValue(successResponse('{"requirements":['));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeJobDescription(input)).rejects.toThrow(
+      "jd-analysis-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("rejects a provider response that omits either translation", async () => {
+    const withoutRequirementTranslation = {
+      ...analysis,
+      requirements: analysis.requirements.map((item) => ({
+        category: item.category,
+        text: item.text,
+        sourceExcerpt: item.sourceExcerpt,
+        priority: item.priority,
+        matchStatus: item.matchStatus,
+        matchReason: item.matchReason,
+        matchedFactIds: item.matchedFactIds,
+      })),
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        successResponse(JSON.stringify(withoutRequirementTranslation)),
+      );
     const { provider } = createProvider(fetchImpl);
 
     await expect(provider.analyzeJobDescription(input)).rejects.toThrow(

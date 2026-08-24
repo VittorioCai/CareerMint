@@ -31,6 +31,7 @@ const runResultSchema = z.object({
   acceptedRequirementCount: z.number().int().nonnegative(),
   rejectedRequirementCount: z.number().int().nonnegative(),
   rejectedEvidenceCount: z.number().int().nonnegative(),
+  jdTranslationZh: z.string().trim().min(1).max(100000).nullable().optional(),
   ai: z.object({
     provider: z.string().min(1),
     model: z.string().min(1),
@@ -76,6 +77,13 @@ function toRun(row: RunRow): JDAnalysisRun {
   if (!status.success || (result && !result.success)) {
     throw new JDAnalysisRepositoryError("invalid-stored-application-analysis");
   }
+  const normalizedResult = result
+    ? {
+        ...result.data,
+        jdTranslationZh: result.data.jdTranslationZh ?? null,
+        translationAvailable: Boolean(result.data.jdTranslationZh),
+      }
+    : null;
   return {
     id: row.id,
     applicationId: row.application_id,
@@ -85,7 +93,7 @@ function toRun(row: RunRow): JDAnalysisRun {
     model: row.model,
     status: status.data,
     attemptCount: row.attempt_count,
-    result: result ? (result.data as JDAnalysisRunResult) : null,
+    result: normalizedResult as JDAnalysisRunResult | null,
     errorCode: row.error_code,
     createdAt: row.created_at,
   };
@@ -226,6 +234,7 @@ async function complete(
   const { data, error } = await supabase.rpc("complete_application_analysis", {
     target_run_id: input.runId,
     accepted_requirements: input.requirements as Json,
+    jd_translation_zh: input.jdTranslationZh,
     rejected_requirement_count: input.rejectedRequirementCount,
     rejected_evidence_count: input.rejectedEvidenceCount,
     ai_usage: input.aiUsage as Json,
@@ -299,6 +308,7 @@ async function listRequirements(
       applicationId: row.application_id,
       category: category.data,
       text: row.requirement_text,
+      translationZh: row.translation_zh,
       sourceExcerpt: row.source_excerpt,
       priority: priority.data,
       matchStatus: matchStatus.data,
