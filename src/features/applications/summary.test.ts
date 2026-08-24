@@ -24,6 +24,7 @@ function application(
     appliedAt: stage === "preparing" ? null : updatedAt,
     nextAction: null,
     nextActionDueAt: null,
+    resumeSourceAssetId: null,
     createdAt: updatedAt,
     updatedAt,
   };

@@ -21,6 +21,7 @@ function application(
     appliedAt: null,
     nextAction: null,
     nextActionDueAt: null,
+    resumeSourceAssetId: null,
     createdAt: "2026-08-13T10:00:00.000Z",
     updatedAt: "2026-08-13T12:00:00.000Z",
   };
