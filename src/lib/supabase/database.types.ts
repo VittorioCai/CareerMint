@@ -1331,6 +1331,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      // Manual override: duplicate-common acceptance can return a null
+      // question_id, but Supabase CLI introspection currently marks it non-null.
+      // Reapply this override after regenerating database types.
       accept_interview_question_candidates: {
         Args: { target_application_id: string; target_candidate_ids: string[] }
         Returns: {

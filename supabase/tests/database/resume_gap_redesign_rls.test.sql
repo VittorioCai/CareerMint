@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(61);
+select plan(78);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
@@ -22,13 +22,38 @@ select results_eq(
 );
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') > 0
-      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')
+    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select analysis_run_id') > 0
+      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select analysis_run_id') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')
       and strpos(substring(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure) from 1 for strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')), 'for update') = 0
       and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select * into locked_application')
       and regexp_count(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'order by created_at, id[[:space:]]+for update') = 1
   )::text$$,
   array['true'], 'resume gap completion discovers then locks all analyses once before application/source'
+);
+select results_eq(
+  $$select (
+    strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'into owned_asset')
+      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'into owned_application')
+  )::text$$,
+  array['true'], 'resume gap creation locks source before application to match source deletion FK order'
+);
+select results_eq(
+  $$select (
+    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'into locked_asset')
+      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'into locked_application')
+  )::text$$,
+  array['true'], 'resume gap completion locks source before application to match source deletion FK order'
+);
+select results_eq(
+  $$select (
+    strpos(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), 'into owned_asset')
+      < strpos(pg_get_functiondef('public.set_application_resume_source(uuid,uuid)'::regprocedure), 'into owned_application')
+  )::text$$,
+  array['true'], 'source selection locks a non-null source before the application'
+);
+select results_eq(
+  $$select count(*)::text from pg_indexes where schemaname = 'public' and indexname = 'resume_gap_items_run_order_idx'$$,
+  array['0'], 'the item unique constraint supplies the run/order index'
 );
 select results_eq(
   $$
@@ -208,6 +233,11 @@ select results_eq(
   array[1::bigint], 'completion stores exactly one item per requirement'
 );
 select results_eq(
+  $$select requirement_text || '|' || category || '|' || priority || '|' || jd_source_excerpt from public.resume_gap_items where run_id = current_setting('test.gap_run')::uuid$$,
+  array['Advanced SQL|skill|core|Advanced SQL experience is required for funnel analysis.'],
+  'completion stores exact requirement snapshots'
+);
+select results_eq(
   $$select (result ? 'fullResumeText')::text || ':' || (result ? 'fullJdText')::text from public.resume_gap_runs where id = current_setting('test.gap_run')::uuid$$,
   array['false:false'], 'completion stores no full resume or JD text'
 );
@@ -307,7 +337,69 @@ select throws_ok(
     '{"amount":1,"currency":"USD","scheduleVersion":"v1","tier":"default","secret":{"resume":"do not store"}}')$$,
   '22023', 'invalid-resume-gap-cost', 'estimated cost rejects extra sensitive keys'
 );
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_run')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', '   ')),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'missing coverage rejects whitespace-only excerpts'
+);
+select set_config('test.strict_case2', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '2', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.strict_case2')::uuid, 120);
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_case2')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing')),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'missing coverage requires an explicit null excerpt'
+);
+select set_config('test.strict_case3', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '3', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.strict_case3')::uuid, 120);
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_case3')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'covered', 'resumeExcerpt', null)),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'covered coverage requires a non-null excerpt'
+);
+select set_config('test.strict_case4', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '4', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.strict_case4')::uuid, 120);
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_case4')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'partial', 'resumeExcerpt', '  ')),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'partial coverage rejects whitespace-only excerpts'
+);
+select set_config('test.strict_case5', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '5', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.strict_case5')::uuid, 120);
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_case5')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null, 'extra', 'sensitive')),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'resume gap items reject extra keys'
+);
+select set_config('test.strict_case6', (select id::text from public.create_or_get_resume_gap(
+  current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
+  '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '6', 'test-provider', 'test-model'
+)), true);
+select public.claim_resume_gap(current_setting('test.strict_case6')::uuid, 120);
+select throws_ok(
+  $$select public.complete_resume_gap(current_setting('test.strict_case6')::uuid, 1,
+    jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing')),
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$,
+  '22023', 'invalid-resume-gap-item', 'resume gap items reject missing keys'
+);
 select results_eq($$select status::text from public.resume_gap_runs where id = current_setting('test.strict_run')::uuid$$, array['running'], 'invalid completion rolls back item insertion and status');
+select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.strict_run')::uuid$$, array[0::bigint], 'invalid item payloads leave no partially inserted items');
 
 -- A stale worker attempt cannot complete after a newer claim.
 set local role postgres;
@@ -463,6 +555,83 @@ select public.complete_application_analysis(
   )), 0, 0, null, null
 );
 select throws_ok($$select public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid, '11111111-1111-4111-8111-111111111111', repeat('d', 64), 'test-provider', 'test-model')$$, '23505', 'resume-gap-conflict', 'hash reuse cannot rebind a prior run to another analysis');
+
+-- dblink is available in the local image, so exercise the source-delete versus
+-- source-selection lock path with two bounded sessions. The source deleter
+-- owns the source lock first; source selection must wait on it without holding
+-- the application lock, allowing deletion to finish and SET NULL to apply.
+set local role postgres;
+create extension if not exists dblink;
+select dblink_connect('gap_lock_a', 'host=db port=5432 dbname=postgres user=postgres password=postgres');
+select dblink_connect('gap_lock_b', 'host=db port=5432 dbname=postgres user=postgres password=postgres');
+select dblink_exec('gap_lock_a', $$insert into auth.users (
+  id, aud, role, email, encrypted_password, email_confirmed_at,
+  raw_app_meta_data, raw_user_meta_data, created_at, updated_at
+) values (
+  'cccccccc-cccc-4ccc-8ccc-cccccccccccc', 'authenticated', 'authenticated',
+  'gap-c@example.com', 'test-password-hash', now(),
+  '{"provider":"email","providers":["email"]}', '{}', now(), now()
+) on conflict (id) do nothing$$);
+select dblink_exec('gap_lock_a', $$delete from public.interview_questions where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc'$$);
+select dblink_exec('gap_lock_a', $$insert into public.source_assets (
+  id, user_id, original_name, content_type, storage_path, size_bytes, sha256, status
+) values (
+  '77777777-7777-4777-8777-777777777777', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  'concurrency-resume.pdf', 'application/pdf', 'cccccccc-cccc-4ccc-8ccc-cccccccccccc/concurrency-resume.pdf',
+  1024, repeat('7', 64), 'ready'
+) on conflict (id) do update set
+  user_id = excluded.user_id,
+  original_name = excluded.original_name,
+  content_type = excluded.content_type,
+  storage_path = excluded.storage_path,
+  size_bytes = excluded.size_bytes,
+  sha256 = excluded.sha256,
+  status = excluded.status$$);
+select dblink_exec('gap_lock_a', $$set role authenticated$$);
+select dblink_exec('gap_lock_a', $$set request.jwt.claims = '{"sub":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","role":"authenticated"}'$$);
+select dblink_exec('gap_lock_a', $$do $body$
+declare created_application uuid;
+begin
+  select id into created_application from public.create_application(
+    'Deadlock Co', 'Product Analyst', 'Berlin', 'hybrid', 'site',
+    'https://example.com/jobs/concurrency', 'Concurrency test application requiring stable source and application locking.'
+  );
+  perform public.set_application_resume_source(created_application, '77777777-7777-4777-8777-777777777777');
+end
+$body$;$$);
+select set_config('test.concurrent_app', (
+  select result from dblink('gap_lock_a', $$select id::text from public.applications where user_id = 'cccccccc-cccc-4ccc-8ccc-cccccccccccc' order by created_at desc limit 1$$) as rows(result text)
+), true);
+select dblink_exec('gap_lock_a', $$reset role$$);
+select dblink_exec('gap_lock_a', $$begin$$);
+select dblink_exec('gap_lock_a', $$set local lock_timeout = '2s'$$);
+select dblink_exec('gap_lock_a', $$set local statement_timeout = '5s'$$);
+select dblink_exec('gap_lock_a', $$do $body$ begin perform 1 from public.source_assets where id = '77777777-7777-4777-8777-777777777777' for update; end $body$;$$);
+select dblink_exec('gap_lock_b', $$begin$$);
+select dblink_exec('gap_lock_b', $$set local lock_timeout = '2s'$$);
+select dblink_exec('gap_lock_b', $$set local statement_timeout = '5s'$$);
+select dblink_exec('gap_lock_b', $$set local role authenticated$$);
+select dblink_exec('gap_lock_b', $$set request.jwt.claims = '{"sub":"cccccccc-cccc-4ccc-8ccc-cccccccccccc","role":"authenticated"}'$$);
+select dblink_exec('gap_lock_b', format($$set test.concurrent_app = %L$$, current_setting('test.concurrent_app')));
+select dblink_send_query('gap_lock_a', $$delete from public.source_assets where id = '77777777-7777-4777-8777-777777777777'$$);
+select pg_sleep(0.2);
+select dblink_send_query('gap_lock_b', $$do $body$
+begin
+  perform public.set_application_resume_source(current_setting('test.concurrent_app')::uuid, '77777777-7777-4777-8777-777777777777');
+exception when others then
+  null;
+end
+$body$;$$);
+select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['1'], 'source deletion session completes without deadlock');
+select results_eq($$select count(*)::text from dblink_get_result('gap_lock_a') as rows(result text)$$, array['0'], 'source deletion async result is fully drained');
+select dblink_exec('gap_lock_a', $$commit$$);
+select results_eq($$select count(*)::text from dblink_get_result('gap_lock_b') as rows(result text)$$, array['1'], 'source selection session completes without deadlock');
+select results_eq($$select count(*)::text from dblink_get_result('gap_lock_b') as rows(result text)$$, array['0'], 'source selection async result is fully drained');
+select dblink_exec('gap_lock_b', $$commit$$);
+select results_eq($$select (resume_source_asset_id is null)::text from public.applications where id = current_setting('test.concurrent_app')::uuid$$, array['true'], 'bounded source-delete race leaves the application safely unselected');
+select dblink_disconnect('gap_lock_a');
+select dblink_disconnect('gap_lock_b');
+set local role authenticated;
 
 select finish();
 rollback;
