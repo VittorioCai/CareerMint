@@ -11,25 +11,21 @@ select results_eq($$select has_function_privilege('anon', 'public.resume_gap_jso
 select results_eq($$select has_function_privilege('authenticated', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'authenticated cannot execute the internal JSON helper');
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_analysis_runs')
-      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_requirements')
-      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.application_requirements')
-      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.applications')
-      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.applications')
-      < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'from public.source_assets')
+    strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select application_id, user_id') > 0
+      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select application_id, user_id') < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'for locked_analysis')
+      and strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'for locked_analysis') < strpos(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'select * into owned_analysis')
+      and regexp_count(pg_get_functiondef('public.create_or_get_resume_gap(uuid,uuid,uuid,text,text,text)'::regprocedure), 'order by created_at, id[[:space:]]+for update') = 1
   )::text$$,
-  array['true'], 'resume gap creation locks analysis, requirements, application, then source'
+  array['true'], 'resume gap creation discovers then locks all analyses once before re-reading the selected row'
 );
 select results_eq(
   $$select (
-    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_analysis_runs')
-      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_requirements')
-      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.application_requirements')
-      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.applications')
-      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.applications')
-      < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'from public.source_assets')
+    strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') > 0
+      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select application_id, analysis_run_id') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row')
+      and strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'for analysis_row') < strpos(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'select * into locked_application')
+      and regexp_count(pg_get_functiondef('public.complete_resume_gap(uuid,integer,jsonb,jsonb,jsonb)'::regprocedure), 'order by created_at, id[[:space:]]+for update') = 1
   )::text$$,
-  array['true'], 'resume gap completion locks analysis, requirements, application, then source'
+  array['true'], 'resume gap completion discovers then locks all analyses once before application/source'
 );
 select results_eq(
   $$
@@ -281,6 +277,12 @@ insert into public.application_requirements (
   'core', 'none', 1
 );
 select set_config('test.same_owner_cross_run_req', '55555555-5555-4555-8555-555555555555', true);
+update public.application_analysis_runs
+set created_at = case
+  when id = current_setting('test.analysis_run')::uuid then '2026-08-24 13:00:00+00'::timestamptz
+  else '2026-08-24 11:00:00+00'::timestamptz
+end
+where id in (current_setting('test.analysis_run')::uuid, current_setting('test.queued_analysis')::uuid);
 set local role authenticated;
 
 -- Safe result payloads reject extra/nested provider data.
@@ -421,6 +423,14 @@ select results_eq(
   array[current_setting('test.lex_latest_run')],
   'the lexicographically latest same-timestamp succeeded JD run is accepted'
 );
+set local role postgres;
+update public.application_analysis_runs
+set created_at = case
+  when id = current_setting('test.analysis_run')::uuid then '2026-08-24 13:00:00+00'::timestamptz
+  else '2026-08-24 11:00:00+00'::timestamptz
+end
+where id in (current_setting('test.analysis_run')::uuid, current_setting('test.queued_analysis')::uuid);
+set local role authenticated;
 
 -- Selection changes and hash reuse cannot complete or rebind a prior run.
 select set_config('test.snapshot_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('c', 64), 'test-provider', 'test-model')), true);

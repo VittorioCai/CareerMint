@@ -264,6 +264,8 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
+  candidate_application_id uuid;
+  candidate_analysis_user_id uuid;
   owned_application public.applications%rowtype;
   owned_asset public.source_assets%rowtype;
   owned_analysis public.application_analysis_runs%rowtype;
@@ -284,21 +286,25 @@ begin
   -- Match complete_application_analysis's order: selected analysis run ->
   -- all analysis runs -> all requirements -> application -> source. Do not
   -- hold the application while waiting on an analysis run.
-  select * into owned_analysis
+  select application_id, user_id
+  into candidate_application_id, candidate_analysis_user_id
   from public.application_analysis_runs
-  where id = target_analysis_run_id and user_id = current_user_id
-  for update;
+  where id = target_analysis_run_id;
+  if candidate_application_id is null or candidate_analysis_user_id <> current_user_id then
+    raise exception 'application-or-resume-not-found' using errcode = 'P0002';
+  end if;
   for locked_analysis in
     select * from public.application_analysis_runs
-    where application_id = owned_analysis.application_id
+    where application_id = candidate_application_id
       and user_id = current_user_id
     order by created_at, id
     for update
   loop
-    if locked_analysis.id = target_analysis_run_id then
-      owned_analysis := locked_analysis;
-    end if;
+    null;
   end loop;
+  select * into owned_analysis
+  from public.application_analysis_runs
+  where id = target_analysis_run_id and user_id = current_user_id;
   for locked_requirement in
     select * from public.application_requirements
     where application_id = owned_analysis.application_id
@@ -414,6 +420,8 @@ set search_path = ''
 as $$
 declare
   current_user_id uuid := auth.uid();
+  candidate_application_id uuid;
+  candidate_analysis_user_id uuid;
   gap_application_id uuid;
   gap_analysis_run_id uuid;
   selected_analysis public.application_analysis_runs%rowtype;
@@ -454,13 +462,16 @@ begin
   into gap_application_id, gap_analysis_run_id
   from public.resume_gap_runs
   where id = target_run_id;
-  select * into selected_analysis
+  select application_id, user_id
+  into candidate_application_id, candidate_analysis_user_id
   from public.application_analysis_runs
-  where id = gap_analysis_run_id and user_id = current_user_id
-  for update;
+  where id = gap_analysis_run_id;
+  if candidate_application_id is null or candidate_analysis_user_id <> current_user_id then
+    raise exception 'application-or-resume-not-found' using errcode = 'P0002';
+  end if;
   for analysis_row in
     select * from public.application_analysis_runs
-    where application_id = selected_analysis.application_id
+    where application_id = candidate_application_id
       and user_id = current_user_id
     order by created_at, id
     for update
@@ -469,6 +480,9 @@ begin
       locked_analysis := analysis_row;
     end if;
   end loop;
+  select * into selected_analysis
+  from public.application_analysis_runs
+  where id = gap_analysis_run_id and user_id = current_user_id;
   for locked_requirement in
     select * from public.application_requirements
     where application_id = selected_analysis.application_id
