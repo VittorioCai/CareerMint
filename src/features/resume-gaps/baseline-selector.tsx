@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { type ChangeEvent, useState } from "react";
+import { type ChangeEvent, useRef, useState } from "react";
 
 import type { ApplicationActionState } from "@/features/applications/actions";
 
@@ -70,10 +70,27 @@ export function BaselineSelector({
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [showOptions, setShowOptions] = useState(setupMode || !selectedAsset);
+  const serverStateKey = `${setupMode ? "setup" : "ready"}:${selectedAsset?.id ?? "none"}`;
+  const [optionsState, setOptionsState] = useState({
+    key: serverStateKey,
+    open: setupMode || !selectedAsset,
+  });
+  const [fileState, setFileState] = useState<{
+    key: string;
+    file: File | null;
+  }>({ key: serverStateKey, file: null });
+  const inputRef = useRef<HTMLInputElement>(null);
+  const showOptions =
+    optionsState.key === serverStateKey
+      ? optionsState.open
+      : setupMode || !selectedAsset;
+  const selectedFile = fileState.key === serverStateKey ? fileState.file : null;
 
-  async function finishSelection(sourceAssetId: string | null) {
+  function setOptionsOpen(open: boolean) {
+    setOptionsState({ key: serverStateKey, open });
+  }
+
+  async function finishSelection(sourceAssetId: string | null): Promise<boolean> {
     setBusy(true);
     setError(null);
     const formData = new FormData();
@@ -85,12 +102,14 @@ export function BaselineSelector({
       if (!("ok" in result) || !result.ok) {
         const code = "error" in result ? result.error : "application-action-failed";
         setError(actionErrorMessages[code] ?? actionErrorMessages["application-action-failed"]);
-        return;
+        return false;
       }
       router.replace(`/applications/${applicationId}?tab=resume`);
       router.refresh();
+      return true;
     } catch {
       setError(actionErrorMessages["application-action-failed"]);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -122,7 +141,12 @@ export function BaselineSelector({
         return;
       }
 
-      await finishSelection(payload.id);
+      const linked = await finishSelection(payload.id);
+      if (!linked) {
+        setFileState({ key: serverStateKey, file: null });
+        if (inputRef.current) inputRef.current.value = "";
+        router.refresh();
+      }
     } catch {
       setError("上传没有完成，请重试。");
     } finally {
@@ -131,7 +155,10 @@ export function BaselineSelector({
   }
 
   function handleFileChange(event: ChangeEvent<HTMLInputElement>) {
-    setSelectedFile(event.currentTarget.files?.[0] ?? null);
+    setFileState({
+      key: serverStateKey,
+      file: event.currentTarget.files?.[0] ?? null,
+    });
     setError(null);
   }
 
@@ -204,7 +231,9 @@ export function BaselineSelector({
               上传新的 PDF 或 DOCX 简历
             </label>
             <input
+              ref={inputRef}
               id={`baseline-upload-${applicationId}`}
+              key={serverStateKey}
               type="file"
               accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               className="form-input mt-2 max-w-full file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--mint)] file:px-3 file:py-1.5 file:text-sm file:font-black"
@@ -232,7 +261,7 @@ export function BaselineSelector({
           <button
             type="button"
             className="button-secondary min-h-10 px-4 text-sm font-black"
-            onClick={() => setShowOptions(true)}
+            onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
             更换简历
@@ -240,7 +269,7 @@ export function BaselineSelector({
           <button
             type="button"
             className="button-secondary min-h-10 px-4 text-sm font-black"
-            onClick={() => setShowOptions(true)}
+            onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
             上传新简历

@@ -67,7 +67,7 @@ describe("BaselineSelector", () => {
     renderSelector();
 
     expect(screen.getByRole("heading", { name: "本次对照简历（可选）" })).toBeVisible();
-    expect(screen.getByText("newer-resume.pdf")).toBeVisible();
+    expect(screen.getAllByText("newer-resume.pdf").length).toBeGreaterThan(0);
     expect(screen.getAllByText("older-resume.docx").length).toBeGreaterThan(0);
     expect(screen.getByRole("button", { name: "暂时跳过，进入工作区" })).toBeVisible();
     expect(screen.getByLabelText("上传新的 PDF 或 DOCX 简历")).toHaveAttribute(
@@ -91,6 +91,30 @@ describe("BaselineSelector", () => {
       `/applications/${applicationId}?tab=resume`,
     );
     expect(router.refresh).toHaveBeenCalledOnce();
+  });
+
+  it("collapses setup choices when refreshed props contain the selected asset", async () => {
+    const user = userEvent.setup();
+    const { setResumeSource, rerender } = renderSelector();
+
+    await user.click(screen.getByRole("button", { name: /选择 newer-resume\.pdf/ }));
+    await waitFor(() => expect(setResumeSource).toHaveBeenCalledOnce());
+
+    rerender(
+      <BaselineSelector
+        applicationId={applicationId}
+        selectedAsset={assets[0]}
+        availableAssets={assets}
+        setupMode={false}
+        setResumeSource={setResumeSource}
+      />,
+    );
+
+    expect(screen.getByText("newer-resume.pdf")).toBeVisible();
+    expect(screen.queryByText("选择已有简历")).not.toBeInTheDocument();
+    expect(screen.queryByLabelText("上传新的 PDF 或 DOCX 简历")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "更换简历" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "上传新简历" })).toBeVisible();
   });
 
   it("uploads only to the source asset endpoint, then selects the returned asset", async () => {
@@ -169,6 +193,55 @@ describe("BaselineSelector", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("文件超过 10 MiB");
     expect(setResumeSource).not.toHaveBeenCalled();
     expect(screen.getAllByText("older-resume.docx").length).toBeGreaterThan(0);
+  });
+
+  it("refreshes after upload succeeds but linking fails, clears the file, and allows later selection", async () => {
+    const user = userEvent.setup();
+    const setResumeSource = vi.fn().mockResolvedValue({
+      ok: false,
+      error: "application-storage-error",
+    });
+    const { request, rerender } = renderSelector({
+      selectedAsset: assets[1],
+      setupMode: false,
+      setResumeSource,
+    });
+    await user.click(screen.getByRole("button", { name: "上传新简历" }));
+    const input = screen.getByLabelText("上传新的 PDF 或 DOCX 简历");
+    await user.upload(
+      input,
+      new File(["%PDF synthetic"], "fresh.pdf", { type: "application/pdf" }),
+    );
+    await user.click(screen.getByRole("button", { name: "上传并使用这份简历" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("暂时无法保存这次简历选择");
+    expect(setResumeSource).toHaveBeenCalledOnce();
+    expect(request).toHaveBeenCalledOnce();
+    expect(request.mock.calls.some(([url]) => String(url).includes("/extract"))).toBe(false);
+    expect(router.replace).not.toHaveBeenCalled();
+    expect(router.refresh).toHaveBeenCalledOnce();
+    expect((input as HTMLInputElement).files).toHaveLength(0);
+    expect(screen.getAllByText("older-resume.docx").length).toBeGreaterThan(0);
+
+    rerender(
+      <BaselineSelector
+        applicationId={applicationId}
+        selectedAsset={assets[1]}
+        availableAssets={[assets[0], assets[1], { ...assets[0], id: "44444444-4444-4444-8444-444444444444", originalName: "fresh.pdf" }]}
+        setupMode={false}
+        setResumeSource={vi.fn().mockResolvedValue(actionResult())}
+      />,
+    );
+    expect(screen.getByRole("button", { name: /选择 fresh\.pdf/ })).toBeVisible();
+  });
+
+  it("renders available assets newest first", () => {
+    renderSelector();
+    const choices = screen.getAllByRole("button").filter((button) =>
+      button.textContent?.includes("选择"),
+    );
+    expect(choices[0]).toHaveTextContent("newer-resume.pdf");
+    expect(choices[1]).toHaveTextContent("older-resume.docx");
   });
 
   it("exposes pending state and accessible labels while selecting", async () => {
