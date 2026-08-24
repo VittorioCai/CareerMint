@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { changeApplicationStageAction } from "@/features/applications/actions";
+import {
+  changeApplicationStageAction,
+  setApplicationResumeSourceAction,
+} from "@/features/applications/actions";
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGE_LABELS,
@@ -48,6 +51,11 @@ import type {
   ResumeVersion,
 } from "@/features/resume-customization/schemas";
 import { requireUser } from "@/lib/auth/require-user";
+import { listAssets } from "@/features/source-assets/repository";
+import {
+  BaselineSelector,
+  type ResumeAssetOption,
+} from "@/features/resume-gaps/baseline-selector";
 
 const tabs = ["overview", "jd", "resume", "interview", "timeline"] as const;
 type DetailTab = (typeof tabs)[number];
@@ -180,13 +188,26 @@ function ResumePanel({
   application,
   latestRun,
   versions,
+  selectedAsset,
+  availableAssets,
+  setupMode,
 }: {
   application: Application;
   latestRun: ResumeGenerationRun | null;
   versions: ResumeVersion[];
+  selectedAsset: ResumeAssetOption | null;
+  availableAssets: ResumeAssetOption[];
+  setupMode: boolean;
 }) {
   return (
     <div className="space-y-6">
+      <BaselineSelector
+        applicationId={application.id}
+        selectedAsset={selectedAsset}
+        availableAssets={availableAssets}
+        setupMode={setupMode}
+        setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
+      />
       <ResumeGenerationControl
         applicationId={application.id}
         initialStatus={latestRun?.status ?? null}
@@ -351,7 +372,7 @@ export default async function ApplicationDetailPage({
   const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, resumeRun, resumeVersions, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
+  const [events, analysisRun, requirements, resumeRun, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "jd"
       ? jdAnalysisRepository.getLatest(user.id, id)
@@ -365,6 +386,7 @@ export default async function ApplicationDetailPage({
     activeTab === "resume"
       ? resumeCustomizationRepository.listVersions(user.id, id)
       : Promise.resolve([]),
+    activeTab === "resume" ? listAssets(user.id) : Promise.resolve([]),
     activeTab === "interview"
       ? interviewPreparationRepository.listForApplication(user.id, id)
       : Promise.resolve([]),
@@ -433,6 +455,23 @@ export default async function ApplicationDetailPage({
             application={application}
             latestRun={resumeRun}
             versions={resumeVersions}
+            availableAssets={resumeAssets.map((asset) => ({
+              id: asset.id,
+              originalName: asset.originalName,
+              contentType: asset.contentType,
+              createdAt: asset.createdAt,
+            }))}
+            selectedAsset={
+              resumeAssets
+                .filter((asset) => asset.id === application.resumeSourceAssetId)
+                .map((asset) => ({
+                  id: asset.id,
+                  originalName: asset.originalName,
+                  contentType: asset.contentType,
+                  createdAt: asset.createdAt,
+                }))[0] ?? null
+            }
+            setupMode={first(query.setup) === "1"}
           />
         ) : null}
         {activeTab === "interview" ? (

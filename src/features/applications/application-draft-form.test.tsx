@@ -77,7 +77,7 @@ describe("ApplicationDraftForm", () => {
     expect(submitted.get("jdText")).toBe(completeJd);
     expect(window.localStorage.getItem(storageKey)).toBeNull();
     expect(navigate).toHaveBeenCalledWith(
-      "/applications/11111111-1111-4111-8111-111111111111",
+      "/applications/11111111-1111-4111-8111-111111111111?tab=resume&setup=1",
     );
   });
 

@@ -89,7 +89,8 @@ export async function listAssets(userId: string): Promise<SourceAsset[]> {
     .from("source_assets")
     .select("*")
     .eq("user_id", userId)
-    .order("created_at", { ascending: false });
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (error) throw new SourceAssetRepositoryError(storageError(error.code));
   return (data ?? []).map(toSourceAsset);

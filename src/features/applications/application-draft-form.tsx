@@ -110,7 +110,7 @@ export function ApplicationDraftForm({
     }
 
     window.localStorage.removeItem(STORAGE_KEY);
-    navigate(`/applications/${result.applicationId}`);
+    navigate(`/applications/${result.applicationId}?tab=resume&setup=1`);
   }
 
   return (
