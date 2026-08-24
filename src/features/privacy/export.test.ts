@@ -3,10 +3,27 @@
 import JSZip from "jszip";
 import { describe, expect, it, vi } from "vitest";
 
-import { buildAccountExport } from "./export";
+import {
+  RESUME_GAP_ITEM_EXPORT_SELECT,
+  RESUME_GAP_RUN_EXPORT_SELECT,
+  buildAccountExport,
+} from "./export";
 
 const userId = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
 const otherUserId = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+describe("resume gap export query contract", () => {
+  it("selects only the minimum run and item fields used by the export DTO", () => {
+    expect(RESUME_GAP_RUN_EXPORT_SELECT).toBe(
+      "id,user_id,application_id,analysis_run_id,source_asset_id,source_filename,source_sha256,provider,model,status,attempt_count,result,error_code,created_at,updated_at,started_at,finished_at",
+    );
+    expect(RESUME_GAP_ITEM_EXPORT_SELECT).toBe(
+      "id,run_id,application_id,user_id,requirement_id,requirement_text,category,priority,jd_source_excerpt,resume_coverage,verified_resume_excerpt,sort_order,created_at",
+    );
+    expect(RESUME_GAP_RUN_EXPORT_SELECT).not.toContain("input_hash");
+    expect(RESUME_GAP_RUN_EXPORT_SELECT).not.toContain("error_message");
+  });
+});
 
 describe("buildAccountExport", () => {
   it("exports only owned profile data and files without internal paths", async () => {
@@ -46,6 +63,18 @@ describe("buildAccountExport", () => {
           userId: otherUserId,
           originalName: "other.pdf",
           storagePath: `${otherUserId}/asset/source.pdf`,
+        },
+        {
+          id: "12121212-1212-4121-8121-121212121212",
+          userId,
+          originalName: ".",
+          storagePath: `${userId}/asset/dot.pdf`,
+        },
+        {
+          id: "13131313-1313-4131-8131-131313131313",
+          userId,
+          originalName: "nested/..",
+          storagePath: `${userId}/asset/dot-dot.pdf`,
         },
       ]),
       listApplications: vi.fn().mockResolvedValue([
@@ -135,6 +164,54 @@ describe("buildAccountExport", () => {
           finishedAt: "2026-08-22T00:01:00.000Z",
           signedUrl: "https://private.example/signed",
           storageCredential: "private-storage-secret",
+        },
+        {
+          id: "aaaaaaaa-9999-4999-8999-999999999998",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          analysisRunId: "55555555-5555-4555-8555-555555555555",
+          sourceAssetId: "11111111-1111-4111-8111-111111111111",
+          sourceFilename: "resume.pdf",
+          sourceSha256: "a".repeat(64),
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: {
+            acceptedItemCount: 2,
+            coveredItemCount: 0,
+            partialItemCount: 0,
+            missingItemCount: 1,
+          },
+          errorCode: null,
+          createdAt: "2026-08-22T00:00:00.000Z",
+          updatedAt: "2026-08-22T00:01:00.000Z",
+          startedAt: "2026-08-22T00:00:30.000Z",
+          finishedAt: "2026-08-22T00:01:00.000Z",
+        },
+        {
+          id: "aaaaaaaa-9999-4999-8999-999999999997",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          analysisRunId: "55555555-5555-4555-8555-555555555555",
+          sourceAssetId: "11111111-1111-4111-8111-111111111111",
+          sourceFilename: "resume.pdf",
+          sourceSha256: "a".repeat(64),
+          provider: "deepseek",
+          model: "deepseek-chat",
+          status: "succeeded",
+          attemptCount: 1,
+          result: {
+            acceptedItemCount: 81,
+            coveredItemCount: 81,
+            partialItemCount: 0,
+            missingItemCount: 0,
+          },
+          errorCode: null,
+          createdAt: "2026-08-22T00:00:00.000Z",
+          updatedAt: "2026-08-22T00:01:00.000Z",
+          startedAt: "2026-08-22T00:00:30.000Z",
+          finishedAt: "2026-08-22T00:01:00.000Z",
         },
         {
           id: "bbbbbbbb-9999-4999-8999-999999999999",
@@ -379,6 +456,10 @@ describe("buildAccountExport", () => {
       "files/",
       "files/11111111-1111-4111-8111-111111111111/",
       "files/11111111-1111-4111-8111-111111111111/resume.pdf",
+      "files/12121212-1212-4121-8121-121212121212/",
+      "files/12121212-1212-4121-8121-121212121212/source-file",
+      "files/13131313-1313-4131-8131-131313131313/",
+      "files/13131313-1313-4131-8131-131313131313/source-file",
       "application-workspaces.json",
       "interview-preparation.json",
       "profile.json",
@@ -454,7 +535,7 @@ describe("buildAccountExport", () => {
     };
     expect(resumeGapsExport.schemaVersion).toBe("resume-gap-history-v1");
     expect(resumeGapsExport.generatedAt).toMatch(/Z$/);
-    expect(resumeGapsExport.runs).toHaveLength(1);
+    expect(resumeGapsExport.runs).toHaveLength(3);
     expect(resumeGapsExport.runs[0]).toMatchObject({
       id: "aaaaaaaa-9999-4999-8999-999999999999",
       applicationId: "33333333-3333-4333-8333-333333333333",
@@ -464,6 +545,12 @@ describe("buildAccountExport", () => {
       attemptCount: 1,
       provider: "deepseek",
       model: "deepseek-chat",
+      counts: {
+        acceptedItemCount: 1,
+        coveredItemCount: 0,
+        partialItemCount: 0,
+        missingItemCount: 1,
+      },
     });
     expect(resumeGapsExport.runs[0]).not.toHaveProperty("inputHash");
     expect(resumeGapsExport.runs[0]).not.toHaveProperty("result");
@@ -471,6 +558,16 @@ describe("buildAccountExport", () => {
     expect(resumeGapsExport.runs[0]).not.toHaveProperty("errorStack");
     expect(resumeGapsExport.runs[0]).not.toHaveProperty("signedUrl");
     expect(resumeGapsExport.runs[0]).not.toHaveProperty("storageCredential");
+    expect(
+      resumeGapsExport.runs.find(
+        (run) => run.id === "aaaaaaaa-9999-4999-8999-999999999998",
+      )?.counts,
+    ).toBeNull();
+    expect(
+      resumeGapsExport.runs.find(
+        (run) => run.id === "aaaaaaaa-9999-4999-8999-999999999997",
+      )?.counts,
+    ).toBeNull();
     expect(resumeGapsExport.items).toHaveLength(1);
     expect(resumeGapsExport.items[0]).toMatchObject({
       id: "aaaaaaaa-aaaa-4aaa-8aaa-111111111111",
@@ -489,8 +586,15 @@ describe("buildAccountExport", () => {
     expect(resumeGapsJson).not.toContain("private.example");
     expect(resumeGapsJson).not.toContain("Other user's secret");
     expect(resumeGapsJson).not.toContain("Cross-application item must not export");
-    expect(dependencies.download).toHaveBeenCalledExactlyOnceWith(
+    expect(dependencies.download).toHaveBeenCalledTimes(3);
+    expect(dependencies.download).toHaveBeenCalledWith(
       `${userId}/asset/source.pdf`,
+    );
+    expect(dependencies.download).toHaveBeenCalledWith(
+      `${userId}/asset/dot.pdf`,
+    );
+    expect(dependencies.download).toHaveBeenCalledWith(
+      `${userId}/asset/dot-dot.pdf`,
     );
   });
 });

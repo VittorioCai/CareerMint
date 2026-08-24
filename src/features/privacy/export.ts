@@ -1,5 +1,11 @@
 import JSZip from "jszip";
 
+export const RESUME_GAP_RUN_EXPORT_SELECT =
+  "id,user_id,application_id,analysis_run_id,source_asset_id,source_filename,source_sha256,provider,model,status,attempt_count,result,error_code,created_at,updated_at,started_at,finished_at";
+
+export const RESUME_GAP_ITEM_EXPORT_SELECT =
+  "id,run_id,application_id,user_id,requirement_id,requirement_text,category,priority,jd_source_excerpt,resume_coverage,verified_resume_excerpt,sort_order,created_at";
+
 type OwnedRecord = { userId: string };
 type OwnedApplication = OwnedRecord & { id: string };
 type ApplicationChildRecord = { applicationId: string };
@@ -126,7 +132,9 @@ function safeFilename(originalName: string) {
     .replace(/[\u0000-\u001f\u007f]/g, "")
     .replace(/[<>:"|?*]/g, "-")
     .trim();
-  return sanitized || "source-file";
+  return sanitized && sanitized !== "." && sanitized !== ".."
+    ? sanitized
+    : "source-file";
 }
 
 function publicAssetMetadata(asset: ExportAsset) {
@@ -155,8 +163,17 @@ function safeResumeGapCounts(value: unknown) {
       (field) =>
         typeof result[field] === "number" &&
         Number.isSafeInteger(result[field]) &&
-        (result[field] as number) >= 0,
+        (result[field] as number) >= 0 &&
+        (result[field] as number) <= 80,
     )
+  ) {
+    return null;
+  }
+  if (
+    result.acceptedItemCount !==
+    (result.coveredItemCount as number) +
+      (result.partialItemCount as number) +
+      (result.missingItemCount as number)
   ) {
     return null;
   }

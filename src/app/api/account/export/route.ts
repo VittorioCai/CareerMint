@@ -4,7 +4,11 @@ import { careerFactRepository } from "@/features/career-profile/repository";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { interviewPreparationRepository } from "@/features/interview-preparation/repository";
 import { interviewQuestionGenerationRepository } from "@/features/interview-preparation/generation-repository";
-import { buildAccountExport } from "@/features/privacy/export";
+import {
+  RESUME_GAP_ITEM_EXPORT_SELECT,
+  RESUME_GAP_RUN_EXPORT_SELECT,
+  buildAccountExport,
+} from "@/features/privacy/export";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import { listAssets } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";
@@ -18,7 +22,7 @@ async function listResumeGapRuns(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("resume_gap_runs")
-    .select("*")
+    .select(RESUME_GAP_RUN_EXPORT_SELECT)
     .eq("user_id", userId)
     .order("created_at", { ascending: false })
     .order("id", { ascending: false });
@@ -48,7 +52,7 @@ async function listResumeGapItems(userId: string) {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("resume_gap_items")
-    .select("*")
+    .select(RESUME_GAP_ITEM_EXPORT_SELECT)
     .eq("user_id", userId)
     .order("sort_order", { ascending: true })
     .order("id", { ascending: true });
