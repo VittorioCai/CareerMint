@@ -2,11 +2,13 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(45);
+select plan(56);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
 select has_column('public', 'applications', 'resume_source_asset_id', 'applications can select a resume source asset');
+select results_eq($$select has_function_privilege('anon', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'anon cannot execute the internal JSON helper');
+select results_eq($$select has_function_privilege('authenticated', 'public.resume_gap_json_has_exact_keys(jsonb,text[])', 'EXECUTE')::text$$, array['false'], 'authenticated cannot execute the internal JSON helper');
 select results_eq(
   $$
     select (c.confdeltype = 'n')::text
@@ -188,6 +190,16 @@ select results_eq(
   $$select (result ? 'fullResumeText')::text || ':' || (result ? 'fullJdText')::text from public.resume_gap_runs where id = current_setting('test.gap_run')::uuid$$,
   array['false:false'], 'completion stores no full resume or JD text'
 );
+set local role postgres;
+select throws_ok(
+  $$update public.resume_gap_runs
+    set result = jsonb_set(result, '{ai,usage,inputCacheHitTokens}', '"1"'::jsonb, false)
+    where id = current_setting('test.gap_run')::uuid$$,
+  '23514',
+  'new row for relation "resume_gap_runs" violates check constraint "resume_gap_runs_result_check"',
+  'result constraints reject string-valued token counts'
+);
+set local role authenticated;
 
 select set_config('test.fail_run', (select id::text from public.create_or_get_resume_gap(
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
@@ -237,6 +249,16 @@ insert into public.application_requirements (
   'skill', 'Advanced SQL', 'Advanced SQL experience is required for funnel analysis.',
   'core', 'none', 0
 );
+insert into public.application_requirements (
+  id, analysis_run_id, application_id, user_id, category, requirement_text,
+  source_excerpt, priority, match_status, sort_order
+) values (
+  '55555555-5555-4555-8555-555555555555', current_setting('test.queued_analysis')::uuid,
+  current_setting('test.app_a')::uuid, 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  'skill', 'Other SQL', 'Advanced SQL experience is required for funnel analysis.',
+  'core', 'none', 1
+);
+select set_config('test.same_owner_cross_run_req', '55555555-5555-4555-8555-555555555555', true);
 set local role authenticated;
 
 -- Safe result payloads reject extra/nested provider data.
@@ -248,7 +270,7 @@ select public.claim_resume_gap(current_setting('test.strict_run')::uuid, 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_run')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)),
-    '{"provider":"evil","model":"x","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null,"secret":{"resume":"do not store"}}', null)$$,
+    '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null,"secret":{"resume":"do not store"}}', null)$$,
   '22023', 'invalid-resume-gap-usage', 'AI usage rejects extra sensitive keys'
 );
 select throws_ok(
@@ -316,13 +338,48 @@ select results_eq($$select count(*)::bigint from public.resume_gap_items where r
 
 select set_config('test.cross_run_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('a', 64), 'test-provider', 'test-model')), true);
 select public.claim_resume_gap(current_setting('test.cross_run_run')::uuid, 120);
-select throws_ok($$select public.complete_resume_gap(current_setting('test.cross_run_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', current_setting('test.b_req'), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'cross-run requirement ids are rejected');
+select throws_ok($$select public.complete_resume_gap(current_setting('test.cross_run_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', current_setting('test.same_owner_cross_run_req'), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'same-owner cross-run requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.cross_run_run')::uuid$$, array[0::bigint], 'cross-run rollback leaves no items');
 
 select set_config('test.cross_owner_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('b', 64), 'test-provider', 'test-model')), true);
 select public.claim_resume_gap(current_setting('test.cross_owner_run')::uuid, 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.cross_owner_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', current_setting('test.b_req'), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'cross-owner requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.cross_owner_run')::uuid$$, array[0::bigint], 'cross-owner rollback leaves no items');
+
+-- Filename whitespace is normalized consistently in snapshots and completion.
+insert into public.source_assets (
+  id, user_id, original_name, content_type, storage_path, size_bytes, sha256, status
+) values (
+  '66666666-6666-4666-8666-666666666666', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  '  alice-whitespace.pdf  ', 'application/pdf', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/alice-whitespace.pdf',
+  1024, repeat('6', 64), 'ready'
+);
+select public.set_application_resume_source(current_setting('test.app_a')::uuid, '66666666-6666-4666-8666-666666666666');
+select set_config('test.whitespace_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '66666666-6666-4666-8666-666666666666', repeat('0', 64), 'test-provider', 'test-model')), true);
+select results_eq($$select source_filename from public.resume_gap_runs where id = current_setting('test.whitespace_run')::uuid$$, array['alice-whitespace.pdf'], 'source filename snapshots are trimmed');
+select public.claim_resume_gap(current_setting('test.whitespace_run')::uuid, 120);
+select public.complete_resume_gap(current_setting('test.whitespace_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null);
+select results_eq($$select status::text from public.resume_gap_runs where id = current_setting('test.whitespace_run')::uuid$$, array['succeeded'], 'trimmed source filename completes successfully');
+select public.set_application_resume_source(current_setting('test.app_a')::uuid, '11111111-1111-4111-8111-111111111111');
+
+-- Mutating either source snapshot after creation aborts atomically.
+select set_config('test.mutable_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('1', 63) || '2', 'test-provider', 'test-model')), true);
+select public.claim_resume_gap(current_setting('test.mutable_run')::uuid, 120);
+set local role postgres;
+update public.source_assets set original_name = 'changed.pdf' where id = '11111111-1111-4111-8111-111111111111';
+set local role authenticated;
+select throws_ok($$select public.complete_resume_gap(current_setting('test.mutable_run')::uuid, 1, '[]'::jsonb, null, null)$$, 'P0002', 'application-or-resume-not-found', 'filename snapshot mutation is rejected');
+select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.mutable_run')::uuid$$, array[0::bigint], 'filename mismatch leaves no items');
+select results_eq($$select status::text from public.resume_gap_runs where id = current_setting('test.mutable_run')::uuid$$, array['running'], 'filename mismatch does not succeed the run');
+set local role postgres;
+update public.source_assets set original_name = 'alice-resume.pdf', sha256 = repeat('c', 64) where id = '11111111-1111-4111-8111-111111111111';
+set local role authenticated;
+select throws_ok($$select public.complete_resume_gap(current_setting('test.mutable_run')::uuid, 1, '[]'::jsonb, null, null)$$, 'P0002', 'application-or-resume-not-found', 'SHA snapshot mutation is rejected');
+select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.mutable_run')::uuid$$, array[0::bigint], 'SHA mismatch leaves no items');
+select results_eq($$select status::text from public.resume_gap_runs where id = current_setting('test.mutable_run')::uuid$$, array['running'], 'SHA mismatch does not succeed the run');
+set local role postgres;
+update public.source_assets set sha256 = repeat('a', 64) where id = '11111111-1111-4111-8111-111111111111';
+set local role authenticated;
 
 -- Selection changes and hash reuse cannot complete or rebind a prior run.
 select set_config('test.snapshot_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('c', 64), 'test-provider', 'test-model')), true);

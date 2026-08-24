@@ -83,6 +83,9 @@ create table public.resume_gap_runs (
       and result -> 'ai' -> 'usage' ? 'inputCacheHitTokens'
       and result -> 'ai' -> 'usage' ? 'inputCacheMissTokens'
       and result -> 'ai' -> 'usage' ? 'outputTokens'
+      and jsonb_typeof(result -> 'ai' -> 'usage' -> 'inputCacheHitTokens') = 'number'
+      and jsonb_typeof(result -> 'ai' -> 'usage' -> 'inputCacheMissTokens') = 'number'
+      and jsonb_typeof(result -> 'ai' -> 'usage' -> 'outputTokens') = 'number'
       and (result -> 'ai' -> 'usage' ->> 'inputCacheHitTokens') ~ '^[0-9]+$'
       and (result -> 'ai' -> 'usage' ->> 'inputCacheMissTokens') ~ '^[0-9]+$'
       and (result -> 'ai' -> 'usage' ->> 'outputTokens') ~ '^[0-9]+$'
@@ -264,7 +267,10 @@ declare
   owned_application public.applications%rowtype;
   owned_asset public.source_assets%rowtype;
   owned_analysis public.application_analysis_runs%rowtype;
+  locked_analysis public.application_analysis_runs%rowtype;
+  locked_requirement public.application_requirements%rowtype;
   owned_run public.resume_gap_runs%rowtype;
+  locked_requirement_count integer := 0;
 begin
   if current_user_id is null then
     raise exception 'authentication-required' using errcode = '42501';
@@ -286,20 +292,34 @@ begin
   select * into owned_asset from public.source_assets
   where id = target_source_asset_id and user_id = current_user_id
   for update;
-  select * into owned_analysis from public.application_analysis_runs
-  where id = target_analysis_run_id
-    and application_id = target_application_id
-    and user_id = current_user_id
-  for update;
+  -- Match the JD completion lock order: application -> all analysis runs ->
+  -- that run's requirements. This serializes newest-run and requirement
+  -- decisions with concurrent JD replacement.
+  for locked_analysis in
+    select * from public.application_analysis_runs
+    where application_id = target_application_id
+      and user_id = current_user_id
+    order by created_at, id
+    for update
+  loop
+    if locked_analysis.id = target_analysis_run_id then
+      owned_analysis := locked_analysis;
+    end if;
+  end loop;
+  for locked_requirement in
+    select * from public.application_requirements
+    where analysis_run_id = target_analysis_run_id
+      and application_id = target_application_id
+      and user_id = current_user_id
+    order by id
+    for update
+  loop
+    locked_requirement_count := locked_requirement_count + 1;
+  end loop;
   if owned_asset.id is null or owned_analysis.id is null
     or owned_analysis.status <> 'succeeded'
     or owned_application.resume_source_asset_id is distinct from owned_asset.id
-    or not exists (
-      select 1 from public.application_requirements
-      where analysis_run_id = owned_analysis.id
-        and application_id = target_application_id
-        and user_id = current_user_id
-    ) then
+    or locked_requirement_count < 1 then
     raise exception 'application-or-resume-not-found' using errcode = 'P0002';
   end if;
   if exists (
@@ -454,7 +474,7 @@ begin
     or locked_analysis.application_id <> owned_run.application_id
     or locked_analysis.user_id <> current_user_id
     or locked_application.resume_source_asset_id is distinct from owned_run.source_asset_id
-    or locked_asset.original_name <> owned_run.source_filename
+    or btrim(locked_asset.original_name) <> owned_run.source_filename
     or lower(locked_asset.sha256) <> owned_run.source_sha256 then
     raise exception 'application-or-resume-not-found' using errcode = 'P0002';
   end if;
@@ -687,6 +707,7 @@ begin
 end;
 $$;
 
+revoke all on function public.resume_gap_json_has_exact_keys(jsonb, text[]) from public, anon, authenticated;
 revoke all on function public.set_application_resume_source(uuid, uuid) from public;
 revoke all on function public.create_or_get_resume_gap(uuid, uuid, uuid, text, text, text) from public;
 revoke all on function public.claim_resume_gap(uuid, integer) from public;
