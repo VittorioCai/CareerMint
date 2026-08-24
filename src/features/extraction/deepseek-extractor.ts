@@ -25,6 +25,12 @@ import {
   type InterviewQuestionGenerationInput,
   type InterviewQuestionGenerationOutput,
 } from "@/features/interview-preparation/generation-schemas";
+import { resumeGapAnalysisInstructions } from "@/features/resume-gaps/prompt";
+import {
+  resumeGapProviderOutputSchema,
+  type ResumeGapAnalysisInput,
+  type ResumeGapProviderOutput,
+} from "@/features/resume-gaps/schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -34,6 +40,7 @@ import {
 const endpoint = "https://api.deepseek.com/chat/completions";
 const providerName = "deepseek";
 const invalidOutputError = "resume-extraction-invalid-output";
+const resumeGapInvalidOutputError = "resume-gap-invalid-output";
 
 const usageSchema = z
   .object({
@@ -405,6 +412,22 @@ export function createDeepSeekAIProvider(
             maxTokens: 4096,
           }),
         generationInvalidOutputError,
+      );
+    },
+    async analyzeResumeGaps(input: ResumeGapAnalysisInput) {
+      return withInvalidOutputRetry<ResumeGapProviderOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: resumeGapAnalysisInstructions,
+            userContent: [
+              `<requirements_json>\n${JSON.stringify(input.requirements)}\n</requirements_json>`,
+              `<resume_document>\n${input.resumeText}\n</resume_document>`,
+            ].join("\n"),
+            outputSchema: resumeGapProviderOutputSchema,
+            invalidOutputError: resumeGapInvalidOutputError,
+            maxTokens: 4096,
+          }),
+        resumeGapInvalidOutputError,
       );
     },
   };

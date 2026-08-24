@@ -349,6 +349,134 @@ describe("DeepSeek JD analyzer", () => {
 
 });
 
+describe("DeepSeek resume-gap analyzer", () => {
+  const input = {
+    resumeText:
+      "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.",
+    requirements: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        category: "skill" as const,
+        text: "Advanced SQL",
+        priority: "core" as const,
+      },
+      {
+        id: "33333333-3333-4333-8333-333333333333",
+        category: "responsibility" as const,
+        text: "Analyze product funnels",
+        priority: "supporting" as const,
+      },
+    ],
+  };
+  const output = {
+    items: [
+      {
+        requirementId: input.requirements[0].id,
+        resumeCoverage: "partial",
+        resumeExcerpt: "funnel analysis",
+      },
+      {
+        requirementId: input.requirements[1].id,
+        resumeCoverage: "covered",
+        resumeExcerpt: "funnel analysis",
+      },
+    ],
+  };
+
+  it("compares supplied requirements with resume text using a strict JSON contract", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeGaps(input);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({
+      model: "deepseek-v4-flash",
+      response_format: { type: "json_object" },
+      thinking: { type: "disabled" },
+      stream: false,
+    });
+    expect(body.max_tokens).toBeGreaterThan(0);
+    expect(body.max_tokens).toBeLessThanOrEqual(4096);
+    expect(body.messages[0].content).toContain("comparison only");
+    expect(body.messages[0].content).toContain("do not rewrite");
+    expect(body.messages[0].content).toContain(
+      '"items":[{"requirementId":"uuid","resumeCoverage":"covered","resumeExcerpt":"exact text or null"}]',
+    );
+    expect(body.messages[0].content).toContain("every supplied requirement ID exactly once");
+    expect(body.messages[1].content).toContain(
+      `<requirements_json>\n${JSON.stringify(input.requirements)}\n</requirements_json>`,
+    );
+    expect(body.messages[1].content).toContain(
+      `<resume_document>\n${input.resumeText}\n</resume_document>`,
+    );
+    expect(
+      body.messages[1].content.indexOf("<requirements_json>"),
+    ).toBeLessThan(body.messages[1].content.indexOf("<resume_document>"));
+    expect(result).toMatchObject({
+      data: output,
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      requestId: "request-123",
+    });
+
+    const serializedLogs = JSON.stringify(log.mock.calls);
+    expect(serializedLogs).not.toContain(input.resumeText);
+    expect(serializedLogs).not.toContain(input.requirements[0].text);
+    expect(serializedLogs).not.toContain("funnel analysis");
+    expect(serializedLogs).not.toContain("resume_document");
+  });
+
+  it.each([
+    ["malformed JSON", '{"items":['],
+    ["invalid schema", JSON.stringify({ items: [{ requirementId: input.requirements[0].id }] })],
+  ])("retries %s output exactly once", async (_case, invalidContent) => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(successResponse(invalidContent))
+      .mockResolvedValueOnce(successResponse(JSON.stringify(output)));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeResumeGaps(input)).resolves.toMatchObject({
+      data: output,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("returns a stable error after a second invalid output", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"items":['));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeResumeGaps(input)).rejects.toThrow(
+      "resume-gap-invalid-output",
+    );
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+  });
+
+  it("accepts a schema-valid excerpt without adapter grounding or another call", async () => {
+    const ungroundedOutput = {
+      items: output.items.map((item) => ({
+        ...item,
+        resumeExcerpt: "not present in supplied resume",
+      })),
+    };
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(ungroundedOutput)));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(provider.analyzeResumeGaps(input)).resolves.toMatchObject({
+      data: ungroundedOutput,
+    });
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe("DeepSeek resume customizer", () => {
   const input = {
     jdText: "Advanced SQL is required for funnel analysis.",

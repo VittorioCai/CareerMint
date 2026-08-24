@@ -11,6 +11,10 @@ import type {
   InterviewQuestionGenerationInput,
   InterviewQuestionGenerationOutput,
 } from "@/features/interview-preparation/generation-schemas";
+import type {
+  ResumeGapAnalysisInput,
+  ResumeGapProviderOutput,
+} from "@/features/resume-gaps/schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -37,4 +41,7 @@ export type AIProvider = {
   generateInterviewQuestions(
     input: InterviewQuestionGenerationInput,
   ): Promise<AIResult<InterviewQuestionGenerationOutput>>;
+  analyzeResumeGaps(
+    input: ResumeGapAnalysisInput,
+  ): Promise<AIResult<ResumeGapProviderOutput>>;
 };
