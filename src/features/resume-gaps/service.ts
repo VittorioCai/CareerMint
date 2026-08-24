@@ -37,7 +37,12 @@ const SAFE_ERROR_CODES = new Set([
 
 export type ResumeGapServiceDependencies = {
   runs: {
-    claim(runId: string, leaseSeconds?: number): Promise<boolean>;
+    claim(
+      runId: string,
+      expectedAttemptCount: number,
+      expectedStatus: "queued" | "running" | "failed",
+      leaseSeconds?: number,
+    ): Promise<boolean>;
     getOwned(userId: string, runId: string): Promise<ResumeGapRun | null>;
     complete(input: ResumeGapCompleteInput): Promise<ResumeGapRun>;
     fail(input: ResumeGapFailInput): Promise<ResumeGapRun>;
@@ -187,7 +192,13 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
       assertOwnedInputs(input);
       if (input.run.status === "succeeded") return { run: input.run, reused: true };
 
-      const claimed = await dependencies.runs.claim(input.run.id, 120);
+      const expectedAttemptCount = input.run.attemptCount + 1;
+      const claimed = await dependencies.runs.claim(
+        input.run.id,
+        input.run.attemptCount,
+        input.run.status,
+        120,
+      );
       if (!claimed) {
         const current = await dependencies.runs.getOwned(input.userId, input.run.id);
         if (!current) throw new Error("application-or-resume-not-found");
@@ -196,17 +207,9 @@ export function createResumeGapService(dependencies: ResumeGapServiceDependencie
 
       const claimedRun = await dependencies.runs.getOwned(input.userId, input.run.id);
       if (!claimedRun) throw new Error("application-or-resume-not-found");
-      // A successful claim owns the attempt observed in the reread. Use that
-      // authoritative token even if another transition interleaved before it.
-      const expectedAttemptCount = claimedRun.attemptCount;
-      if (claimedRun.status !== "running") {
-        return { run: claimedRun, reused: true };
-      }
-      if (
-        !Number.isInteger(expectedAttemptCount) ||
-        expectedAttemptCount <= 0 ||
-        expectedAttemptCount <= input.run.attemptCount
-      ) {
+      // The conditional claim owns exactly observed attempt + 1. A reread
+      // that advanced further belongs to another worker and must be fenced.
+      if (claimedRun.status !== "running" || claimedRun.attemptCount !== expectedAttemptCount) {
         return { run: claimedRun, reused: true };
       }
 

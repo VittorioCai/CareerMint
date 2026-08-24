@@ -394,7 +394,12 @@ begin
 end;
 $$;
 
-create function public.claim_resume_gap(target_run_id uuid, target_lease_seconds integer)
+create function public.claim_resume_gap(
+  target_run_id uuid,
+  expected_attempt_count integer,
+  expected_status text,
+  target_lease_seconds integer
+)
 returns boolean
 language plpgsql
 security definer
@@ -407,8 +412,20 @@ begin
   if current_user_id is null then
     raise exception 'authentication-required' using errcode = '42501';
   end if;
-  if target_lease_seconds is null or target_lease_seconds not between 1 and 86400 then
-    raise exception 'invalid-resume-gap-lease' using errcode = '22023';
+  if target_run_id is null
+    or expected_attempt_count is null
+    or expected_attempt_count not between 0 and 1000
+    or expected_status is null
+    or expected_status not in ('queued', 'running', 'failed')
+    or target_lease_seconds is null
+    or target_lease_seconds not between 1 and 86400 then
+    raise exception 'invalid-resume-gap-claim' using errcode = '22023';
+  end if;
+  if not exists (
+    select 1 from public.resume_gap_runs
+    where id = target_run_id and user_id = current_user_id
+  ) then
+    raise exception 'application-or-resume-not-found' using errcode = 'P0002';
   end if;
 
   update public.resume_gap_runs
@@ -416,9 +433,11 @@ begin
       result = null, error_code = null, error_message = null,
       started_at = now(), finished_at = null, updated_at = now()
   where id = target_run_id and user_id = current_user_id
+    and attempt_count = expected_attempt_count
+    and status = expected_status::public.processing_job_status
     and (
-      status in ('queued', 'failed')
-      or (status = 'running' and updated_at < now() - make_interval(secs => target_lease_seconds))
+      expected_status in ('queued', 'failed')
+      or (expected_status = 'running' and updated_at < now() - make_interval(secs => target_lease_seconds))
     );
   get diagnostics changed_count = row_count;
   return changed_count = 1;
@@ -808,12 +827,12 @@ $$;
 revoke all on function public.resume_gap_json_has_exact_keys(jsonb, text[]) from public, anon, authenticated;
 revoke all on function public.set_application_resume_source(uuid, uuid) from public;
 revoke all on function public.create_or_get_resume_gap(uuid, uuid, uuid, text, text, text) from public;
-revoke all on function public.claim_resume_gap(uuid, integer) from public;
+revoke all on function public.claim_resume_gap(uuid, integer, text, integer) from public;
 revoke all on function public.complete_resume_gap(uuid, integer, jsonb, jsonb, jsonb) from public;
 revoke all on function public.fail_resume_gap(uuid, integer, text, text) from public;
 
 grant execute on function public.set_application_resume_source(uuid, uuid) to authenticated;
 grant execute on function public.create_or_get_resume_gap(uuid, uuid, uuid, text, text, text) to authenticated;
-grant execute on function public.claim_resume_gap(uuid, integer) to authenticated;
+grant execute on function public.claim_resume_gap(uuid, integer, text, integer) to authenticated;
 grant execute on function public.complete_resume_gap(uuid, integer, jsonb, jsonb, jsonb) to authenticated;
 grant execute on function public.fail_resume_gap(uuid, integer, text, text) to authenticated;

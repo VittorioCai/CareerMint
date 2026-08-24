@@ -93,7 +93,7 @@ describe("resume gap service", () => {
       ocrText: "  Advanced\tSQL and analytics experience with measurable outcomes.  ",
     });
 
-    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 120);
+    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 0, "queued", 120);
     expect(fakes.storage.download).not.toHaveBeenCalled();
     expect(fakes.parser).not.toHaveBeenCalled();
     expect(fakes.providerFactory).toHaveBeenCalledTimes(1);
@@ -141,11 +141,11 @@ describe("resume gap service", () => {
     fakes.runs.getOwned.mockResolvedValue(
       claimResult
         ? { ...running, attemptCount, startedAt: run.createdAt }
-        : running,
+        : { ...running, attemptCount: 2, startedAt: run.createdAt },
     );
     const service = createResumeGapService(fakes);
     const result = await service.run({ userId, run: running, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
-    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 120);
+    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 1, "running", 120);
     if (!claimResult) {
       expect(result.reused).toBe(true);
       expect(fakes.storage.download).not.toHaveBeenCalled();
@@ -157,14 +157,42 @@ describe("resume gap service", () => {
     }
   });
 
-  it("uses the reread claimed attempt token when another transition advanced it before reread", async () => {
+  it("does not process a later attempt after the conditional claim interleaves", async () => {
     const fakes = dependencies();
     const running = { ...run, status: "running" as const, attemptCount: 1, startedAt: run.createdAt };
     fakes.runs.getOwned.mockResolvedValue({ ...running, attemptCount: 3 });
     const result = await createResumeGapService(fakes).run({ userId, run: running, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
+    expect(result.reused).toBe(true);
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.storage.download).not.toHaveBeenCalled();
+    expect(fakes.runs.complete).not.toHaveBeenCalled();
+    expect(fakes.runs.fail).not.toHaveBeenCalled();
+    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 1, "running", 120);
+  });
+
+  it.each([
+    ["advanced attempt", { status: "running" as const, attemptCount: 3 }],
+    ["terminal attempt", { status: "succeeded" as const, attemptCount: 2 }],
+  ] as const)("does not process when reread is %s after a successful claim", async (_label, reread) => {
+    const fakes = dependencies();
+    const running = { ...run, status: "running" as const, attemptCount: 1, startedAt: run.createdAt };
+    fakes.runs.getOwned.mockResolvedValue({ ...running, ...reread });
+    const result = await createResumeGapService(fakes).run({ userId, run: running, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
+    expect(result.reused).toBe(true);
+    expect(fakes.providerFactory).not.toHaveBeenCalled();
+    expect(fakes.runs.complete).not.toHaveBeenCalled();
+    expect(fakes.runs.fail).not.toHaveBeenCalled();
+  });
+
+  it("processes the exact next attempt after a successful conditional claim", async () => {
+    const fakes = dependencies();
+    const running = { ...run, status: "running" as const, attemptCount: 1, startedAt: run.createdAt };
+    fakes.runs.getOwned.mockResolvedValue({ ...running, attemptCount: 2 });
+    const result = await createResumeGapService(fakes).run({ userId, run: running, asset, analysisRun, requirements, ocrText: "Advanced SQL and analytics experience with measurable outcomes." });
     expect(result.reused).toBe(false);
     expect(fakes.providerFactory).toHaveBeenCalledTimes(1);
-    expect(fakes.runs.complete).toHaveBeenCalledWith(expect.objectContaining({ expectedAttemptCount: 3 }));
+    expect(fakes.runs.complete).toHaveBeenCalledWith(expect.objectContaining({ expectedAttemptCount: 2 }));
+    expect(fakes.runs.claim).toHaveBeenCalledWith(runId, 1, "running", 120);
   });
 
   it("passes only the four provider fields and strips wider JD provenance/private fields", async () => {

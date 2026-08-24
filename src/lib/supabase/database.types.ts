@@ -1435,7 +1435,12 @@ export type Database = {
         Returns: boolean
       }
       claim_resume_gap: {
-        Args: { target_lease_seconds: number; target_run_id: string }
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          target_lease_seconds: number
+          target_run_id: string
+        }
         Returns: boolean
       }
       claim_resume_generation: {

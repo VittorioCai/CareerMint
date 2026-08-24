@@ -96,7 +96,7 @@ describe("resume gap repository", () => {
     const supabase = client();
     const repository = createResumeGapRepository(async () => supabase as never);
 
-    await repository.claim(runId);
+    await repository.claim(runId, 0, "queued");
     await repository.complete({
       runId,
       expectedAttemptCount: 2,
@@ -119,6 +119,8 @@ describe("resume gap repository", () => {
 
     expect(supabase.rpc).toHaveBeenNthCalledWith(1, "claim_resume_gap", {
       target_run_id: runId,
+      expected_attempt_count: 0,
+      expected_status: "queued",
       target_lease_seconds: 120,
     });
     expect(supabase.rpc).toHaveBeenNthCalledWith(2, "complete_resume_gap", expect.objectContaining({

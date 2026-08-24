@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(84);
+select plan(86);
 
 select has_table('public', 'resume_gap_runs', 'resume gap runs table exists');
 select has_table('public', 'resume_gap_items', 'resume gap items table exists');
@@ -190,7 +190,7 @@ select results_eq(
   'resume gap creation is idempotent for application, input, provider, and model'
 );
 select results_eq(
-  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 120)$$,
+  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 0, 'queued', 120)$$,
   array[true], 'queued gap work can be claimed'
 );
 select results_eq(
@@ -198,15 +198,23 @@ select results_eq(
   array['1'], 'claim increments attempt count'
 );
 select results_eq(
-  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 120)$$,
+  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 1, 'running', 120)$$,
   array[false], 'fresh running work is not claimed twice'
 );
 set local role postgres;
 update public.resume_gap_runs set updated_at = now() - interval '3 minutes' where id = current_setting('test.gap_run')::uuid;
 set local role authenticated;
 select results_eq(
-  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 120)$$,
+  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 1, 'running', 120)$$,
   array[true], 'stale running work can be reclaimed'
+);
+select results_eq(
+  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 1, 'running', 120)$$,
+  array[false], 'an old attempt token cannot reclaim the current run'
+);
+select results_eq(
+  $$select public.claim_resume_gap(current_setting('test.gap_run')::uuid, 2, 'failed', 120)$$,
+  array[false], 'a stale expected status cannot reclaim the current run'
 );
 
 select throws_ok(
@@ -268,7 +276,7 @@ select set_config('test.fail_run', (select id::text from public.create_or_get_re
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('f', 61) || 'f12', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.fail_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.fail_run')::uuid, 0, 'queued', 120);
 select results_eq(
   $$select status::text from public.fail_resume_gap(current_setting('test.fail_run')::uuid, 1, 'ai-provider-request-failed', 'try again')$$,
   array['failed'], 'failure records an allowlisted stable error'
@@ -335,7 +343,7 @@ select set_config('test.strict_run', (select id::text from public.create_or_get_
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 64), 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_run')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_run')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)),
@@ -359,7 +367,7 @@ select set_config('test.strict_case2', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '2', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_case2')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_case2')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_case2')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing')),
@@ -370,7 +378,7 @@ select set_config('test.strict_case3', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '3', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_case3')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_case3')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_case3')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'covered', 'resumeExcerpt', null)),
@@ -381,7 +389,7 @@ select set_config('test.strict_case4', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '4', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_case4')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_case4')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_case4')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'partial', 'resumeExcerpt', '  ')),
@@ -392,7 +400,7 @@ select set_config('test.strict_case5', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '5', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_case5')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_case5')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_case5')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null, 'extra', 'sensitive')),
@@ -403,7 +411,7 @@ select set_config('test.strict_case6', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('4', 63) || '6', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.strict_case6')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_case6')::uuid, 0, 'queued', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_case6')::uuid, 1,
     jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing')),
@@ -417,7 +425,7 @@ select results_eq($$select count(*)::bigint from public.resume_gap_items where r
 set local role postgres;
 update public.resume_gap_runs set updated_at = now() - interval '3 minutes' where id = current_setting('test.strict_run')::uuid;
 set local role authenticated;
-select public.claim_resume_gap(current_setting('test.strict_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.strict_run')::uuid, 1, 'running', 120);
 select throws_ok(
   $$select public.complete_resume_gap(current_setting('test.strict_run')::uuid, 1, '[]'::jsonb, null, null)$$,
   'P0002', 'resume-gap-not-running', 'stale attempt cannot complete after reclaim'
@@ -428,7 +436,7 @@ select set_config('test.error_run', (select id::text from public.create_or_get_r
   current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('5', 64), 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.error_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.error_run')::uuid, 0, 'queued', 120);
 select public.fail_resume_gap(current_setting('test.error_run')::uuid, 1, 'resume-gap-failed', repeat('sensitive resume text ', 25));
 select results_eq($$select error_message from public.resume_gap_runs where id = current_setting('test.error_run')::uuid$$, array['Resume comparison failed.'], 'failure stores only the fixed safe message');
 
@@ -453,27 +461,27 @@ select set_config('request.jwt.claims', '{"sub":"aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaa
 
 -- Unknown, duplicate, missing, cross-run, and cross-owner ids all roll back atomically.
 select set_config('test.unknown_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('7', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.unknown_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.unknown_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.unknown_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', '99999999-9999-4999-8999-999999999999', 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'unknown requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.unknown_run')::uuid$$, array[0::bigint], 'unknown requirement rollback leaves no items');
 
 select set_config('test.duplicate_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('8', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.duplicate_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.duplicate_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.duplicate_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null), jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'duplicate requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.duplicate_run')::uuid$$, array[0::bigint], 'duplicate requirement rollback leaves no items');
 
 select set_config('test.missing_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('9', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.missing_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.missing_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.missing_run')::uuid, 1, '[]'::jsonb, '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'missing requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.missing_run')::uuid$$, array[0::bigint], 'missing requirement rollback leaves no items');
 
 select set_config('test.cross_run_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('a', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.cross_run_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.cross_run_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.cross_run_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', current_setting('test.same_owner_cross_run_req'), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'same-owner cross-run requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.cross_run_run')::uuid$$, array[0::bigint], 'cross-run rollback leaves no items');
 
 select set_config('test.cross_owner_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('b', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.cross_owner_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.cross_owner_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.cross_owner_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', current_setting('test.b_req'), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null)$$, '22023', 'invalid-resume-gap-requirements', 'cross-owner requirement ids are rejected');
 select results_eq($$select count(*)::bigint from public.resume_gap_items where run_id = current_setting('test.cross_owner_run')::uuid$$, array[0::bigint], 'cross-owner rollback leaves no items');
 
@@ -488,14 +496,14 @@ insert into public.source_assets (
 select public.set_application_resume_source(current_setting('test.app_a')::uuid, '66666666-6666-4666-8666-666666666666');
 select set_config('test.whitespace_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '66666666-6666-4666-8666-666666666666', repeat('0', 64), 'test-provider', 'test-model')), true);
 select results_eq($$select source_filename from public.resume_gap_runs where id = current_setting('test.whitespace_run')::uuid$$, array['alice-whitespace.pdf'], 'source filename snapshots are trimmed');
-select public.claim_resume_gap(current_setting('test.whitespace_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.whitespace_run')::uuid, 0, 'queued', 120);
 select public.complete_resume_gap(current_setting('test.whitespace_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.analysis_run')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', null);
 select results_eq($$select status::text from public.resume_gap_runs where id = current_setting('test.whitespace_run')::uuid$$, array['succeeded'], 'trimmed source filename completes successfully');
 select public.set_application_resume_source(current_setting('test.app_a')::uuid, '11111111-1111-4111-8111-111111111111');
 
 -- Mutating either source snapshot after creation aborts atomically.
 select set_config('test.mutable_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('1', 63) || '2', 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.mutable_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.mutable_run')::uuid, 0, 'queued', 120);
 set local role postgres;
 update public.source_assets set original_name = 'changed.pdf' where id = '11111111-1111-4111-8111-111111111111';
 set local role authenticated;
@@ -541,7 +549,7 @@ set local role authenticated;
 
 -- Selection changes and hash reuse cannot complete or rebind a prior run.
 select set_config('test.snapshot_run', (select id::text from public.create_or_get_resume_gap(current_setting('test.app_a')::uuid, current_setting('test.analysis_run')::uuid, '11111111-1111-4111-8111-111111111111', repeat('c', 64), 'test-provider', 'test-model')), true);
-select public.claim_resume_gap(current_setting('test.snapshot_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.snapshot_run')::uuid, 0, 'queued', 120);
 select public.set_application_resume_source(current_setting('test.app_a')::uuid, null);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.snapshot_run')::uuid, 1, '[]'::jsonb, null, null)$$, 'P0002', 'application-or-resume-not-found', 'completion rejects a changed source selection');
 select public.set_application_resume_source(current_setting('test.app_a')::uuid, '11111111-1111-4111-8111-111111111111');
@@ -679,21 +687,21 @@ select set_config('test.metadata_run', (select id::text from public.create_or_ge
   current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('f', 64), 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.metadata_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.metadata_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.metadata_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":"unsafe version"}', null)$$, '22023', 'invalid-resume-gap-usage', 'unsafe AI schedule versions are rejected by the completion RPC');
 
 select set_config('test.mismatch_run', (select id::text from public.create_or_get_resume_gap(
   current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('f', 63) || '1', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.mismatch_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.mismatch_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.mismatch_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":"safe-v1"}', '{"amount":0.01,"currency":"USD","scheduleVersion":"other-v1","tier":"default"}')$$, '22023', 'invalid-resume-gap-cost', 'AI and estimated cost schedule versions must match');
 
 select set_config('test.null_cost_run', (select id::text from public.create_or_get_resume_gap(
   current_setting('test.app_a')::uuid, current_setting('test.alt_analysis')::uuid,
   '11111111-1111-4111-8111-111111111111', repeat('f', 63) || '2', 'test-provider', 'test-model'
 )), true);
-select public.claim_resume_gap(current_setting('test.null_cost_run')::uuid, 120);
+select public.claim_resume_gap(current_setting('test.null_cost_run')::uuid, 0, 'queued', 120);
 select throws_ok($$select public.complete_resume_gap(current_setting('test.null_cost_run')::uuid, 1, jsonb_build_array(jsonb_build_object('requirementId', (select id::text from public.application_requirements where analysis_run_id = current_setting('test.alt_analysis')::uuid), 'resumeCoverage', 'missing', 'resumeExcerpt', null)), '{"provider":"test-provider","model":"test-model","requestId":null,"usage":{"inputCacheHitTokens":0,"inputCacheMissTokens":0,"outputTokens":0},"priceScheduleVersion":null}', '{"amount":0.01,"currency":"USD","scheduleVersion":"safe-v1","tier":"default"}')$$, '22023', 'invalid-resume-gap-cost', 'a non-null cost requires a matching non-null AI schedule version');
 
 select finish();

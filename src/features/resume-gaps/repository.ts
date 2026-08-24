@@ -155,10 +155,17 @@ export function createResumeGapRepository(
     return asRun(data as RunRow);
   }
 
-  async function claim(runId: string, leaseSeconds = 120) {
+  async function claim(
+    runId: string,
+    expectedAttemptCount: number,
+    expectedStatus: "queued" | "running" | "failed",
+    leaseSeconds = 120,
+  ) {
     const supabase = await getClient();
     const { data, error } = await supabase.rpc("claim_resume_gap", {
       target_run_id: runId,
+      expected_attempt_count: expectedAttemptCount,
+      expected_status: expectedStatus,
       target_lease_seconds: leaseSeconds,
     });
     if (error || data == null) throw new ResumeGapRepositoryError(stableError(error));
