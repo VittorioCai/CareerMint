@@ -9,7 +9,9 @@ type LoginPageProps = {
 export default async function LoginPage({ searchParams }: LoginPageProps) {
   const params = await searchParams;
   const callbackError: CallbackError | undefined =
-    params.error === "invalid-link" || params.error === "session-not-created"
+    params.error === "invalid-link" ||
+    params.error === "session-not-created" ||
+    params.error === "email-link-used"
       ? params.error
       : undefined;
 

@@ -25,6 +25,19 @@ describe("AuthForm callback feedback", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows login guidance and a return-to-login button for a consumed email link", () => {
+    render(<AuthForm callbackError="email-link-used" />);
+
+    expect(screen.getByRole("status")).toHaveTextContent(
+      "邮箱已完成注册，验证链接可能已使用或已过期。返回登录即可。",
+    );
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "返回登录" })).toHaveAttribute(
+      "href",
+      "/login",
+    );
+  });
+
   it("ignores unknown callback statuses", () => {
     render(<AuthForm callbackError={"provider-error" as never} />);
 

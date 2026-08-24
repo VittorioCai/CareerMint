@@ -9,11 +9,15 @@ import { login, signup, type AuthActionState } from "./actions";
 
 const initialState: AuthActionState = { error: null, message: null };
 
-export type CallbackError = "invalid-link" | "session-not-created";
+export type CallbackError =
+  | "invalid-link"
+  | "session-not-created"
+  | "email-link-used";
 
 const callbackMessages: Record<CallbackError, string> = {
   "invalid-link": "验证链接无效或已过期，请重新申请",
   "session-not-created": "邮箱可能已完成验证，请使用邮箱和密码登录",
+  "email-link-used": "邮箱已完成注册，验证链接可能已使用或已过期。返回登录即可。",
 };
 
 export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
@@ -27,13 +31,30 @@ export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
   );
   const pending = loginPending || signupPending;
   const state = signupState.message || signupState.error ? signupState : loginState;
+  const consumedEmailLink = callbackError === "email-link-used";
 
   return (
     <form className="space-y-5">
       <AuthFeedback
-        error={callbackError ? callbackMessages[callbackError] : state.error}
-        message={callbackError ? null : state.message}
+        error={
+          callbackError && !consumedEmailLink
+            ? callbackMessages[callbackError]
+            : state.error
+        }
+        message={
+          consumedEmailLink
+            ? callbackMessages[callbackError]
+            : callbackError
+              ? null
+              : state.message
+        }
       />
+
+      {callbackError === "email-link-used" ? (
+        <Link href="/login" className="button-secondary block min-h-12 px-5 text-center font-black">
+          返回登录
+        </Link>
+      ) : null}
 
       <div>
         <label className="form-label" htmlFor="email">邮箱</label>
