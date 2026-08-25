@@ -15,6 +15,13 @@ import type {
   ResumeGapAnalysisInput,
   ResumeGapProviderOutput,
 } from "@/features/resume-gaps/schemas";
+import type { ComparisonPromptVariant } from "@/features/jd-gap-analysis/prompts";
+import type {
+  JDGapComparisonInput,
+  JDGapComparisonOutput,
+  JDStructureInput,
+  JDStructureProviderOutput,
+} from "@/features/jd-gap-analysis/schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -44,4 +51,11 @@ export type AIProvider = {
   analyzeResumeGaps(
     input: ResumeGapAnalysisInput,
   ): Promise<AIResult<ResumeGapProviderOutput>>;
+  structureJobDescription(
+    input: JDStructureInput,
+  ): Promise<AIResult<JDStructureProviderOutput>>;
+  compareJDGapCriteria(
+    input: JDGapComparisonInput,
+    options: { promptVariant: ComparisonPromptVariant },
+  ): Promise<AIResult<JDGapComparisonOutput>>;
 };

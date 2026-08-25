@@ -8,6 +8,7 @@ const serverEnvSchema = z.object({
   DEEPSEEK_API_KEY: z.string().min(1).optional(),
   AI_TEXT_PROVIDER: z.literal("deepseek").default("deepseek"),
   AI_TEXT_MODEL: z.string().min(1).default("deepseek-v4-flash"),
+  JD_GAP_MATCH_PROMPT_VARIANT: z.enum(["p1", "p2", "p3"]).default("p3"),
   AI_PRICE_SCHEDULE_JSON: z.string().min(1).optional(),
   E2E_FAKE_EXTRACTOR: z.enum(["0", "1"]).default("0"),
 });

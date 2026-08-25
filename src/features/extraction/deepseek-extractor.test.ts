@@ -8,6 +8,11 @@ import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
 import { resumeGapAnalysisInstructions } from "@/features/resume-gaps/prompt";
 import { resumeCustomizationInstructions } from "@/features/resume-customization/prompt";
 import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
+import {
+  comparisonPromptVariants,
+  jdStructureInstructions,
+} from "@/features/jd-gap-analysis/prompts";
+import type { JDGapComparisonInput } from "@/features/jd-gap-analysis/schemas";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -821,4 +826,191 @@ describe("DeepSeek interview question generator", () => {
       expect(fetchImpl).toHaveBeenCalledTimes(1);
     },
   );
+});
+
+describe("DeepSeek JD gap V3 adapter", () => {
+  const structureInput = {
+    jdText:
+      "A comparable business degree is required. Advanced SQL or Python is required.",
+  };
+  const structureOutput = {
+    jdTranslationZh: "要求相关商业学位，并熟练使用 SQL 或 Python。",
+    requirements: [
+      {
+        key: "r1",
+        category: "hard_requirement",
+        requirementType: "required",
+        originalText: "A comparable business degree",
+        translationZh: "相关商业学位",
+        sourceExcerpt: "A comparable business degree is required.",
+        allowsEquivalent: true,
+        explicitGate: false,
+        criteria: [
+          {
+            key: "c1",
+            groupKey: "g1",
+            groupRule: "all",
+            kind: "degree_field",
+            originalText: "comparable business degree",
+            translationZh: "相关商业专业学位",
+            constraint: {
+              operator: "equivalent_allowed",
+              value: "business",
+              unit: null,
+            },
+          },
+        ],
+      },
+    ],
+  };
+
+  const comparisonInput: JDGapComparisonInput = {
+    resumeText: "Used SQL to build weekly commercial dashboards.",
+    requirements: [
+      {
+        id: "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa",
+        category: "skill",
+        requirementType: "required",
+        originalText: "Advanced SQL",
+        translationZh: "高级 SQL",
+        sourceExcerpt: "Advanced SQL or Python is required.",
+        allowsEquivalent: false,
+        explicitGate: false,
+        sortOrder: 0,
+        criteria: [
+          {
+            id: "11111111-1111-4111-8111-111111111111",
+            groupKey: "g1",
+            groupRule: "all",
+            kind: "tool",
+            originalText: "Advanced SQL",
+            translationZh: "高级 SQL",
+            constraint: { operator: "exact", value: "SQL", unit: null },
+            sortOrder: 0,
+          },
+        ],
+      },
+    ],
+    confirmedFacts: [
+      {
+        id: "22222222-2222-4222-8222-222222222222",
+        factType: "skill",
+        title: "SQL",
+        organization: null,
+        description: "Confirmed SQL experience.",
+        skills: ["SQL"],
+        sourceExcerpt: null,
+      },
+    ],
+  };
+  const comparisonOutput = {
+    assessments: [
+      {
+        criterionId: comparisonInput.requirements[0].criteria[0].id,
+        resumeEvidenceStatus: "partial_direct",
+        resumeExcerpt: "Used SQL to build weekly commercial dashboards.",
+        profileFactIds: [comparisonInput.confirmedFacts[0].id],
+        gapType: "too_vague",
+        reasonZh: "简历证明使用了 SQL，但没有证明高级程度。",
+        userQuestionZh: null,
+      },
+    ],
+  };
+
+  it("structures only the JD with JSON mode, disabled thinking, and an 8192-token cap", async () => {
+    const timeout = vi.spyOn(AbortSignal, "timeout");
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(structureOutput)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.structureJobDescription(structureInput);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body).toMatchObject({
+      response_format: { type: "json_object" },
+      thinking: { type: "disabled" },
+      stream: false,
+      max_tokens: 8192,
+    });
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: jdStructureInstructions,
+    });
+    expect(body.messages[1].content).toBe(
+      `<job_description>\n${structureInput.jdText}\n</job_description>`,
+    );
+    expect(body.messages[1].content).not.toContain("resume_document");
+    expect(body.messages[1].content).not.toContain("confirmed_career_facts");
+    expect(timeout).toHaveBeenCalledWith(30_000);
+    expect(result).toMatchObject({ data: structureOutput, provider: "deepseek" });
+    expect(JSON.stringify(log.mock.calls)).not.toContain(structureInput.jdText);
+    timeout.mockRestore();
+  });
+
+  it("compares requirements, resume, and confirmed facts in separate data blocks", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(comparisonOutput)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.compareJDGapCriteria(comparisonInput, {
+      promptVariant: "p2",
+    });
+
+    const [, init] = fetchImpl.mock.calls[0];
+    const body = JSON.parse(String(init?.body));
+    expect(body.max_tokens).toBe(8192);
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: comparisonPromptVariants.p2.instructions,
+    });
+    expect(body.messages[1].content).toContain(
+      `<requirements_json>\n${JSON.stringify(comparisonInput.requirements)}\n</requirements_json>`,
+    );
+    expect(body.messages[1].content).toContain(
+      `<resume_document>\n${comparisonInput.resumeText}\n</resume_document>`,
+    );
+    expect(body.messages[1].content).toContain(
+      `<confirmed_career_facts>\n${JSON.stringify(comparisonInput.confirmedFacts)}\n</confirmed_career_facts>`,
+    );
+    expect(body.messages[1].content.indexOf("<requirements_json>")).toBeLessThan(
+      body.messages[1].content.indexOf("<resume_document>"),
+    );
+    expect(body.messages[1].content.indexOf("<resume_document>")).toBeLessThan(
+      body.messages[1].content.indexOf("<confirmed_career_facts>"),
+    );
+    expect(result).toMatchObject({ data: comparisonOutput, provider: "deepseek" });
+    const serializedLogs = JSON.stringify(log.mock.calls);
+    expect(serializedLogs).not.toContain(comparisonInput.resumeText);
+    expect(serializedLogs).not.toContain(comparisonInput.confirmedFacts[0].description);
+    expect(serializedLogs).not.toContain(comparisonInput.requirements[0].originalText);
+  });
+
+  it.each([
+    ["structure", '{"requirements":['],
+    ["comparison", '{"assessments":['],
+  ])("retries invalid %s output once and accumulates usage", async (method, invalid) => {
+    const valid = method === "structure" ? structureOutput : comparisonOutput;
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValueOnce(successResponse(invalid))
+      .mockResolvedValueOnce(successResponse(JSON.stringify(valid)));
+    const { provider } = createProvider(fetchImpl);
+
+    const result =
+      method === "structure"
+        ? await provider.structureJobDescription(structureInput)
+        : await provider.compareJDGapCriteria(comparisonInput, {
+            promptVariant: "p3",
+          });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(2);
+    expect(result.usage).toEqual({
+      inputCacheHitTokens: 20,
+      inputCacheMissTokens: 40,
+      outputTokens: 60,
+    });
+  });
 });
