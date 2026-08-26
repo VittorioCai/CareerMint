@@ -181,6 +181,8 @@ function JdPanel({
         }
       : null;
   const currentView = gapView &&
+      currentGapRun?.status === "succeeded" &&
+      gapView.run.id === currentGapRun.id &&
       gapView.run.sourceAssetId === selectedAsset?.id &&
       gapView.structureRun.id === structureRun?.id
     ? gapView
@@ -211,6 +213,7 @@ function JdPanel({
         runKey={`${structureRun?.id ?? "none"}:${currentGapRun?.id ?? "none"}`}
       />
       <JDGapAnalysisPanel
+        applicationId={application.id}
         view={currentView}
         sourceText={application.jdText}
         legacyPanel={legacyPanel}

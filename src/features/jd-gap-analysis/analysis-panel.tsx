@@ -74,6 +74,7 @@ export type JDGapAnalysisViewModel = {
 };
 
 export type JDGapAnalysisPanelProps = {
+  applicationId?: string;
   view: JDGapAnalysisViewModel | null;
   sourceText: string;
   legacyPanel?: ReactNode;
@@ -310,7 +311,63 @@ function CompletedRequirements({ requirements }: { requirements: RequirementView
   );
 }
 
+function MarkdownExportControl({ applicationId }: { applicationId: string }) {
+  const [busy, setBusy] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  async function download() {
+    setBusy(true);
+    setMessage(null);
+    setFailed(false);
+    try {
+      const response = await fetch(
+        `/api/applications/${applicationId}/jd-gap/export`,
+      );
+      if (!response.ok) throw new Error("jd-gap-export-failed");
+      const objectUrl = URL.createObjectURL(await response.blob());
+      const disposition = response.headers.get("content-disposition") ?? "";
+      const encodedName = /filename\*=UTF-8''([^;]+)/iu.exec(disposition)?.[1];
+      const anchor = document.createElement("a");
+      anchor.href = objectUrl;
+      anchor.download = encodedName
+        ? decodeURIComponent(encodedName)
+        : "jd-gap-analysis.md";
+      anchor.click();
+      URL.revokeObjectURL(objectUrl);
+      setMessage("Markdown 已下载。文件只包含当前未解决差距。");
+    } catch {
+      setFailed(true);
+      setMessage("暂时无法导出，请确认当前差距分析已完成后重试。");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div>
+      <button
+        type="button"
+        className="button-secondary min-h-10 px-4 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+        disabled={busy}
+        onClick={() => void download()}
+      >
+        {busy ? "正在导出…" : "导出 Markdown"}
+      </button>
+      {message ? (
+        <p
+          role={failed ? "alert" : "status"}
+          className={`mt-2 text-xs font-bold ${failed ? "text-[var(--error)]" : "text-[var(--ink-muted)]"}`}
+        >
+          {message}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
 export function JDGapAnalysisPanel({
+  applicationId,
   view,
   sourceText,
   legacyPanel,
@@ -389,6 +446,12 @@ export function JDGapAnalysisPanel({
           </button>
         ))}
       </div>
+
+      {tab === "gaps" && applicationId && incomplete.length ? (
+        <div className="flex justify-end">
+          <MarkdownExportControl applicationId={applicationId} />
+        </div>
+      ) : null}
 
       <div role="tabpanel">
         {tab === "gaps" ? (

@@ -1,6 +1,6 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   JDGapAnalysisPanel,
@@ -93,6 +93,8 @@ function view(
 }
 
 describe("JDGapAnalysisPanel", () => {
+  afterEach(() => vi.restoreAllMocks());
+
   it("leads with the selected resume, outcome counts, and gap-first tabs", () => {
     render(
       <JDGapAnalysisPanel
@@ -186,6 +188,40 @@ describe("JDGapAnalysisPanel", () => {
     const original = screen.getByText("查看 JD 原文").closest("details");
     expect(original).not.toHaveAttribute("open");
     expect(original).toHaveTextContent("Original full JD");
+  });
+
+  it("downloads the current unresolved report from the gap-first tab", async () => {
+    const user = userEvent.setup();
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response("# JD 差距分析", {
+        headers: {
+          "content-type": "text/markdown; charset=utf-8",
+          "content-disposition": "attachment; filename=\"jd-gap-analysis.md\"; filename*=UTF-8''Acme-Data-jd-gap.md",
+        },
+      }),
+    );
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:jd-gap");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    const click = vi
+      .spyOn(HTMLAnchorElement.prototype, "click")
+      .mockImplementation(() => undefined);
+    render(
+      <JDGapAnalysisPanel
+        applicationId={ids.application}
+        view={view()}
+        sourceText="Original full JD"
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "导出 Markdown" }));
+
+    expect(fetch).toHaveBeenCalledWith(
+      `/api/applications/${ids.application}/jd-gap/export`,
+    );
+    expect(click).toHaveBeenCalledOnce();
+    expect(await screen.findByRole("status")).toHaveTextContent(
+      "Markdown 已下载",
+    );
   });
 
   it("renders V2 only as an explicit legacy view without fabricating V3 fields", () => {

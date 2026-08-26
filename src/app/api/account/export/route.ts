@@ -5,6 +5,12 @@ import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { interviewPreparationRepository } from "@/features/interview-preparation/repository";
 import { interviewQuestionGenerationRepository } from "@/features/interview-preparation/generation-repository";
 import {
+  JD_GAP_V3_ASSESSMENT_EXPORT_SELECT,
+  JD_GAP_V3_RESULT_EXPORT_SELECT,
+  JD_GAP_V3_RUN_EXPORT_SELECT,
+  JD_STRUCTURE_CRITERION_EXPORT_SELECT,
+  JD_STRUCTURE_REQUIREMENT_EXPORT_SELECT,
+  JD_STRUCTURE_RUN_EXPORT_SELECT,
   RESUME_GAP_ITEM_EXPORT_SELECT,
   RESUME_GAP_RUN_EXPORT_SELECT,
   buildAccountExport,
@@ -74,6 +80,174 @@ async function listResumeGapItems(userId: string) {
   }));
 }
 
+async function listJDStructureRuns(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_structure_runs")
+    .select(JD_STRUCTURE_RUN_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((run) => ({
+    id: run.id,
+    userId: run.user_id,
+    applicationId: run.application_id,
+    provider: run.provider,
+    model: run.model,
+    schemaVersion: run.schema_version,
+    promptVersion: run.prompt_version,
+    status: run.status,
+    attemptCount: run.attempt_count,
+    result: run.result,
+    errorCode: run.error_code,
+    createdAt: run.created_at,
+    updatedAt: run.updated_at,
+    startedAt: run.started_at,
+    finishedAt: run.finished_at,
+  }));
+}
+
+async function listJDStructureRequirements(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_structure_requirements")
+    .select(JD_STRUCTURE_REQUIREMENT_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("run_id", { ascending: true })
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((requirement) => ({
+    id: requirement.id,
+    runId: requirement.run_id,
+    applicationId: requirement.application_id,
+    userId: requirement.user_id,
+    category: requirement.category,
+    requirementType: requirement.requirement_type,
+    originalText: requirement.original_text,
+    translationZh: requirement.translation_zh,
+    sourceExcerpt: requirement.source_excerpt,
+    allowsEquivalent: requirement.allows_equivalent,
+    explicitGate: requirement.explicit_gate,
+    sortOrder: requirement.sort_order,
+    createdAt: requirement.created_at,
+  }));
+}
+
+async function listJDStructureCriteria(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_structure_criteria")
+    .select(JD_STRUCTURE_CRITERION_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("run_id", { ascending: true })
+    .order("requirement_id", { ascending: true })
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((criterion) => ({
+    id: criterion.id,
+    requirementId: criterion.requirement_id,
+    runId: criterion.run_id,
+    applicationId: criterion.application_id,
+    userId: criterion.user_id,
+    groupKey: criterion.group_key,
+    groupRule: criterion.group_rule,
+    kind: criterion.kind,
+    originalText: criterion.original_text,
+    translationZh: criterion.translation_zh,
+    constraint: criterion.constraint_payload,
+    sortOrder: criterion.sort_order,
+    createdAt: criterion.created_at,
+  }));
+}
+
+async function listJDGapV3Runs(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_gap_v3_runs")
+    .select(JD_GAP_V3_RUN_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((run) => ({
+    id: run.id,
+    userId: run.user_id,
+    applicationId: run.application_id,
+    structureRunId: run.structure_run_id,
+    sourceAssetId: run.source_asset_id,
+    sourceFilename: run.source_filename,
+    provider: run.provider,
+    model: run.model,
+    schemaVersion: run.schema_version,
+    promptVersion: run.prompt_version,
+    policyVersion: run.policy_version,
+    status: run.status,
+    attemptCount: run.attempt_count,
+    result: run.result,
+    errorCode: run.error_code,
+    createdAt: run.created_at,
+    updatedAt: run.updated_at,
+    startedAt: run.started_at,
+    finishedAt: run.finished_at,
+  }));
+}
+
+async function listJDGapV3RequirementResults(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_gap_v3_requirement_results")
+    .select(JD_GAP_V3_RESULT_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("run_id", { ascending: true })
+    .order("sort_order", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((result) => ({
+    id: result.id,
+    runId: result.run_id,
+    requirementId: result.requirement_id,
+    applicationId: result.application_id,
+    userId: result.user_id,
+    coverageStatus: result.coverage_status,
+    impactLevel: result.impact_level,
+    coveredCriterionCount: result.covered_criterion_count,
+    missingCriterionCount: result.missing_criterion_count,
+    sortOrder: result.sort_order,
+    createdAt: result.created_at,
+  }));
+}
+
+async function listJDGapV3Assessments(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("jd_gap_v3_criterion_assessments")
+    .select(JD_GAP_V3_ASSESSMENT_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("run_id", { ascending: true })
+    .order("requirement_id", { ascending: true })
+    .order("criterion_id", { ascending: true })
+    .order("id", { ascending: true });
+  if (error) throw new Error("jd-gap-v3-export-read-failed");
+  return (data ?? []).map((assessment) => ({
+    id: assessment.id,
+    runId: assessment.run_id,
+    criterionId: assessment.criterion_id,
+    requirementId: assessment.requirement_id,
+    applicationId: assessment.application_id,
+    userId: assessment.user_id,
+    resumeEvidenceStatus: assessment.resume_evidence_status,
+    verifiedResumeExcerpt: assessment.verified_resume_excerpt,
+    profileFactIds: assessment.profile_fact_ids,
+    gapType: assessment.gap_type,
+    reasonZh: assessment.reason_zh,
+    userQuestionZh: assessment.user_question_zh,
+    createdAt: assessment.created_at,
+  }));
+}
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -90,6 +264,12 @@ export async function GET() {
       listResumeRuns: resumeCustomizationRepository.listRuns,
       listResumeGapRuns,
       listResumeGapItems,
+      listJDStructureRuns,
+      listJDStructureRequirements,
+      listJDStructureCriteria,
+      listJDGapV3Runs,
+      listJDGapV3RequirementResults,
+      listJDGapV3Assessments,
       listResumeSuggestions: resumeCustomizationRepository.listSuggestions,
       listResumeVersions: resumeCustomizationRepository.listVersions,
       listInterviewQuestions: interviewPreparationRepository.list,
