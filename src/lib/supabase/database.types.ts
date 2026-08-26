@@ -663,6 +663,454 @@ export type Database = {
         }
         Relationships: []
       }
+      jd_gap_v3_criterion_assessments: {
+        Row: {
+          application_id: string
+          created_at: string
+          criterion_id: string
+          gap_type: string
+          id: string
+          profile_fact_ids: string[]
+          reason_zh: string
+          requirement_id: string
+          resume_evidence_status: string
+          run_id: string
+          user_id: string
+          user_question_zh: string | null
+          verified_resume_excerpt: string | null
+        }
+        Insert: {
+          application_id: string
+          created_at?: string
+          criterion_id: string
+          gap_type: string
+          id?: string
+          profile_fact_ids?: string[]
+          reason_zh: string
+          requirement_id: string
+          resume_evidence_status: string
+          run_id: string
+          user_id: string
+          user_question_zh?: string | null
+          verified_resume_excerpt?: string | null
+        }
+        Update: {
+          application_id?: string
+          created_at?: string
+          criterion_id?: string
+          gap_type?: string
+          id?: string
+          profile_fact_ids?: string[]
+          reason_zh?: string
+          requirement_id?: string
+          resume_evidence_status?: string
+          run_id?: string
+          user_id?: string
+          user_question_zh?: string | null
+          verified_resume_excerpt?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_gap_v3_criterion_assessments_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_criterion_assessments_criterion_id_fkey"
+            columns: ["criterion_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_criteria"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_criterion_assessments_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_criterion_assessments_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "jd_gap_v3_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jd_gap_v3_requirement_results: {
+        Row: {
+          application_id: string
+          coverage_status: string
+          covered_criterion_count: number
+          created_at: string
+          id: string
+          impact_level: string
+          missing_criterion_count: number
+          requirement_id: string
+          run_id: string
+          sort_order: number
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          coverage_status: string
+          covered_criterion_count: number
+          created_at?: string
+          id?: string
+          impact_level: string
+          missing_criterion_count: number
+          requirement_id: string
+          run_id: string
+          sort_order: number
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          coverage_status?: string
+          covered_criterion_count?: number
+          created_at?: string
+          id?: string
+          impact_level?: string
+          missing_criterion_count?: number
+          requirement_id?: string
+          run_id?: string
+          sort_order?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_gap_v3_requirement_results_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_requirement_results_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_requirement_results_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "jd_gap_v3_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jd_gap_v3_runs: {
+        Row: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          fact_fingerprint: string
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          fact_fingerprint: string
+          finished_at?: string | null
+          id?: string
+          input_hash: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result?: Json | null
+          schema_version: string
+          source_asset_id?: string | null
+          source_filename: string
+          source_sha256: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          fact_fingerprint?: string
+          finished_at?: string | null
+          id?: string
+          input_hash?: string
+          model?: string
+          policy_version?: string
+          prompt_version?: string
+          provider?: string
+          result?: Json | null
+          schema_version?: string
+          source_asset_id?: string | null
+          source_filename?: string
+          source_sha256?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_gap_v3_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_runs_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "source_assets"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_gap_v3_runs_structure_run_id_fkey"
+            columns: ["structure_run_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jd_structure_criteria: {
+        Row: {
+          application_id: string
+          constraint_payload: Json
+          created_at: string
+          group_key: string
+          group_rule: string
+          id: string
+          kind: string
+          original_text: string
+          requirement_id: string
+          run_id: string
+          sort_order: number
+          translation_zh: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          constraint_payload: Json
+          created_at?: string
+          group_key: string
+          group_rule: string
+          id?: string
+          kind: string
+          original_text: string
+          requirement_id: string
+          run_id: string
+          sort_order: number
+          translation_zh: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          constraint_payload?: Json
+          created_at?: string
+          group_key?: string
+          group_rule?: string
+          id?: string
+          kind?: string
+          original_text?: string
+          requirement_id?: string
+          run_id?: string
+          sort_order?: number
+          translation_zh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_structure_criteria_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_structure_criteria_requirement_id_fkey"
+            columns: ["requirement_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_requirements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_structure_criteria_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jd_structure_requirements: {
+        Row: {
+          allows_equivalent: boolean
+          application_id: string
+          category: string
+          created_at: string
+          explicit_gate: boolean
+          id: string
+          original_text: string
+          requirement_type: string
+          run_id: string
+          sort_order: number
+          source_excerpt: string
+          translation_zh: string
+          user_id: string
+        }
+        Insert: {
+          allows_equivalent?: boolean
+          application_id: string
+          category: string
+          created_at?: string
+          explicit_gate?: boolean
+          id?: string
+          original_text: string
+          requirement_type: string
+          run_id: string
+          sort_order: number
+          source_excerpt: string
+          translation_zh: string
+          user_id: string
+        }
+        Update: {
+          allows_equivalent?: boolean
+          application_id?: string
+          category?: string
+          created_at?: string
+          explicit_gate?: boolean
+          id?: string
+          original_text?: string
+          requirement_type?: string
+          run_id?: string
+          sort_order?: number
+          source_excerpt?: string
+          translation_zh?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_structure_requirements_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jd_structure_requirements_run_id_fkey"
+            columns: ["run_id"]
+            isOneToOne: false
+            referencedRelation: "jd_structure_runs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jd_structure_runs: {
+        Row: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          jd_sha256: string
+          jd_translation_zh: string | null
+          model: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash: string
+          jd_sha256: string
+          jd_translation_zh?: string | null
+          model: string
+          prompt_version: string
+          provider: string
+          result?: Json | null
+          schema_version: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          attempt_count?: number
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          input_hash?: string
+          jd_sha256?: string
+          jd_translation_zh?: string | null
+          model?: string
+          prompt_version?: string
+          provider?: string
+          result?: Json | null
+          schema_version?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jd_structure_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       processing_jobs: {
         Row: {
           attempt_count: number
@@ -1441,6 +1889,24 @@ export type Database = {
         }
         Returns: boolean
       }
+      claim_jd_gap_v3: {
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          target_lease_seconds: number
+          target_run_id: string
+        }
+        Returns: boolean
+      }
+      claim_jd_structure: {
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          target_lease_seconds: number
+          target_run_id: string
+        }
+        Returns: boolean
+      }
       claim_processing_job: {
         Args: { target_job_id: string }
         Returns: boolean
@@ -1526,6 +1992,84 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "interview_question_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_jd_gap_v3: {
+        Args: {
+          target_ai_metadata: Json
+          target_attempt_count: number
+          target_criterion_assessments: Json
+          target_estimated_cost: Json
+          target_requirement_results: Json
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          fact_fingerprint: string
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_gap_v3_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_jd_structure: {
+        Args: {
+          target_ai_metadata: Json
+          target_attempt_count: number
+          target_estimated_cost: Json
+          target_jd_translation_zh: string
+          target_requirements: Json
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          jd_sha256: string
+          jd_translation_zh: string | null
+          model: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_structure_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -1733,6 +2277,89 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      create_or_get_jd_gap_v3: {
+        Args: {
+          target_application_id: string
+          target_fact_fingerprint: string
+          target_input_hash: string
+          target_model: string
+          target_policy_version: string
+          target_prompt_version: string
+          target_provider: string
+          target_schema_version: string
+          target_source_asset_id: string
+          target_structure_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          fact_fingerprint: string
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_gap_v3_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_or_get_jd_structure: {
+        Args: {
+          target_application_id: string
+          target_input_hash: string
+          target_jd_sha256: string
+          target_model: string
+          target_prompt_version: string
+          target_provider: string
+          target_schema_version: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          jd_sha256: string
+          jd_translation_zh: string | null
+          model: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_structure_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       create_or_get_resume_gap: {
         Args: {
           target_analysis_run_id: string
@@ -1916,6 +2543,80 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fail_jd_gap_v3: {
+        Args: {
+          target_attempt_count: number
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          fact_fingerprint: string
+          finished_at: string | null
+          id: string
+          input_hash: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          structure_run_id: string
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_gap_v3_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      fail_jd_structure: {
+        Args: {
+          target_attempt_count: number
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: {
+          application_id: string
+          attempt_count: number
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          input_hash: string
+          jd_sha256: string
+          jd_translation_zh: string | null
+          model: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "jd_structure_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       fail_resume_extraction: {
         Args: {
           target_asset_id: string
@@ -2008,6 +2709,22 @@ export type Database = {
           isOneToOne: true
           isSetofReturn: false
         }
+      }
+      jd_gap_v3_json_has_exact_keys: {
+        Args: { expected_keys: string[]; payload: Json }
+        Returns: boolean
+      }
+      jd_gap_v3_valid_ai_metadata: {
+        Args: {
+          expected_model: string
+          expected_provider: string
+          payload: Json
+        }
+        Returns: boolean
+      }
+      jd_gap_v3_valid_estimated_cost: {
+        Args: { ai_metadata: Json; payload: Json }
+        Returns: boolean
       }
       link_interview_question_to_application: {
         Args: {
