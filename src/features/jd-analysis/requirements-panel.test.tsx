@@ -123,6 +123,18 @@ describe("RequirementsPanel", () => {
     expect(screen.queryByText("Advanced SQL experience is required.")).not.toBeInTheDocument();
   });
 
+  it("labels the V2 requirement panel as legacy when used as compatibility content", () => {
+    render(
+      <RequirementsPanel
+        requirements={requirements}
+        sourceText={sourceText}
+        legacyMode
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "旧版 JD 要求摘要" })).toBeVisible();
+  });
+
   it("uses accessible disclosure rows and reveals reason, facts, then JD source evidence", async () => {
     const user = userEvent.setup();
     render(<RequirementsPanel requirements={requirements} sourceText={sourceText} />);

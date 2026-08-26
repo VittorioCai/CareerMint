@@ -66,7 +66,6 @@ export function ResumeWorkspace({
   applicationId,
   mode,
   baselineSelector,
-  gapControl,
   gapPanel,
   versions,
 }: {
@@ -80,8 +79,8 @@ export function ResumeWorkspace({
   return (
     <div className="space-y-6">
       <header>
-        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历差距</h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">只读比较当前 JD 与这次申请的对照简历，职业档案事实仅作为已确认补充。</p>
+        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历与历史</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">管理本次对照简历和不可变快照。最新差距分析统一在 JD 页面查看。</p>
       </header>
       {baselineSelector}
       {mode === "no-jd" ? (
@@ -90,8 +89,20 @@ export function ResumeWorkspace({
           <Link href={`/applications/${applicationId}?tab=jd&setup=1`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">前往 JD 分析 →</Link>
         </section>
       ) : null}
-      {mode === "comparison" ? <>{gapControl}{gapPanel}</> : null}
-      {mode === "profile-only" ? gapPanel : null}
+      {mode !== "no-jd" && gapPanel ? (
+        <section className="space-y-4" aria-labelledby="legacy-resume-gap-title">
+          <div className="flex flex-wrap items-end justify-between gap-3">
+            <div>
+              <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Legacy snapshot</p>
+              <h3 id="legacy-resume-gap-title" className="heading-font mt-1 text-2xl font-black">旧版简历差距（只读）</h3>
+            </div>
+            <Link href={`/applications/${applicationId}?tab=jd`} className="text-sm font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
+              前往 JD 差距分析
+            </Link>
+          </div>
+          {gapPanel}
+        </section>
+      ) : null}
       <section>
         <details className="dense-surface min-w-0 p-5 sm:p-6">
           <summary className="cursor-pointer list-none text-sm font-black">历史版本 <span className="ml-2 text-xs font-bold text-[var(--ink-muted)]">{versions.length} 个版本</span></summary>

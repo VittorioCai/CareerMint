@@ -371,7 +371,7 @@ export function BaselineSelector({
           onClick={() => void finishSelection(null)}
           disabled={busy}
         >
-          暂时跳过，去分析 JD
+          暂时跳过，进入申请
         </button>
       ) : null}
 

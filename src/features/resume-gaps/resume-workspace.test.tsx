@@ -10,9 +10,9 @@ describe("resume workspace", () => {
     expect(getResumeWorkspaceMode({ analysisRunId: "jd", selectedAssetId: "asset" })).toBe("comparison");
   });
 
-  it("renders the resume-gap heading and no-JD link without an analysis control", () => {
+  it("renders the resume history heading and JD link without an analysis control", () => {
     render(<ResumeWorkspace applicationId="app" mode="no-jd" baselineSelector={<div>baseline selector</div>} versions={[]} />);
-    expect(screen.getByRole("heading", { name: "简历差距" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "简历与历史" })).toBeVisible();
     expect(screen.getByRole("link", { name: /前往 JD 分析/ })).toHaveAttribute("href", "/applications/app?tab=jd&setup=1");
     expect(screen.queryByRole("button", { name: /分析简历差距/ })).not.toBeInTheDocument();
     expect(screen.getByText("baseline selector")).toBeVisible();
@@ -33,7 +33,7 @@ describe("resume workspace", () => {
     expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
   });
 
-  it("renders comparison control and panel, and keeps history collapsed with stable deep links", () => {
+  it("keeps the V1 result read-only, links to V3, and keeps history collapsed", () => {
     render(
       <ResumeWorkspace
         applicationId="app"
@@ -44,7 +44,12 @@ describe("resume workspace", () => {
         versions={[{ id: "v1", versionNumber: 2, template: "modern", itemCount: 3, createdAt: "2026-08-24T00:00:00.000Z" }]}
       />,
     );
-    expect(screen.getByRole("button", { name: "分析简历差距" })).toBeVisible();
+    expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "旧版简历差距（只读）" })).toBeVisible();
+    expect(screen.getByRole("link", { name: "前往 JD 差距分析" })).toHaveAttribute(
+      "href",
+      "/applications/app?tab=jd",
+    );
     expect(screen.getByRole("region", { name: "gap panel" })).toBeVisible();
     const history = screen.getByText(/历史版本/).closest("details");
     expect(history).not.toHaveAttribute("open");

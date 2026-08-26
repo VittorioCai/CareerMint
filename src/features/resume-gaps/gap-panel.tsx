@@ -294,7 +294,7 @@ export function GapPanel({ applicationId, baseline, requirements, run, fallbackR
   const actionGroups = (["resume_omission", "partial_coverage", "missing_evidence"] as const).filter((group) => grouped[group].length > 0);
   return (
     <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="gap-panel-title">
-      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Resume view</p><h2 id="gap-panel-title" className="heading-font mt-1 text-2xl font-black">简历差距结果</h2></div><span className="status-chip bg-[var(--mint)]">{historicalOnly ? `历史快照 ${historicalItems.length} 项` : displayRun ? `${currentItems.length} 项` : "等待分析"}</span></div>
+      <div className="flex flex-wrap items-end justify-between gap-3"><div><p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Legacy resume view</p><h2 id="gap-panel-title" className="heading-font mt-1 text-2xl font-black">旧版差距结果</h2></div><span className="status-chip bg-[var(--mint)]">{historicalOnly ? `历史快照 ${historicalItems.length} 项` : displayRun ? `${currentItems.length} 项` : "等待分析"}</span></div>
       {stale ? <p role="alert" className="mt-4 border border-[var(--coral)] bg-[var(--cream)] p-3 text-sm font-bold">这是上一份简历或上一版 JD 的结果，仅供只读参考。快照文件：{fallbackRun?.sourceFilename ?? displayRun?.sourceFilename ?? "未命名文件"}。<span className="ml-2">只读旧快照</span></p> : null}
       {run?.status === "failed" && !fallbackRun && currentRunMatches ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">上一次分析失败，请重试。</p> : null}
       {showCurrentAnalysis ? <div className="mt-5 space-y-5">

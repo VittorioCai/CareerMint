@@ -248,12 +248,14 @@ export function RequirementsPanel({
   sourceText,
   sourceTranslationZh,
   sourceUrl,
+  legacyMode = false,
 }: {
   requirements: JDRequirementRecord[];
   analysisRunId?: string | null;
   sourceText: string;
   sourceTranslationZh?: string | null;
   sourceUrl?: string | null;
+  legacyMode?: boolean;
 }) {
   const [view, setView] = useState<LocalView>("priority");
   const runKey = analysisRunId ?? requirements[0]?.analysisRunId ?? "empty-analysis";
@@ -316,7 +318,7 @@ export function RequirementsPanel({
             结构化结果
           </p>
           <h2 id="jd-summary-heading" className="heading-font mt-1 text-2xl font-black">
-            JD 要求摘要
+            {legacyMode ? "旧版 JD 要求摘要" : "JD 要求摘要"}
           </h2>
           <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
             先看重点，需要时再展开职业事实和原文依据。

@@ -20,7 +20,6 @@ import {
   type ApplicationDetailTab,
 } from "@/features/applications/detail-tabs";
 import { SetupProgress } from "@/features/applications/setup-progress";
-import { AnalysisControl } from "@/features/jd-analysis/analysis-control";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import { RequirementsPanel } from "@/features/jd-analysis/requirements-panel";
 import type {
@@ -50,6 +49,10 @@ import type {
 } from "@/features/interview-preparation/generation-service";
 import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import { JDGapAnalysisControl } from "@/features/jd-gap-analysis/analysis-control";
+import { JDGapAnalysisPanel } from "@/features/jd-gap-analysis/analysis-panel";
+import { jdGapV3Repository } from "@/features/jd-gap-analysis/gap-repository";
+import { jdStructureRepository } from "@/features/jd-gap-analysis/structure-repository";
 import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import type {
@@ -61,9 +64,8 @@ import {
   BaselineSelector,
   type ResumeAssetOption,
 } from "@/features/resume-gaps/baseline-selector";
-import { GapAnalysisControl } from "@/features/resume-gaps/gap-analysis-control";
 import { GapPanel } from "@/features/resume-gaps/gap-panel";
-import { getResumeWorkspaceMode, isCurrentGapRun, markItemsHistoricalUnlessCurrent, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
+import { getResumeWorkspaceMode, markItemsHistoricalUnlessCurrent, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
 import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 function first(value: string | string[] | undefined) {
@@ -145,56 +147,73 @@ function JdPanel({
   application,
   analysisRun,
   requirements,
+  selectedAsset,
+  structureRun,
+  gapRun,
+  gapView,
   setupMode,
 }: {
   application: Application;
   analysisRun: JDAnalysisRun | null;
   requirements: JDRequirementRecord[];
+  selectedAsset: ResumeAssetOption | null;
+  structureRun: Awaited<ReturnType<typeof jdStructureRepository.getLatest>>;
+  gapRun: Awaited<ReturnType<typeof jdGapV3Repository.getLatest>>;
+  gapView: Awaited<ReturnType<typeof jdGapV3Repository.listLatestView>>;
   setupMode: boolean;
 }) {
+  const currentGapRun = gapRun &&
+      gapRun.sourceAssetId === selectedAsset?.id &&
+      gapRun.structureRunId === structureRun?.id
+    ? gapRun
+    : null;
+  const initialRun = currentGapRun
+    ? {
+        status: currentGapRun.status,
+        phase: currentGapRun.status === "succeeded" ? "complete" as const : "comparison" as const,
+        errorCode: currentGapRun.errorCode,
+      }
+    : structureRun
+      ? {
+          status: structureRun.status,
+          phase: "structure" as const,
+          errorCode: structureRun.errorCode,
+        }
+      : null;
+  const currentView = gapView &&
+      gapView.run.sourceAssetId === selectedAsset?.id &&
+      gapView.structureRun.id === structureRun?.id
+    ? gapView
+    : null;
+  const legacyPanel = analysisRun?.status === "succeeded" ? (
+    <RequirementsPanel
+      requirements={requirements}
+      analysisRunId={analysisRun.id}
+      sourceText={application.jdText}
+      sourceTranslationZh={analysisRun.result?.jdTranslationZh ?? null}
+      sourceUrl={application.jobUrl}
+      legacyMode
+    />
+  ) : undefined;
+
   return (
     <div className="space-y-6">
       {setupMode ? (
         <SetupProgress
-          current={analysisRun?.status === "succeeded" ? "gap" : "jd"}
+          current={currentView ? "gap" : "jd"}
         />
       ) : null}
-      <AnalysisControl
+      <JDGapAnalysisControl
+        key={`${selectedAsset?.id ?? "no-resume"}:${structureRun?.id ?? "no-structure"}:${gapRun?.id ?? "no-gap"}`}
         applicationId={application.id}
-        analysisRunId={analysisRun?.id ?? null}
-        initialStatus={analysisRun?.status ?? null}
-        initialResult={
-          analysisRun?.result
-            ? {
-                acceptedRequirementCount:
-                  analysisRun.result.acceptedRequirementCount,
-                estimatedCost: analysisRun.result.estimatedCost
-                  ? {
-                      amount: analysisRun.result.estimatedCost.amount,
-                      currency: analysisRun.result.estimatedCost.currency,
-                    }
-                  : null,
-              }
-            : null
-        }
+        asset={selectedAsset}
+        initialRun={initialRun}
+        runKey={`${structureRun?.id ?? "none"}:${currentGapRun?.id ?? "none"}`}
       />
-      {setupMode && analysisRun?.status === "succeeded" ? (
-        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mint)] p-5 shadow-[3px_3px_0_var(--ink)]">
-          <p className="text-sm font-black">JD 已完成分析，可以回到所选简历查看差距。</p>
-          <Link
-            href={`/applications/${application.id}?tab=resume`}
-            className="button-primary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-black"
-          >
-            查看简历差距 →
-          </Link>
-        </aside>
-      ) : null}
-      <RequirementsPanel
-        requirements={requirements}
-        analysisRunId={analysisRun?.id ?? null}
+      <JDGapAnalysisPanel
+        view={currentView}
         sourceText={application.jdText}
-        sourceTranslationZh={analysisRun?.result?.jdTranslationZh ?? null}
-        sourceUrl={application.jobUrl}
+        legacyPanel={legacyPanel}
       />
     </div>
   );
@@ -247,9 +266,6 @@ function ResumePanel({
   availableAssets: ResumeAssetOption[];
   setupMode: boolean;
 }) {
-  const currentGapRun = isCurrentGapRun(latestGapRun, selectedAsset?.id ?? null, analysisRun?.id ?? null)
-    ? latestGapRun
-    : null;
   return (
     <ResumeWorkspace
       applicationId={application.id}
@@ -261,17 +277,6 @@ function ResumePanel({
         setupMode={setupMode}
         setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
       />}
-      gapControl={analysisRun && selectedAsset ? (
-            <GapAnalysisControl
-              key={`${selectedAsset.id}:${analysisRun.id}`}
-              applicationId={application.id}
-              asset={selectedAsset}
-              initialRun={currentGapRun ? {
-                status: currentGapRun.status,
-                errorCode: currentGapRun.errorCode,
-              } : null}
-            />
-      ) : null}
       gapPanel={analysisRun ? (
           <GapPanel
             key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
@@ -422,7 +427,7 @@ export default async function ApplicationDetailPage({
   const activeTab = detailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, resumeAnalysisRun, resumeRequirements, gapData, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
+  const [events, analysisRun, requirements, v3Data, resumeAnalysisRun, resumeRequirements, gapData, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "jd"
       ? jdAnalysisRepository.getLatest(user.id, id)
@@ -430,6 +435,17 @@ export default async function ApplicationDetailPage({
     activeTab === "jd"
       ? jdAnalysisRepository.listRequirements(user.id, id)
       : Promise.resolve([]),
+    activeTab === "jd"
+      ? Promise.all([
+          jdStructureRepository.getLatest(user.id, id),
+          jdGapV3Repository.getLatest(user.id, id),
+          jdGapV3Repository.listLatestView(user.id, id),
+        ]).then(([structureRun, gapRun, gapView]) => ({
+          structureRun,
+          gapRun,
+          gapView,
+        }))
+      : Promise.resolve({ structureRun: null, gapRun: null, gapView: null }),
     activeTab === "resume"
       ? jdAnalysisRepository.getLatestSucceeded(user.id, id)
       : Promise.resolve(null),
@@ -446,7 +462,9 @@ export default async function ApplicationDetailPage({
     activeTab === "resume"
       ? resumeCustomizationRepository.listVersions(user.id, id)
       : Promise.resolve([]),
-    activeTab === "resume" ? listAssets(user.id) : Promise.resolve([]),
+    activeTab === "resume" || activeTab === "jd"
+      ? listAssets(user.id)
+      : Promise.resolve([]),
     activeTab === "interview"
       ? interviewPreparationRepository.listForApplication(user.id, id)
       : Promise.resolve([]),
@@ -465,6 +483,14 @@ export default async function ApplicationDetailPage({
       ? getAIProcessingConsentAt(user.id)
       : Promise.resolve("not-requested"),
   ]);
+  const selectedResumeAsset = resumeAssets
+    .filter((asset) => asset.id === application.resumeSourceAssetId)
+    .map((asset) => ({
+      id: asset.id,
+      originalName: asset.originalName,
+      contentType: asset.contentType,
+      createdAt: asset.createdAt,
+    }))[0] ?? null;
   const resumeRequirementsForRun = activeTab === "resume" && resumeAnalysisRun
     ? await jdAnalysisRepository.listRequirements(user.id, id, resumeAnalysisRun.id)
     : resumeRequirements;
@@ -533,6 +559,10 @@ export default async function ApplicationDetailPage({
             application={application}
             analysisRun={analysisRun}
             requirements={requirements}
+            selectedAsset={selectedResumeAsset}
+            structureRun={v3Data.structureRun}
+            gapRun={v3Data.gapRun}
+            gapView={v3Data.gapView}
             setupMode={first(query.setup) === "1"}
           />
         ) : null}
@@ -554,16 +584,7 @@ export default async function ApplicationDetailPage({
                 contentType: asset.contentType,
                 createdAt: asset.createdAt,
               }))}
-              selectedAsset={
-                resumeAssets
-                  .filter((asset) => asset.id === application.resumeSourceAssetId)
-                  .map((asset) => ({
-                    id: asset.id,
-                    originalName: asset.originalName,
-                    contentType: asset.contentType,
-                    createdAt: asset.createdAt,
-                  }))[0] ?? null
-              }
+              selectedAsset={selectedResumeAsset}
               setupMode={first(query.setup) === "1"}
             />
           </div>
