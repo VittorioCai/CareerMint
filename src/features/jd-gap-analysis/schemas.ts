@@ -43,6 +43,45 @@ export const gapTypeSchema = z.enum([
   "none",
 ]);
 
+export const processingRunStatusSchema = z.enum([
+  "queued",
+  "running",
+  "succeeded",
+  "failed",
+]);
+
+const storedTokenSchema = z
+  .string()
+  .trim()
+  .min(1)
+  .max(200)
+  .regex(/^[A-Za-z0-9._:-]+$/u);
+
+export const aiMetadataSchema = z
+  .object({
+    provider: z.string().trim().min(1).max(80),
+    model: z.string().trim().min(1).max(160),
+    requestId: storedTokenSchema.nullable(),
+    usage: z
+      .object({
+        inputCacheHitTokens: z.number().int().min(0).max(2_147_483_647),
+        inputCacheMissTokens: z.number().int().min(0).max(2_147_483_647),
+        outputTokens: z.number().int().min(0).max(2_147_483_647),
+      })
+      .strict(),
+    priceScheduleVersion: storedTokenSchema.max(80).nullable(),
+  })
+  .strict();
+
+export const estimatedCostSchema = z
+  .object({
+    amount: z.number().min(0),
+    currency: z.literal("USD"),
+    scheduleVersion: storedTokenSchema.max(80),
+    tier: z.enum(["default", "peak"]),
+  })
+  .strict();
+
 function unicodeBoundedText(min: number, max: number) {
   return z
     .string()
@@ -179,6 +218,9 @@ export type CriterionEvidenceStatus = z.infer<
 export type CoverageStatus = z.infer<typeof coverageStatusSchema>;
 export type ImpactLevel = z.infer<typeof impactLevelSchema>;
 export type GapType = z.infer<typeof gapTypeSchema>;
+export type ProcessingRunStatus = z.infer<typeof processingRunStatusSchema>;
+export type AIMetadata = z.infer<typeof aiMetadataSchema>;
+export type EstimatedCost = z.infer<typeof estimatedCostSchema>;
 export type CriterionConstraint = z.infer<typeof criterionConstraintSchema>;
 export type JDStructureCriterion = z.infer<typeof jdStructureCriterionSchema>;
 export type JDStructureRequirement = z.infer<
