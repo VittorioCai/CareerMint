@@ -1,0 +1,25 @@
+{
+  "caseId": "06-false-positive-trap",
+  "jdText": "Lead pharmaceutical market-access pricing strategy under European medicines regulation. Five years of direct pharmaceutical industry experience are required. Manage a team of at least five pricing specialists.",
+  "resumeText": "Retail data analyst who created pricing dashboards for supermarket promotions and reported weekly margin trends. Worked independently with merchandising stakeholders.",
+  "confirmedFacts": [
+    {
+      "id": "66666666-6666-4666-8666-666666666666",
+      "factType": "work_experience",
+      "title": "Team leadership",
+      "organization": "Synthetic Services Ltd",
+      "description": "Managed five operations coordinators in a non-pharmaceutical service team.",
+      "skills": ["Team leadership"],
+      "sourceExcerpt": "Managed five operations coordinators."
+    }
+  ],
+  "confirmedAuthorizationFactIds": [],
+  "expected": {
+    "minimumRequirementCount": 3,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "none" },
+      { "criterionKey": "c2", "expectedStatus": "none" },
+      { "criterionKey": "c3", "expectedStatus": "none" }
+    ]
+  }
+}

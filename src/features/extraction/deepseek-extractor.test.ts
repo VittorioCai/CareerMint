@@ -988,6 +988,23 @@ describe("DeepSeek JD gap V3 adapter", () => {
     expect(serializedLogs).not.toContain(comparisonInput.requirements[0].originalText);
   });
 
+  it("allows the capped evaluation runner to lower only V3 output tokens", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(structureOutput)));
+    const provider = createDeepSeekAIProvider({
+      apiKey: "test-key",
+      model: "deepseek-v4-flash",
+      fetchImpl,
+      jdGapMaxTokens: 4096,
+    });
+
+    await provider.structureJobDescription(structureInput);
+
+    const [, init] = fetchImpl.mock.calls[0];
+    expect(JSON.parse(String(init?.body)).max_tokens).toBe(4096);
+  });
+
   it.each([
     ["structure", '{"requirements":['],
     ["comparison", '{"assessments":['],

@@ -1,0 +1,16 @@
+{
+  "caseId": "01-en-composite",
+  "jdText": "You must analyze customer funnels using SQL or Python and present monthly recommendations to commercial leaders. You must demonstrate measurable conversion improvements with a numeric result.",
+  "resumeText": "Analyzed customer funnels using SQL and presented monthly recommendations to commercial leaders. Improved checkout conversion by 14% after redesigning the funnel dashboard.",
+  "confirmedFacts": [],
+  "confirmedAuthorizationFactIds": [],
+  "expected": {
+    "minimumRequirementCount": 2,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "direct" },
+      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c3", "expectedStatus": "direct" },
+      { "criterionKey": "c4", "expectedStatus": "direct" }
+    ]
+  }
+}

@@ -99,6 +99,7 @@ type DeepSeekProviderOptions = {
   model?: string;
   fetchImpl?: typeof fetch;
   logger?: MetadataLogger;
+  jdGapMaxTokens?: number;
 };
 
 const emptyUsage: AIUsage = {
@@ -235,8 +236,17 @@ export function createDeepSeekAIProvider(
     options.model ?? process.env.AI_TEXT_MODEL ?? "deepseek-v4-flash";
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const logger = options.logger ?? noOpLogger;
+  const configuredJDGapMaxTokens =
+    options.jdGapMaxTokens ?? jdGapV3MaxTokens;
 
   if (!apiKey?.trim()) throw new Error("deepseek-api-key-missing");
+  if (
+    !Number.isInteger(configuredJDGapMaxTokens) ||
+    configuredJDGapMaxTokens < 1 ||
+    configuredJDGapMaxTokens > jdGapV3MaxTokens
+  ) {
+    throw new Error("deepseek-jd-gap-max-tokens-invalid");
+  }
 
   async function runAttempt<Output>({
     systemInstructions,
@@ -479,7 +489,7 @@ export function createDeepSeekAIProvider(
             userContent: `<job_description>\n${input.jdText}\n</job_description>`,
             outputSchema: jdStructureProviderOutputSchema,
             invalidOutputError: jdStructureInvalidOutputError,
-            maxTokens: jdGapV3MaxTokens,
+            maxTokens: configuredJDGapMaxTokens,
           }),
         jdStructureInvalidOutputError,
       );
@@ -500,7 +510,7 @@ export function createDeepSeekAIProvider(
             ].join("\n"),
             outputSchema: jdGapComparisonOutputSchema,
             invalidOutputError: jdGapInvalidOutputError,
-            maxTokens: jdGapV3MaxTokens,
+            maxTokens: configuredJDGapMaxTokens,
           }),
         jdGapInvalidOutputError,
       );
