@@ -8,7 +8,10 @@ vi.mock("next/navigation", () => ({
   useRouter: () => router,
 }));
 
-import { JDGapAnalysisControl } from "./analysis-control";
+import {
+  JDGapAnalysisControl,
+  resolveBrowserOcrHook,
+} from "./analysis-control";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const assetId = "22222222-2222-4222-8222-222222222222";
@@ -44,6 +47,12 @@ function renderControl(
 
 describe("JDGapAnalysisControl", () => {
   beforeEach(() => vi.clearAllMocks());
+
+  it("uses an injected OCR hook only outside production", () => {
+    const hook = vi.fn().mockResolvedValue("fixture OCR text");
+    expect(resolveBrowserOcrHook("test", hook)).toBe(hook);
+    expect(resolveBrowserOcrHook("production", hook)).toBeNull();
+  });
 
   it("does not auto-run and disables analysis until a resume is selected", () => {
     const { request } = renderControl({ asset: null });

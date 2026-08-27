@@ -7,6 +7,15 @@ import { useEffect, useRef, useState } from "react";
 import type { OcrProgress, ScannedPdfOcrOptions } from "@/features/source-assets/ocr";
 import type { ResumeAssetOption } from "@/features/resume-gaps/baseline-selector";
 
+type BrowserOcrHook = (
+  file: File,
+  options?: ScannedPdfOcrOptions,
+) => Promise<string>;
+
+declare global {
+  var __JOB_BUDDY_E2E_OCR__: BrowserOcrHook | undefined;
+}
+
 type RunStatus = "queued" | "running" | "succeeded" | "failed";
 type AnalysisPhase = "structure" | "comparison" | "complete";
 
@@ -57,7 +66,18 @@ const errorCopy: Record<string, string> = {
   "network-error": "网络暂时不可用，请重试。",
 };
 
+export function resolveBrowserOcrHook(
+  environment: string | undefined = process.env.NODE_ENV,
+  candidate: BrowserOcrHook | undefined = globalThis.__JOB_BUDDY_E2E_OCR__,
+) {
+  return environment !== "production" && typeof candidate === "function"
+    ? candidate
+    : null;
+}
+
 async function defaultOcrPdf(file: File, options?: ScannedPdfOcrOptions) {
+  const injected = resolveBrowserOcrHook();
+  if (injected) return injected(file, options);
   const { extractScannedPdfText } = await import("@/features/source-assets/ocr");
   return extractScannedPdfText(file, options);
 }
