@@ -1,0 +1,15 @@
+{
+  "caseId": "02-de-degree-equivalence",
+  "jdText": "Vorausgesetzt wird ein Abschluss in Wirtschaftsinformatik oder einem vergleichbaren Studiengang. Zwingend erforderlich ist zusätzlich ein Abschluss in Humanmedizin; verwandte Fächer werden nicht akzeptiert.",
+  "resumeText": "M.Sc. Management and Digital Technology with coursework in business analytics, information systems, data management, and digital strategy.",
+  "confirmedFacts": [],
+  "confirmedAuthorizationFactIds": [],
+  "expected": {
+    "minimumRequirementCount": 2,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "none" },
+      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c3", "expectedStatus": "none" }
+    ]
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "caseId": "04-language-authorization",
+  "jdText": "German at CEFR C1 or above is mandatory. Fluent professional English is required. The candidate must already be legally authorized to work in Germany without employer sponsorship.",
+  "resumeText": "German: B2. English: full professional working proficiency. Authorized to work in Germany without sponsorship.",
+  "confirmedFacts": [
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "factType": "certification",
+      "title": "Germany work authorization",
+      "organization": null,
+      "description": "The user explicitly confirmed authorization to work in Germany without sponsorship.",
+      "skills": [],
+      "sourceExcerpt": null
+    }
+  ],
+  "confirmedAuthorizationFactIds": ["44444444-4444-4444-8444-444444444444"],
+  "expected": {
+    "minimumRequirementCount": 3,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "partial_direct" },
+      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c3", "expectedStatus": "direct" }
+    ]
+  }
+}

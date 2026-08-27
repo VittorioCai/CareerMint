@@ -31,6 +31,19 @@ import {
   type ResumeGapAnalysisInput,
   type ResumeGapProviderOutput,
 } from "@/features/resume-gaps/schemas";
+import {
+  jdStructureInstructions,
+  selectComparisonPromptVariant,
+  type ComparisonPromptVariant,
+} from "@/features/jd-gap-analysis/prompts";
+import {
+  jdGapComparisonOutputSchema,
+  jdStructureProviderOutputSchema,
+  type JDGapComparisonInput,
+  type JDGapComparisonOutput,
+  type JDStructureInput,
+  type JDStructureProviderOutput,
+} from "@/features/jd-gap-analysis/schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -42,6 +55,9 @@ const providerName = "deepseek";
 const invalidOutputError = "resume-extraction-invalid-output";
 const resumeGapInvalidOutputError = "resume-gap-invalid-output";
 const resumeGapMaxTokens = 96_000;
+const jdStructureInvalidOutputError = "jd-structure-invalid-output";
+const jdGapInvalidOutputError = "jd-gap-invalid-output";
+const jdGapV3MaxTokens = 8192;
 
 const usageSchema = z
   .object({
@@ -83,6 +99,7 @@ type DeepSeekProviderOptions = {
   model?: string;
   fetchImpl?: typeof fetch;
   logger?: MetadataLogger;
+  jdGapMaxTokens?: number;
 };
 
 const emptyUsage: AIUsage = {
@@ -219,8 +236,17 @@ export function createDeepSeekAIProvider(
     options.model ?? process.env.AI_TEXT_MODEL ?? "deepseek-v4-flash";
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const logger = options.logger ?? noOpLogger;
+  const configuredJDGapMaxTokens =
+    options.jdGapMaxTokens ?? jdGapV3MaxTokens;
 
   if (!apiKey?.trim()) throw new Error("deepseek-api-key-missing");
+  if (
+    !Number.isInteger(configuredJDGapMaxTokens) ||
+    configuredJDGapMaxTokens < 1 ||
+    configuredJDGapMaxTokens > jdGapV3MaxTokens
+  ) {
+    throw new Error("deepseek-jd-gap-max-tokens-invalid");
+  }
 
   async function runAttempt<Output>({
     systemInstructions,
@@ -453,6 +479,40 @@ export function createDeepSeekAIProvider(
             maxTokens: resumeGapMaxTokens,
           }),
         resumeGapInvalidOutputError,
+      );
+    },
+    async structureJobDescription(input: JDStructureInput) {
+      return withInvalidOutputRetry<JDStructureProviderOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: jdStructureInstructions,
+            userContent: `<job_description>\n${input.jdText}\n</job_description>`,
+            outputSchema: jdStructureProviderOutputSchema,
+            invalidOutputError: jdStructureInvalidOutputError,
+            maxTokens: configuredJDGapMaxTokens,
+          }),
+        jdStructureInvalidOutputError,
+      );
+    },
+    async compareJDGapCriteria(
+      input: JDGapComparisonInput,
+      options: { promptVariant: ComparisonPromptVariant },
+    ) {
+      const prompt = selectComparisonPromptVariant(options.promptVariant);
+      return withInvalidOutputRetry<JDGapComparisonOutput>(
+        () =>
+          runAttempt({
+            systemInstructions: prompt.instructions,
+            userContent: [
+              `<requirements_json>\n${JSON.stringify(input.requirements)}\n</requirements_json>`,
+              `<resume_document>\n${input.resumeText}\n</resume_document>`,
+              `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+            ].join("\n"),
+            outputSchema: jdGapComparisonOutputSchema,
+            invalidOutputError: jdGapInvalidOutputError,
+            maxTokens: configuredJDGapMaxTokens,
+          }),
+        jdGapInvalidOutputError,
       );
     },
   };

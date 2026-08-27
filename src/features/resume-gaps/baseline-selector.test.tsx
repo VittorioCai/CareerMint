@@ -69,7 +69,7 @@ describe("BaselineSelector", () => {
     expect(screen.getByRole("heading", { name: "本次对照简历（可选）" })).toBeVisible();
     expect(screen.getAllByText("newer-resume.pdf").length).toBeGreaterThan(0);
     expect(screen.getAllByText("older-resume.docx").length).toBeGreaterThan(0);
-    expect(screen.getByRole("button", { name: "暂时跳过，去分析 JD" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "暂时跳过，进入申请" })).toBeVisible();
     expect(screen.getByLabelText("上传新的 PDF 或 DOCX 简历")).toHaveAttribute(
       "accept",
       expect.stringContaining(".pdf"),
@@ -142,7 +142,7 @@ describe("BaselineSelector", () => {
     const user = userEvent.setup();
     const { setResumeSource, request } = renderSelector();
 
-    await user.click(screen.getByRole("button", { name: "暂时跳过，去分析 JD" }));
+    await user.click(screen.getByRole("button", { name: "暂时跳过，进入申请" }));
 
     await waitFor(() => expect(setResumeSource).toHaveBeenCalledOnce());
     expect((setResumeSource.mock.calls[0][0] as FormData).get("sourceAssetId")).toBe("");

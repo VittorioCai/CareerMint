@@ -120,6 +120,7 @@ describe("GapPanel", () => {
         items={[item("a1111111-1111-4111-8111-111111111111", "missing", [fact]), item("b2222222-2222-4222-8222-222222222222", "partial", [fact]), item("c3333333-3333-4333-8333-333333333333", "missing"), item("d4444444-4444-4444-8444-444444444444", "covered")]}
       />,
     );
+    expect(screen.getByRole("heading", { name: "旧版差距结果" })).toBeVisible();
     const gapSummary = within(screen.getByLabelText("简历差距摘要"));
     expect(gapSummary.getByText("简历漏写")).toBeVisible();
     expect(gapSummary.getByText("部分覆盖")).toBeVisible();

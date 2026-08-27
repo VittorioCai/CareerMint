@@ -57,9 +57,12 @@ SUPABASE_SECRET_KEY=...
 DEEPSEEK_API_KEY=replace-with-deepseek-api-key
 AI_TEXT_PROVIDER=deepseek
 AI_TEXT_MODEL=deepseek-v4-flash
+JD_GAP_MATCH_PROMPT_VARIANT=p2
 AI_PRICE_SCHEDULE_JSON=replace-with-current-versioned-json-from-official-pricing-page
 E2E_FAKE_EXTRACTOR=0
 ```
+
+`JD_GAP_MATCH_PROMPT_VARIANT=p2` 是 2026-08-27 六个合成案例、24 次基础调用对比后的胜出版本；评测摘要见 `docs/evaluations/2026-08-25-jd-gap-prompt-comparison.md`。
 
 没有真实 `DEEPSEEK_API_KEY` 时，简历提取、JD 分析和岗位简历建议都会显示可恢复的“AI 暂不可用”状态，不会产生模型费用。单元测试和本地 E2E 使用 mock/fake provider，不会请求 DeepSeek；其中 `E2E_FAKE_EXTRACTOR=1` 覆盖简历提取、JD 分析、岗位简历建议和面试题生成，仅供 local/dev E2E 使用，生产环境禁用且不会调用真实 AI。
 

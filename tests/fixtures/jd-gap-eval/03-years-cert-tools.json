@@ -1,0 +1,15 @@
+{
+  "caseId": "03-years-cert-tools",
+  "jdText": "Candidates must have at least five years of full-time supply-chain analytics experience. A current PMP certification is mandatory. Hands-on SAP S/4HANA experience is required and alternative ERP tools are not accepted.",
+  "resumeText": "Three years of full-time supply-chain analytics experience. Earned a PRINCE2 Foundation certificate. Built inventory reports with Microsoft Excel and Power BI.",
+  "confirmedFacts": [],
+  "confirmedAuthorizationFactIds": [],
+  "expected": {
+    "minimumRequirementCount": 3,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "partial_direct" },
+      { "criterionKey": "c2", "expectedStatus": "none" },
+      { "criterionKey": "c3", "expectedStatus": "none" }
+    ]
+  }
+}

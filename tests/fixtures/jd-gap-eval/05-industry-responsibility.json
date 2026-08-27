@@ -1,0 +1,15 @@
+{
+  "caseId": "05-industry-responsibility",
+  "jdText": "Analyze churn drivers for a B2B SaaS product and turn findings into retention actions. Facilitate cross-functional workshops with product and sales teams. Demonstrate collaborative communication through concrete project behavior.",
+  "resumeText": "Investigated cancellation drivers for a B2B subscription software product and launched retention actions that reduced churn by 8%. Facilitated workshops with product and sales teams, resolved conflicting priorities, and documented a shared action plan.",
+  "confirmedFacts": [],
+  "confirmedAuthorizationFactIds": [],
+  "expected": {
+    "minimumRequirementCount": 3,
+    "criteria": [
+      { "criterionKey": "c1", "expectedStatus": "direct" },
+      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c3", "expectedStatus": "direct" }
+    ]
+  }
+}
