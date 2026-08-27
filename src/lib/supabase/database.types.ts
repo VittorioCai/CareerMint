@@ -1418,6 +1418,105 @@ export type Database = {
           },
         ]
       }
+      resume_jd_difference_runs: {
+        Row: {
+          ai_usage: Json | null
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost_usd: number | null
+          fact_fingerprint: string
+          id: string
+          input_hash: string
+          jd_sha256: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_usage?: Json | null
+          application_id: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          fact_fingerprint: string
+          id?: string
+          input_hash: string
+          jd_sha256: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result?: Json | null
+          schema_version: string
+          source_asset_id?: string | null
+          source_filename: string
+          source_sha256: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_usage?: Json | null
+          application_id?: string
+          attempt_count?: number
+          completed_at?: string | null
+          created_at?: string
+          error_code?: string | null
+          error_message?: string | null
+          estimated_cost_usd?: number | null
+          fact_fingerprint?: string
+          id?: string
+          input_hash?: string
+          jd_sha256?: string
+          model?: string
+          policy_version?: string
+          prompt_version?: string
+          provider?: string
+          result?: Json | null
+          schema_version?: string
+          source_asset_id?: string | null
+          source_filename?: string
+          source_sha256?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["processing_job_status"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "resume_jd_difference_runs_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "resume_jd_difference_runs_source_asset_id_fkey"
+            columns: ["source_asset_id"]
+            isOneToOne: false
+            referencedRelation: "source_assets"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       resume_suggestion_facts: {
         Row: {
           application_id: string
@@ -1924,6 +2023,15 @@ export type Database = {
         Args: { target_run_id: string }
         Returns: boolean
       }
+      claim_resume_jd_difference: {
+        Args: {
+          expected_attempt_count: number
+          expected_status: string
+          stale_after_seconds?: number
+          target_run_id: string
+        }
+        Returns: boolean
+      }
       complete_application_analysis: {
         Args: {
           accepted_requirements: Json
@@ -2170,6 +2278,48 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "resume_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      complete_resume_jd_difference: {
+        Args: {
+          expected_attempt_count: number
+          target_ai_usage: Json
+          target_estimated_cost_usd?: number
+          target_result: Json
+          target_run_id: string
+        }
+        Returns: {
+          ai_usage: Json | null
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost_usd: number | null
+          fact_fingerprint: string
+          id: string
+          input_hash: string
+          jd_sha256: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_jd_difference_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2423,6 +2573,55 @@ export type Database = {
         SetofOptions: {
           from: "*"
           to: "resume_generation_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_or_get_resume_jd_difference: {
+        Args: {
+          target_application_id: string
+          target_fact_fingerprint: string
+          target_input_hash: string
+          target_jd_sha256: string
+          target_model: string
+          target_policy_version: string
+          target_prompt_version: string
+          target_provider: string
+          target_schema_version: string
+          target_source_asset_id: string
+          target_source_filename: string
+          target_source_sha256: string
+        }
+        Returns: {
+          ai_usage: Json | null
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost_usd: number | null
+          fact_fingerprint: string
+          id: string
+          input_hash: string
+          jd_sha256: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_jd_difference_runs"
           isOneToOne: true
           isSetofReturn: false
         }
@@ -2710,6 +2909,47 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      fail_resume_jd_difference: {
+        Args: {
+          expected_attempt_count: number
+          target_error_code: string
+          target_error_message: string
+          target_run_id: string
+        }
+        Returns: {
+          ai_usage: Json | null
+          application_id: string
+          attempt_count: number
+          completed_at: string | null
+          created_at: string
+          error_code: string | null
+          error_message: string | null
+          estimated_cost_usd: number | null
+          fact_fingerprint: string
+          id: string
+          input_hash: string
+          jd_sha256: string
+          model: string
+          policy_version: string
+          prompt_version: string
+          provider: string
+          result: Json | null
+          schema_version: string
+          source_asset_id: string | null
+          source_filename: string
+          source_sha256: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["processing_job_status"]
+          updated_at: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "resume_jd_difference_runs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       jd_gap_v3_json_has_exact_keys: {
         Args: { expected_keys: string[]; payload: Json }
         Returns: boolean
@@ -2766,6 +3006,10 @@ export type Database = {
         Returns: number
       }
       resume_gap_json_has_exact_keys: {
+        Args: { expected_keys: string[]; payload: Json }
+        Returns: boolean
+      }
+      resume_jd_difference_json_has_exact_keys: {
         Args: { expected_keys: string[]; payload: Json }
         Returns: boolean
       }
