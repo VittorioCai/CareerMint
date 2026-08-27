@@ -7,8 +7,9 @@
   "expected": {
     "minimumRequirementCount": 2,
     "criteria": [
-      { "criterionKey": "c1", "expectedStatus": "direct" },
-      { "criterionKey": "c2", "expectedStatus": "none" }
+      { "criterionKey": "c1", "expectedStatus": "none" },
+      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c3", "expectedStatus": "none" }
     ]
   }
 }

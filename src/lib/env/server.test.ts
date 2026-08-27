@@ -22,7 +22,7 @@ describe("parseServerEnv", () => {
     ).toMatchObject({
       AI_TEXT_PROVIDER: "deepseek",
       AI_TEXT_MODEL: "deepseek-v4-flash",
-      JD_GAP_MATCH_PROMPT_VARIANT: "p3",
+      JD_GAP_MATCH_PROMPT_VARIANT: "p2",
     });
   });
 

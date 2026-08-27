@@ -167,6 +167,7 @@ export type PromptCaseScore = {
   hardGateFailures: string[];
   falsePositiveCount: number;
   falseNegativeCount: number;
+  statusAccuracy: number;
   requirementRecall: number;
   gapExplanationScore: number;
   weightedScore: number;
@@ -311,6 +312,8 @@ export function evaluatePromptCase(
       ? 1
       : input.criteria.filter((criterion) => assessmentById.has(criterion.criterionId))
           .length / input.criteria.length;
+  const statusAccuracy =
+    input.criteria.length === 0 ? 1 : matchingCount / input.criteria.length;
   const weightedScore =
     matchingCount * 10 -
     falsePositiveCount * 25 -
@@ -322,6 +325,7 @@ export function evaluatePromptCase(
     hardGateFailures: uniqueFailures(failures),
     falsePositiveCount,
     falseNegativeCount,
+    statusAccuracy,
     requirementRecall,
     gapExplanationScore,
     weightedScore,
@@ -333,6 +337,8 @@ export type PromptCandidateSummary = {
   promptVersion: string;
   hardGateFailures: string[];
   falsePositiveCount: number;
+  falseNegativeCount: number;
+  statusAccuracy: number;
   requirementRecall: number;
   gapExplanationScore: number;
   stability: number;
@@ -352,6 +358,8 @@ export function selectPromptWinner(
   return [...eligible].sort(
     (left, right) =>
       left.falsePositiveCount - right.falsePositiveCount ||
+      left.falseNegativeCount - right.falseNegativeCount ||
+      right.statusAccuracy - left.statusAccuracy ||
       right.requirementRecall - left.requirementRecall ||
       right.gapExplanationScore - left.gapExplanationScore ||
       right.stability - left.stability ||

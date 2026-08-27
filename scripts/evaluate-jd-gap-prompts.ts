@@ -410,6 +410,17 @@ function summarizeCandidate(
       (sum, score) => sum + score.falsePositiveCount,
       0,
     ),
+    falseNegativeCount: state.scores.reduce(
+      (sum, score) => sum + score.falseNegativeCount,
+      0,
+    ),
+    statusAccuracy:
+      caseCount === 0
+        ? 0
+        : state.scores.reduce(
+            (sum, score) => sum + score.statusAccuracy,
+            0,
+          ) / caseCount,
     requirementRecall:
       caseCount === 0
         ? 0
@@ -440,12 +451,16 @@ function qualityTie(candidates: PromptCandidateSummary[]) {
     .sort(
       (left, right) =>
         left.falsePositiveCount - right.falsePositiveCount ||
+        left.falseNegativeCount - right.falseNegativeCount ||
+        right.statusAccuracy - left.statusAccuracy ||
         right.requirementRecall - left.requirementRecall ||
         right.gapExplanationScore - left.gapExplanationScore,
     );
   if (eligible.length < 2) return false;
   return (
     eligible[0].falsePositiveCount === eligible[1].falsePositiveCount &&
+    eligible[0].falseNegativeCount === eligible[1].falseNegativeCount &&
+    eligible[0].statusAccuracy === eligible[1].statusAccuracy &&
     eligible[0].requirementRecall === eligible[1].requirementRecall &&
     eligible[0].gapExplanationScore === eligible[1].gapExplanationScore
   );

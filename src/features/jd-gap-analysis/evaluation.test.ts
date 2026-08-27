@@ -149,6 +149,8 @@ describe("prompt winner selection", () => {
       promptVersion: `prompt-${variant}`,
       hardGateFailures: [],
       falsePositiveCount: 0,
+      falseNegativeCount: 0,
+      statusAccuracy: 1,
       requirementRecall: 1,
       gapExplanationScore: 1,
       stability: 1,
@@ -180,6 +182,36 @@ describe("prompt winner selection", () => {
       selectPromptWinner([
         summary("p1", { totalTokens: 90, costUsd: 0.002, latencyMs: 50 }),
         summary("p2", { totalTokens: 80, costUsd: 0.003, latencyMs: 40 }),
+      ]).variant,
+    ).toBe("p2");
+  });
+
+  it("prefers fewer false negatives before token usage when false positives tie", () => {
+    expect(
+      selectPromptWinner([
+        summary("p1", {
+          falseNegativeCount: 4,
+          totalTokens: 80,
+        }),
+        summary("p2", {
+          falseNegativeCount: 2,
+          totalTokens: 100,
+        }),
+      ]).variant,
+    ).toBe("p2");
+  });
+
+  it("prefers more exact status classifications before token usage", () => {
+    expect(
+      selectPromptWinner([
+        summary("p1", {
+          statusAccuracy: 0.8,
+          totalTokens: 80,
+        }),
+        summary("p2", {
+          statusAccuracy: 1,
+          totalTokens: 100,
+        }),
       ]).variant,
     ).toBe("p2");
   });

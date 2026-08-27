@@ -8,9 +8,12 @@
     "minimumRequirementCount": 2,
     "criteria": [
       { "criterionKey": "c1", "expectedStatus": "direct" },
-      { "criterionKey": "c2", "expectedStatus": "direct" },
+      { "criterionKey": "c2", "expectedStatus": "none" },
       { "criterionKey": "c3", "expectedStatus": "direct" },
-      { "criterionKey": "c4", "expectedStatus": "direct" }
+      { "criterionKey": "c4", "expectedStatus": "direct" },
+      { "criterionKey": "c5", "expectedStatus": "direct" },
+      { "criterionKey": "c6", "expectedStatus": "direct" },
+      { "criterionKey": "c7", "expectedStatus": "direct" }
     ]
   }
 }
