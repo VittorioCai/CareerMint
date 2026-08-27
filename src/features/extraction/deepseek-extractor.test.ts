@@ -13,6 +13,11 @@ import {
   jdStructureInstructions,
 } from "@/features/jd-gap-analysis/prompts";
 import type { JDGapComparisonInput } from "@/features/jd-gap-analysis/schemas";
+import { differencePromptVariants } from "@/features/resume-jd-difference/prompts";
+import type {
+  ResumeJDDifferenceInput,
+  ResumeJDDifferenceOutput,
+} from "@/features/resume-jd-difference/schemas";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -1029,5 +1034,120 @@ describe("DeepSeek JD gap V3 adapter", () => {
       inputCacheMissTokens: 40,
       outputTokens: 60,
     });
+  });
+});
+
+describe("DeepSeek resume JD difference V4 adapter", () => {
+  const input: ResumeJDDifferenceInput = {
+    jdText: "Collaborate with business stakeholders to align reporting needs.",
+    resumeText: "Worked with business teams on weekly reports.",
+    confirmedFacts: [
+      {
+        id: "11111111-1111-4111-8111-111111111111",
+        factType: "work_experience",
+        title: "Reporting analyst",
+        organization: "Example",
+        description: "Gathered reporting needs from business teams.",
+        skills: ["Reporting"],
+        sourceExcerpt: "Gathered reporting needs from business teams.",
+      },
+    ],
+  };
+  const output: ResumeJDDifferenceOutput = {
+    jobCore: {
+      missionZh: "通过报告支持业务决策。",
+      coreCapabilities: ["业务分析", "报告", "跨团队协作"],
+      concepts: [
+        {
+          id: "concept-1",
+          labelZh: "业务相关方协作",
+          originalTerms: ["business stakeholders"],
+          importanceReasonZh: "岗位核心职责直接要求。",
+          priority: "critical",
+        },
+      ],
+      gates: [],
+      preferredItems: [],
+    },
+    overallDifference: {
+      summaryZh: "简历有相近经历，但岗位语言和场景表达较弱。",
+      topIssueIds: ["issue-1"],
+    },
+    issues: [
+      {
+        id: "issue-1",
+        conceptId: "concept-1",
+        jdOriginal:
+          "Collaborate with business stakeholders to align reporting needs.",
+        jdTranslationZh: "与业务相关方协作并对齐报告需求。",
+        resumeExcerpt: "Worked with business teams on weekly reports.",
+        resumeStatusZh: "简历提到业务团队和报告，但没有说明需求对齐。",
+        profileFactIds: [input.confirmedFacts[0]!.id],
+        type: "language_misaligned",
+        problemZh: "岗位语言未对齐。",
+        reasonZh: "有相近职责证据，但表达未覆盖需求对齐动作。",
+        priority: "critical",
+        isGate: false,
+        authenticity: "supported",
+      },
+    ],
+    matched: [],
+    directions: [
+      {
+        id: "direction-1",
+        issueId: "issue-1",
+        targetSection: "experience",
+        targetExperienceZh: "每周报告经历",
+        conceptId: "concept-1",
+        jdTerms: ["business stakeholders", "align reporting needs"],
+        focusAreas: ["action", "stakeholders", "context"],
+        synonymousJobLanguage: ["business stakeholders"],
+        authenticity: "supported",
+        needsConfirmation: false,
+        directionZh: "补充真实的需求确认过程、协作对象和报告用途。",
+      },
+    ],
+  };
+
+  it("sends JD, selected resume, and confirmed facts in one request", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const { provider, log } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p2",
+    });
+
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
+    const [, init] = fetchImpl.mock.calls[0]!;
+    const body = JSON.parse(String(init?.body));
+    expect(body.max_tokens).toBe(8192);
+    expect(body.messages[0]).toEqual({
+      role: "system",
+      content: differencePromptVariants.p2.instructions,
+    });
+    expect(body.messages[1].content).toBe(
+      [
+        `<job_description>\n${input.jdText}\n</job_description>`,
+        `<selected_resume>\n${input.resumeText}\n</selected_resume>`,
+        `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+      ].join("\n"),
+    );
+    expect(result.data).toEqual(output);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(input.jdText);
+    expect(JSON.stringify(log.mock.calls)).not.toContain(input.resumeText);
+  });
+
+  it("does not retry invalid V4 output", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"jobCore":'));
+    const { provider } = createProvider(fetchImpl);
+
+    await expect(
+      provider.analyzeResumeJDDifference(input, { promptVariant: "p1" }),
+    ).rejects.toThrow("resume-jd-difference-invalid-output");
+    expect(fetchImpl).toHaveBeenCalledTimes(1);
   });
 });
