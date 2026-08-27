@@ -237,7 +237,11 @@ export function createJDGapAdvancePostHandler(
         user.id,
         application.resumeSourceAssetId,
       );
-      if (!asset || asset.userId !== user.id || asset.status !== "ready") {
+      if (
+        !asset ||
+        asset.userId !== user.id ||
+        (asset.status !== "uploaded" && asset.status !== "ready")
+      ) {
         return Response.json({ error: "resume-source-required" }, { status: 409 });
       }
 

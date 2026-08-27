@@ -65,7 +65,7 @@ insert into public.source_assets (
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   'synthetic-a.pdf', 'application/pdf',
   'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa/synthetic-a.pdf',
-  1024, repeat('a', 64), 'ready'
+  1024, repeat('a', 64), 'uploaded'
 );
 
 insert into public.career_facts (

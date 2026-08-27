@@ -149,7 +149,7 @@ function assertOwned(input: JDGapComparisonServiceInput) {
     input.run.sourceAssetId !== input.asset.id ||
     input.run.sourceFilename !== input.asset.originalName ||
     input.run.sourceSha256 !== input.asset.sha256 ||
-    input.asset.status !== "ready"
+    (input.asset.status !== "uploaded" && input.asset.status !== "ready")
   ) {
     throw new Error("application-or-resume-not-found");
   }

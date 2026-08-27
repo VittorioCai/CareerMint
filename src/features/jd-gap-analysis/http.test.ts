@@ -224,7 +224,7 @@ describe("JD gap advance POST handler", () => {
     expect(fakes.createOrGetStructureRun).not.toHaveBeenCalled();
   });
 
-  it("requires a selected, owned, ready resume", async () => {
+  it("requires a selected and owned resume", async () => {
     const noSelection = dependencies();
     noSelection.getApplication.mockResolvedValueOnce({ ...application, resumeSourceAssetId: null });
     expect((await createJDGapAdvancePostHandler(noSelection)(request(), context())).status).toBe(409);
@@ -233,6 +233,25 @@ describe("JD gap advance POST handler", () => {
     missingAsset.getOwnedAsset.mockResolvedValueOnce(null);
     expect((await createJDGapAdvancePostHandler(missingAsset)(request(), context())).status).toBe(409);
     expect(missingAsset.createOrGetStructureRun).not.toHaveBeenCalled();
+
+    const failedAsset = dependencies();
+    failedAsset.getOwnedAsset.mockResolvedValueOnce({ ...asset, status: "failed" });
+    expect((await createJDGapAdvancePostHandler(failedAsset)(request(), context())).status).toBe(409);
+    expect(failedAsset.createOrGetStructureRun).not.toHaveBeenCalled();
+  });
+
+  it("accepts a newly uploaded resume before text extraction has marked it ready", async () => {
+    const fakes = dependencies();
+    fakes.getOwnedAsset.mockResolvedValueOnce({ ...asset, status: "uploaded" });
+    const response = await createJDGapAdvancePostHandler(fakes)(request(), context());
+
+    expect(response.status).toBe(200);
+    await expect(json(response)).resolves.toMatchObject({
+      status: "succeeded",
+      phase: "structure",
+      nextPhase: "comparison",
+    });
+    expect(fakes.runStructure).toHaveBeenCalledTimes(1);
   });
 
   it("strictly validates OCR JSON and its one-megabyte byte limit", async () => {

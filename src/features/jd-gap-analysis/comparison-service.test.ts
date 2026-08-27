@@ -219,6 +219,17 @@ describe("JD gap comparison service", () => {
     expect(fakes.providerFactory).not.toHaveBeenCalled();
   });
 
+  it("parses a newly uploaded resume before profile extraction marks it ready", async () => {
+    const fakes = dependencies();
+    const result = await createJDGapComparisonService(fakes).run(input({
+      asset: { ...asset, status: "uploaded" },
+    }));
+
+    expect(result).toMatchObject({ reused: false, run: { status: "succeeded" } });
+    expect(fakes.storage.download).toHaveBeenCalledTimes(1);
+    expect(fakes.provider.compareJDGapCriteria).toHaveBeenCalledTimes(1);
+  });
+
   it("uses browser OCR without download and passes confirmed facts separately", async () => {
     const fakes = dependencies();
     await createJDGapComparisonService(fakes).run(input({ ocrText: resumeText }));
