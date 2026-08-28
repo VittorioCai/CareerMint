@@ -1,0 +1,27 @@
+{
+  "caseId": "03-en-skill-only",
+  "jdText": "Use SQL to analyze customer behavior, investigate conversion changes and communicate actionable business insights to commercial teams.",
+  "resumeText": "Skills: SQL, Excel. Experience: prepared monthly Excel reports and maintained team documentation.",
+  "confirmedFacts": [],
+  "expected": {
+    "issues": [
+      {
+        "label": "sql-skill-only",
+        "jdNeedles": ["SQL", "analyze customer behavior"],
+        "type": "skill_only",
+        "priority": "critical",
+        "authenticity": "supported",
+        "isGate": false
+      },
+      {
+        "label": "business-insight-context",
+        "jdNeedles": ["actionable business insights"],
+        "type": "missing_context",
+        "priority": "important",
+        "authenticity": "unsupported",
+        "isGate": false
+      }
+    ],
+    "matched": []
+  }
+}

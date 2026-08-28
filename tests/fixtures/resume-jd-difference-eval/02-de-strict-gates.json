@@ -1,0 +1,40 @@
+{
+  "caseId": "02-de-strict-gates",
+  "jdText": "Erforderlich ist ein Studium der Wirtschaftsinformatik oder eines vergleichbaren Studiengangs. Verhandlungssichere Deutschkenntnisse auf Niveau C1 und eine gültige Arbeitserlaubnis für Deutschland sind zwingend erforderlich. SAP-Kenntnisse sind von Vorteil.",
+  "resumeText": "M.Sc. Digital Business and Information Systems. Coursework included business processes, databases, information systems and digital strategy. Languages: German B2, English C1.",
+  "confirmedFacts": [],
+  "expected": {
+    "issues": [
+      {
+        "label": "german-c1-gate",
+        "jdNeedles": ["Niveau C1"],
+        "type": "gate",
+        "priority": "critical",
+        "authenticity": "unsupported",
+        "isGate": true
+      },
+      {
+        "label": "work-authorization-gate",
+        "jdNeedles": ["Arbeitserlaubnis für Deutschland"],
+        "type": "gate",
+        "priority": "critical",
+        "authenticity": "unsupported",
+        "isGate": true
+      },
+      {
+        "label": "sap-preferred-gap",
+        "jdNeedles": ["SAP-Kenntnisse"],
+        "type": "missing",
+        "priority": "minor",
+        "authenticity": "unsupported",
+        "isGate": false
+      }
+    ],
+    "matched": [
+      {
+        "label": "degree-equivalence",
+        "jdNeedles": ["Wirtschaftsinformatik", "vergleichbaren Studiengangs"]
+      }
+    ]
+  }
+}

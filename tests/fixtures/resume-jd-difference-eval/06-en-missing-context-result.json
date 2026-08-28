@@ -1,0 +1,27 @@
+{
+  "caseId": "06-en-missing-context-result",
+  "jdText": "Build dashboards that translate product adoption metrics into actionable business recommendations. Partner with product leaders to prioritize experiments. Demonstrate measurable impact on activation or retention.",
+  "resumeText": "Built dashboards in Tableau and delivered weekly updates.",
+  "confirmedFacts": [],
+  "expected": {
+    "issues": [
+      {
+        "label": "missing-product-context",
+        "jdNeedles": ["product adoption metrics", "product leaders"],
+        "type": "missing_context",
+        "priority": "critical",
+        "authenticity": "supported",
+        "isGate": false
+      },
+      {
+        "label": "missing-business-result",
+        "jdNeedles": ["measurable impact", "activation or retention"],
+        "type": "missing_result",
+        "priority": "critical",
+        "authenticity": "unsupported",
+        "isGate": false
+      }
+    ],
+    "matched": []
+  }
+}

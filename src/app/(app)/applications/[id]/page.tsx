@@ -17,11 +17,10 @@ import {
 import { StageUpdateForm } from "@/features/applications/stage-update-form";
 import {
   applicationDetailTabs,
-  type ApplicationDetailTab,
+  resolveApplicationDetailTab,
 } from "@/features/applications/detail-tabs";
 import { SetupProgress } from "@/features/applications/setup-progress";
 import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
-import { RequirementsPanel } from "@/features/jd-analysis/requirements-panel";
 import type {
   JDAnalysisRun,
   JDRequirementRecord,
@@ -49,16 +48,26 @@ import type {
 } from "@/features/interview-preparation/generation-service";
 import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
-import { JDGapAnalysisControl } from "@/features/jd-gap-analysis/analysis-control";
-import { JDGapAnalysisPanel } from "@/features/jd-gap-analysis/analysis-panel";
-import { jdGapV3Repository } from "@/features/jd-gap-analysis/gap-repository";
-import { jdStructureRepository } from "@/features/jd-gap-analysis/structure-repository";
 import { getAIProcessingConsentAt } from "@/features/account/repository";
+import { ResumeJDDifferenceAnalysisControl } from "@/features/resume-jd-difference/analysis-control";
+import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
+import { buildDifferenceFingerprints } from "@/features/resume-jd-difference/hashes";
+import { ResumeJDImprovementPanel } from "@/features/resume-jd-difference/improvement-panel";
+import {
+  RESUME_JD_DIFFERENCE_POLICY_VERSION,
+  RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
+  differencePromptVariants,
+} from "@/features/resume-jd-difference/prompts";
+import {
+  resumeJDDifferenceRepository,
+  type ResumeJDDifferenceRunView,
+} from "@/features/resume-jd-difference/repository";
 import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import type {
   ResumeVersion,
 } from "@/features/resume-customization/schemas";
 import { requireUser } from "@/lib/auth/require-user";
+import { getServerEnv } from "@/lib/env/server";
 import { listAssets } from "@/features/source-assets/repository";
 import {
   BaselineSelector,
@@ -70,12 +79,6 @@ import { resumeGapRepository } from "@/features/resume-gaps/repository";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function detailTab(value: string | undefined): ApplicationDetailTab {
-  return applicationDetailTabs.some((tab) => tab.id === value)
-    ? (value as ApplicationDetailTab)
-    : "overview";
 }
 
 function formatDate(value: string | null) {
@@ -139,85 +142,6 @@ function Overview({ application }: { application: Application }) {
           />
         </div>
       </aside>
-    </div>
-  );
-}
-
-function JdPanel({
-  application,
-  analysisRun,
-  requirements,
-  selectedAsset,
-  structureRun,
-  gapRun,
-  gapView,
-  setupMode,
-}: {
-  application: Application;
-  analysisRun: JDAnalysisRun | null;
-  requirements: JDRequirementRecord[];
-  selectedAsset: ResumeAssetOption | null;
-  structureRun: Awaited<ReturnType<typeof jdStructureRepository.getLatest>>;
-  gapRun: Awaited<ReturnType<typeof jdGapV3Repository.getLatest>>;
-  gapView: Awaited<ReturnType<typeof jdGapV3Repository.listLatestView>>;
-  setupMode: boolean;
-}) {
-  const currentGapRun = gapRun &&
-      gapRun.sourceAssetId === selectedAsset?.id &&
-      gapRun.structureRunId === structureRun?.id
-    ? gapRun
-    : null;
-  const initialRun = currentGapRun
-    ? {
-        status: currentGapRun.status,
-        phase: currentGapRun.status === "succeeded" ? "complete" as const : "comparison" as const,
-        errorCode: currentGapRun.errorCode,
-      }
-    : structureRun
-      ? {
-          status: structureRun.status,
-          phase: "structure" as const,
-          errorCode: structureRun.errorCode,
-        }
-      : null;
-  const currentView = gapView &&
-      currentGapRun?.status === "succeeded" &&
-      gapView.run.id === currentGapRun.id &&
-      gapView.run.sourceAssetId === selectedAsset?.id &&
-      gapView.structureRun.id === structureRun?.id
-    ? gapView
-    : null;
-  const legacyPanel = analysisRun?.status === "succeeded" ? (
-    <RequirementsPanel
-      requirements={requirements}
-      analysisRunId={analysisRun.id}
-      sourceText={application.jdText}
-      sourceTranslationZh={analysisRun.result?.jdTranslationZh ?? null}
-      sourceUrl={application.jobUrl}
-      legacyMode
-    />
-  ) : undefined;
-
-  return (
-    <div className="space-y-6">
-      {setupMode ? (
-        <SetupProgress
-          current={currentView ? "gap" : "jd"}
-        />
-      ) : null}
-      <JDGapAnalysisControl
-        key={`${selectedAsset?.id ?? "no-resume"}:${structureRun?.id ?? "no-structure"}:${gapRun?.id ?? "no-gap"}`}
-        applicationId={application.id}
-        asset={selectedAsset}
-        initialRun={initialRun}
-        runKey={`${structureRun?.id ?? "none"}:${currentGapRun?.id ?? "none"}`}
-      />
-      <JDGapAnalysisPanel
-        applicationId={application.id}
-        view={currentView}
-        sourceText={application.jdText}
-        legacyPanel={legacyPanel}
-      />
     </div>
   );
 }
@@ -427,32 +351,27 @@ export default async function ApplicationDetailPage({
 }) {
   const user = await requireUser();
   const [{ id }, query] = await Promise.all([params, searchParams]);
-  const activeTab = detailTab(first(query.tab));
+  const activeTab = resolveApplicationDetailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
   if (!application) notFound();
-  const [events, analysisRun, requirements, v3Data, resumeAnalysisRun, resumeRequirements, gapData, resumeVersions, resumeAssets, interviewQuestions, interviewFacts, generationData, consentAt] = await Promise.all([
+  const differenceWorkflow =
+    activeTab === "difference" || activeTab === "improvements";
+  const [
+    events,
+    resumeAnalysisRun,
+    gapData,
+    resumeVersions,
+    resumeAssets,
+    interviewQuestions,
+    interviewFacts,
+    generationData,
+    consentAt,
+    differenceFacts,
+  ] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
-    activeTab === "jd"
-      ? jdAnalysisRepository.getLatest(user.id, id)
-      : Promise.resolve(null),
-    activeTab === "jd"
-      ? jdAnalysisRepository.listRequirements(user.id, id)
-      : Promise.resolve([]),
-    activeTab === "jd"
-      ? Promise.all([
-          jdStructureRepository.getLatest(user.id, id),
-          jdGapV3Repository.getLatest(user.id, id),
-          jdGapV3Repository.listLatestView(user.id, id),
-        ]).then(([structureRun, gapRun, gapView]) => ({
-          structureRun,
-          gapRun,
-          gapView,
-        }))
-      : Promise.resolve({ structureRun: null, gapRun: null, gapView: null }),
     activeTab === "resume"
       ? jdAnalysisRepository.getLatestSucceeded(user.id, id)
       : Promise.resolve(null),
-    Promise.resolve([]),
     activeTab === "resume"
       ? (async () => {
           const latest = await resumeGapRepository.getLatest(user.id, id);
@@ -465,7 +384,7 @@ export default async function ApplicationDetailPage({
     activeTab === "resume"
       ? resumeCustomizationRepository.listVersions(user.id, id)
       : Promise.resolve([]),
-    activeTab === "resume" || activeTab === "jd"
+    activeTab === "resume" || differenceWorkflow
       ? listAssets(user.id)
       : Promise.resolve([]),
     activeTab === "interview"
@@ -485,18 +404,25 @@ export default async function ApplicationDetailPage({
     activeTab === "interview"
       ? getAIProcessingConsentAt(user.id)
       : Promise.resolve("not-requested"),
+    differenceWorkflow && application.resumeSourceAssetId
+      ? listConfirmedFactsForAnalysis(user.id)
+      : Promise.resolve([]),
   ]);
-  const selectedResumeAsset = resumeAssets
-    .filter((asset) => asset.id === application.resumeSourceAssetId)
-    .map((asset) => ({
-      id: asset.id,
-      originalName: asset.originalName,
-      contentType: asset.contentType,
-      createdAt: asset.createdAt,
-    }))[0] ?? null;
+
+  const selectedResumeAssetRecord =
+    resumeAssets.find((asset) => asset.id === application.resumeSourceAssetId) ??
+    null;
+  const selectedResumeAsset = selectedResumeAssetRecord
+    ? {
+        id: selectedResumeAssetRecord.id,
+        originalName: selectedResumeAssetRecord.originalName,
+        contentType: selectedResumeAssetRecord.contentType,
+        createdAt: selectedResumeAssetRecord.createdAt,
+      }
+    : null;
   const resumeRequirementsForRun = activeTab === "resume" && resumeAnalysisRun
     ? await jdAnalysisRepository.listRequirements(user.id, id, resumeAnalysisRun.id)
-    : resumeRequirements;
+    : [];
   let currentGapData = gapData;
   if (activeTab === "resume" && application.resumeSourceAssetId && resumeAnalysisRun) {
     const exactLatest = await resumeGapRepository.getLatestForCombination(user.id, id, application.resumeSourceAssetId, resumeAnalysisRun.id);
@@ -520,6 +446,40 @@ export default async function ApplicationDetailPage({
       ),
     };
   }
+
+  let differenceView: ResumeJDDifferenceRunView = {
+    current: null,
+    previousSucceeded: null,
+    freshness: "missing",
+  };
+  if (differenceWorkflow && selectedResumeAssetRecord) {
+    const env = getServerEnv();
+    const providerConfig =
+      env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production"
+        ? { provider: "fake", model: "fake-resume-jd-difference-v4" }
+        : { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
+    const prompt =
+      differencePromptVariants[env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT];
+    const { inputHash } = buildDifferenceFingerprints({
+      jdText: application.jdText,
+      sourceSha256: selectedResumeAssetRecord.sha256,
+      confirmedFacts: differenceFacts,
+      ...providerConfig,
+      promptVersion: prompt.version,
+      schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
+      policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
+    });
+    differenceView = await resumeJDDifferenceRepository.getView(
+      user.id,
+      application.id,
+      inputHash,
+    );
+  }
+
+  const displayedDifferenceRun =
+    first(query.result) === "previous"
+      ? differenceView.previousSucceeded
+      : differenceView.current;
 
   return (
     <section className="min-w-0">
@@ -557,18 +517,6 @@ export default async function ApplicationDetailPage({
 
       <div className="mt-6">
         {activeTab === "overview" ? <Overview application={application} /> : null}
-        {activeTab === "jd" ? (
-          <JdPanel
-            application={application}
-            analysisRun={analysisRun}
-            requirements={requirements}
-            selectedAsset={selectedResumeAsset}
-            structureRun={v3Data.structureRun}
-            gapRun={v3Data.gapRun}
-            gapView={v3Data.gapView}
-            setupMode={first(query.setup) === "1"}
-          />
-        ) : null}
         {activeTab === "timeline" ? <Timeline events={events} /> : null}
         {activeTab === "resume" ? (
           <div className="space-y-6">
@@ -591,6 +539,44 @@ export default async function ApplicationDetailPage({
               setupMode={first(query.setup) === "1"}
             />
           </div>
+        ) : null}
+        {activeTab === "difference" ? (
+          <div className="space-y-7">
+            {first(query.setup) === "1" ? <SetupProgress current="gap" /> : null}
+            <header>
+              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+                Resume × job description
+              </p>
+              <h2 className="heading-font mt-1 text-3xl font-black sm:text-4xl">
+                岗位与简历差异分析
+              </h2>
+              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+                找出这份简历尚未覆盖、表达不清或无法证明的岗位重点。
+              </p>
+            </header>
+            <ResumeJDDifferenceAnalysisControl
+              applicationId={application.id}
+              asset={selectedResumeAsset}
+              initialRun={differenceView.current ? {
+                status: differenceView.current.status,
+                errorCode: differenceView.current.errorCode,
+              } : null}
+              freshness={differenceView.freshness}
+              hasPreviousResult={Boolean(differenceView.previousSucceeded)}
+            />
+            <ResumeJDDifferencePanel
+              applicationId={application.id}
+              run={displayedDifferenceRun}
+              stale={first(query.result) === "previous"}
+            />
+          </div>
+        ) : null}
+        {activeTab === "improvements" ? (
+          <ResumeJDImprovementPanel
+            applicationId={application.id}
+            run={differenceView.current}
+            freshness={differenceView.freshness}
+          />
         ) : null}
         {activeTab === "interview" ? (
           <InterviewPanel

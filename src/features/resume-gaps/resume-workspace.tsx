@@ -80,13 +80,13 @@ export function ResumeWorkspace({
     <div className="space-y-6">
       <header>
         <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历与历史</h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">管理本次对照简历和不可变快照。最新差距分析统一在 JD 页面查看。</p>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">管理本次对照简历和不可变快照。当前分析统一在“差异分析”页面查看。</p>
       </header>
       {baselineSelector}
       {mode === "no-jd" ? (
         <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-gap-empty-title">
-          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">对照简历确定后，再分析 JD，系统才能判断两者差距。</p>
-          <Link href={`/applications/${applicationId}?tab=jd&setup=1`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">前往 JD 分析 →</Link>
+          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">对照简历确定后，系统才能判断它与岗位要求之间的差异。</p>
+          <Link href={`/applications/${applicationId}?tab=difference&setup=1`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">前往差异分析 →</Link>
         </section>
       ) : null}
       {mode !== "no-jd" && gapPanel ? (
@@ -96,8 +96,8 @@ export function ResumeWorkspace({
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Legacy snapshot</p>
               <h3 id="legacy-resume-gap-title" className="heading-font mt-1 text-2xl font-black">旧版简历差距（只读）</h3>
             </div>
-            <Link href={`/applications/${applicationId}?tab=jd`} className="text-sm font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
-              前往 JD 差距分析
+            <Link href={`/applications/${applicationId}?tab=difference`} className="text-sm font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
+              前往差异分析
             </Link>
           </div>
           {gapPanel}

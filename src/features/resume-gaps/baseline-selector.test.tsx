@@ -88,7 +88,7 @@ describe("BaselineSelector", () => {
     expect(formData.get("applicationId")).toBe(applicationId);
     expect(formData.get("sourceAssetId")).toBe(newerAssetId);
     expect(router.replace).toHaveBeenCalledWith(
-      `/applications/${applicationId}?tab=jd&setup=1`,
+      `/applications/${applicationId}?tab=difference&setup=1`,
     );
     expect(router.refresh).toHaveBeenCalledOnce();
   });
@@ -148,7 +148,7 @@ describe("BaselineSelector", () => {
     expect((setResumeSource.mock.calls[0][0] as FormData).get("sourceAssetId")).toBe("");
     expect(request).not.toHaveBeenCalled();
     expect(router.replace).toHaveBeenCalledWith(
-      `/applications/${applicationId}?tab=jd&setup=1`,
+      `/applications/${applicationId}?tab=difference&setup=1`,
     );
   });
 

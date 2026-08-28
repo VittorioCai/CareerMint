@@ -10,10 +10,10 @@ describe("resume workspace", () => {
     expect(getResumeWorkspaceMode({ analysisRunId: "jd", selectedAssetId: "asset" })).toBe("comparison");
   });
 
-  it("renders the resume history heading and JD link without an analysis control", () => {
+  it("renders the resume history heading and difference link without an analysis control", () => {
     render(<ResumeWorkspace applicationId="app" mode="no-jd" baselineSelector={<div>baseline selector</div>} versions={[]} />);
     expect(screen.getByRole("heading", { name: "简历与历史" })).toBeVisible();
-    expect(screen.getByRole("link", { name: /前往 JD 分析/ })).toHaveAttribute("href", "/applications/app?tab=jd&setup=1");
+    expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute("href", "/applications/app?tab=difference&setup=1");
     expect(screen.queryByRole("button", { name: /分析简历差距/ })).not.toBeInTheDocument();
     expect(screen.getByText("baseline selector")).toBeVisible();
   });
@@ -33,7 +33,7 @@ describe("resume workspace", () => {
     expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
   });
 
-  it("keeps the V1 result read-only, links to V3, and keeps history collapsed", () => {
+  it("keeps the legacy result read-only, links to the current analysis, and keeps history collapsed", () => {
     render(
       <ResumeWorkspace
         applicationId="app"
@@ -46,9 +46,9 @@ describe("resume workspace", () => {
     );
     expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "旧版简历差距（只读）" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "前往 JD 差距分析" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: "前往差异分析" })).toHaveAttribute(
       "href",
-      "/applications/app?tab=jd",
+      "/applications/app?tab=difference",
     );
     expect(screen.getByRole("region", { name: "gap panel" })).toBeVisible();
     const history = screen.getByText(/历史版本/).closest("details");

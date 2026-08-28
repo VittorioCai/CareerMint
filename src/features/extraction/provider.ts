@@ -22,6 +22,11 @@ import type {
   JDStructureInput,
   JDStructureProviderOutput,
 } from "@/features/jd-gap-analysis/schemas";
+import type { DifferencePromptVariant } from "@/features/resume-jd-difference/prompts";
+import type {
+  ResumeJDDifferenceInput,
+  ResumeJDDifferenceOutput,
+} from "@/features/resume-jd-difference/schemas";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -58,4 +63,8 @@ export type AIProvider = {
     input: JDGapComparisonInput,
     options: { promptVariant: ComparisonPromptVariant },
   ): Promise<AIResult<JDGapComparisonOutput>>;
+  analyzeResumeJDDifference(
+    input: ResumeJDDifferenceInput,
+    options: { promptVariant: DifferencePromptVariant },
+  ): Promise<AIResult<ResumeJDDifferenceOutput>>;
 };

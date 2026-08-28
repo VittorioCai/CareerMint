@@ -1,0 +1,34 @@
+{
+  "caseId": "04-de-profile-only",
+  "jdText": "Erstellung interaktiver Dashboards mit Power BI sowie Präsentation der Analyseergebnisse vor Fachbereichen und Stakeholdern.",
+  "resumeText": "Created monthly reports and presented analysis findings to sales teams.",
+  "confirmedFacts": [
+    {
+      "id": "44444444-4444-4444-8444-444444444444",
+      "factType": "project",
+      "title": "Sales dashboard project",
+      "organization": null,
+      "description": "Built an interactive Power BI dashboard for sales performance monitoring.",
+      "skills": ["Power BI"],
+      "sourceExcerpt": "Built an interactive Power BI dashboard for sales performance monitoring."
+    }
+  ],
+  "expected": {
+    "issues": [
+      {
+        "label": "power-bi-profile-only",
+        "jdNeedles": ["Power BI"],
+        "type": "profile_only",
+        "priority": "critical",
+        "authenticity": "profile_only",
+        "isGate": false
+      }
+    ],
+    "matched": [
+      {
+        "label": "presentation-alignment",
+        "jdNeedles": ["Präsentation der Analyseergebnisse", "Stakeholdern"]
+      }
+    ]
+  }
+}

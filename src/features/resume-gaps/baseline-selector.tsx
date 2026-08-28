@@ -126,7 +126,7 @@ export function BaselineSelector({
       }
       router.replace(
         setupMode
-          ? `/applications/${applicationId}?tab=jd&setup=1`
+          ? `/applications/${applicationId}?tab=difference&setup=1`
           : `/applications/${applicationId}?tab=resume`,
       );
       router.refresh();
@@ -203,7 +203,7 @@ export function BaselineSelector({
             {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-            先预览并选择本次对照版本，再进入 JD 分析；也可以暂时跳过。
+            先预览并选择本次对照版本，再进入差异分析；也可以暂时跳过。
           </p>
         </div>
         {selectedAsset && !setupMode ? (

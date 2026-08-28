@@ -1,0 +1,35 @@
+{
+  "caseId": "05-en-unsupported",
+  "jdText": "Design cloud-native microservices on AWS. Deploy containerized services with Kubernetes and own CI/CD pipelines for production releases.",
+  "resumeText": "Developed Python Django REST APIs for an internal tool and deployed the application to a local Linux server.",
+  "confirmedFacts": [],
+  "expected": {
+    "issues": [
+      {
+        "label": "aws-strict-gap",
+        "jdNeedles": ["AWS"],
+        "type": "missing",
+        "priority": "critical",
+        "authenticity": "unsupported",
+        "isGate": false
+      },
+      {
+        "label": "kubernetes-strict-gap",
+        "jdNeedles": ["Kubernetes"],
+        "type": "missing",
+        "priority": "critical",
+        "authenticity": "unsupported",
+        "isGate": false
+      },
+      {
+        "label": "cicd-strict-gap",
+        "jdNeedles": ["CI/CD pipelines"],
+        "type": "missing",
+        "priority": "important",
+        "authenticity": "unsupported",
+        "isGate": false
+      }
+    ],
+    "matched": []
+  }
+}

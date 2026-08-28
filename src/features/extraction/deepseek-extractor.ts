@@ -44,6 +44,15 @@ import {
   type JDStructureInput,
   type JDStructureProviderOutput,
 } from "@/features/jd-gap-analysis/schemas";
+import {
+  differencePromptVariants,
+  type DifferencePromptVariant,
+} from "@/features/resume-jd-difference/prompts";
+import {
+  resumeJDDifferenceOutputSchema,
+  type ResumeJDDifferenceInput,
+  type ResumeJDDifferenceOutput,
+} from "@/features/resume-jd-difference/schemas";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -58,6 +67,9 @@ const resumeGapMaxTokens = 96_000;
 const jdStructureInvalidOutputError = "jd-structure-invalid-output";
 const jdGapInvalidOutputError = "jd-gap-invalid-output";
 const jdGapV3MaxTokens = 8192;
+const resumeJDDifferenceInvalidOutputError =
+  "resume-jd-difference-invalid-output";
+const resumeJDDifferenceMaxTokens = 8192;
 
 const usageSchema = z
   .object({
@@ -100,6 +112,7 @@ type DeepSeekProviderOptions = {
   fetchImpl?: typeof fetch;
   logger?: MetadataLogger;
   jdGapMaxTokens?: number;
+  resumeJDDifferenceMaxTokens?: number;
 };
 
 const emptyUsage: AIUsage = {
@@ -238,6 +251,8 @@ export function createDeepSeekAIProvider(
   const logger = options.logger ?? noOpLogger;
   const configuredJDGapMaxTokens =
     options.jdGapMaxTokens ?? jdGapV3MaxTokens;
+  const configuredResumeJDDifferenceMaxTokens =
+    options.resumeJDDifferenceMaxTokens ?? resumeJDDifferenceMaxTokens;
 
   if (!apiKey?.trim()) throw new Error("deepseek-api-key-missing");
   if (
@@ -246,6 +261,13 @@ export function createDeepSeekAIProvider(
     configuredJDGapMaxTokens > jdGapV3MaxTokens
   ) {
     throw new Error("deepseek-jd-gap-max-tokens-invalid");
+  }
+  if (
+    !Number.isInteger(configuredResumeJDDifferenceMaxTokens) ||
+    configuredResumeJDDifferenceMaxTokens < 1 ||
+    configuredResumeJDDifferenceMaxTokens > resumeJDDifferenceMaxTokens
+  ) {
+    throw new Error("deepseek-resume-jd-difference-max-tokens-invalid");
   }
 
   async function runAttempt<Output>({
@@ -514,6 +536,23 @@ export function createDeepSeekAIProvider(
           }),
         jdGapInvalidOutputError,
       );
+    },
+    async analyzeResumeJDDifference(
+      input: ResumeJDDifferenceInput,
+      options: { promptVariant: DifferencePromptVariant },
+    ) {
+      const prompt = differencePromptVariants[options.promptVariant];
+      return runAttempt<ResumeJDDifferenceOutput>({
+        systemInstructions: prompt.instructions,
+        userContent: [
+          `<job_description>\n${input.jdText}\n</job_description>`,
+          `<selected_resume>\n${input.resumeText}\n</selected_resume>`,
+          `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+        ].join("\n"),
+        outputSchema: resumeJDDifferenceOutputSchema,
+        invalidOutputError: resumeJDDifferenceInvalidOutputError,
+        maxTokens: configuredResumeJDDifferenceMaxTokens,
+      });
     },
   };
 }

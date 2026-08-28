@@ -1,0 +1,28 @@
+{
+  "caseId": "01-en-synonym-alignment",
+  "jdText": "Build dashboards and reporting that turn customer data into business insights. Collaborate with business stakeholders to align reporting needs. Experience with A/B testing is required.",
+  "resumeText": "Created recurring visualizations for customer metrics. Worked with business teams to agree weekly reporting needs and presented commercial findings.",
+  "confirmedFacts": [],
+  "expected": {
+    "issues": [
+      {
+        "label": "missing-ab-testing",
+        "jdNeedles": ["A/B testing"],
+        "type": "missing",
+        "priority": "important",
+        "authenticity": "unsupported",
+        "isGate": false
+      }
+    ],
+    "matched": [
+      {
+        "label": "dashboard-reporting-alignment",
+        "jdNeedles": ["dashboards and reporting", "business insights"]
+      },
+      {
+        "label": "stakeholder-language-alignment",
+        "jdNeedles": ["business stakeholders", "reporting needs"]
+      }
+    ]
+  }
+}

@@ -16,6 +16,7 @@
 /playwright-report/
 /blob-report/
 /tmp/jd-gap-eval/
+/tmp/resume-jd-difference-eval/
 
 # next.js
 /.next/

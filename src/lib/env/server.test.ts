@@ -23,7 +23,19 @@ describe("parseServerEnv", () => {
       AI_TEXT_PROVIDER: "deepseek",
       AI_TEXT_MODEL: "deepseek-v4-flash",
       JD_GAP_MATCH_PROMPT_VARIANT: "p2",
+      RESUME_JD_DIFFERENCE_PROMPT_VARIANT: "p1",
     });
+  });
+
+  it("fails closed for an unreviewed resume difference prompt variant", () => {
+    expect(() =>
+      parseServerEnv({
+        NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
+        NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "public-key",
+        SUPABASE_SECRET_KEY: "secret-key",
+        RESUME_JD_DIFFERENCE_PROMPT_VARIANT: "experimental",
+      }),
+    ).toThrow("RESUME_JD_DIFFERENCE_PROMPT_VARIANT");
   });
 
   it("fails closed for an unreviewed JD gap prompt variant", () => {
