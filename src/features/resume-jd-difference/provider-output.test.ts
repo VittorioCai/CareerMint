@@ -22,6 +22,14 @@ describe("resume JD compact provider protocol", () => {
     ]);
   });
 
+  it("preserves compatibility characters so citations remain exact", () => {
+    const source = "Built ﬁnancial dashboards with Ｔａｂｌｅａｕ.";
+
+    expect(buildSourceSegments(source, "resume")).toEqual([
+      { id: "resume-1", text: source },
+    ]);
+  });
+
   it("materializes exact source excerpts and deterministic graph ids", () => {
     const jdSegments = [
       {
@@ -36,6 +44,10 @@ describe("resume JD compact provider protocol", () => {
         id: "resume-1",
         text: "Worked with business teams on weekly reports.",
       },
+      {
+        id: "resume-2",
+        text: "Built Tableau dashboards for weekly reporting.",
+      },
     ];
     const providerOutput = resumeJDDifferenceProviderOutputSchema.parse({
       missionZh: "通过跨团队协作明确报告需求。",
@@ -45,6 +57,7 @@ describe("resume JD compact provider protocol", () => {
         {
           jdSegmentId: "jd-1",
           kind: "core",
+          comparisonMode: "semantic",
           conceptLabelZh: "相关方协作",
           jdTerms: ["business stakeholders", "reporting needs"],
           importanceReasonZh: "属于岗位核心职责。",
@@ -69,6 +82,7 @@ describe("resume JD compact provider protocol", () => {
         {
           jdSegmentId: "jd-2",
           kind: "gate",
+          comparisonMode: "strict",
           conceptLabelZh: "德语等级",
           jdTerms: ["German C1"],
           importanceReasonZh: "明确资格门槛。",
@@ -86,13 +100,14 @@ describe("resume JD compact provider protocol", () => {
         {
           jdSegmentId: "jd-3",
           kind: "preferred",
+          comparisonMode: "strict",
           conceptLabelZh: "Tableau",
           jdTerms: ["Tableau"],
           importanceReasonZh: "JD 明确列为加分项。",
           priority: "minor",
           translationZh: "有 Tableau 经验更佳。",
           assessment: "matched",
-          resumeSegmentId: "resume-1",
+          resumeSegmentId: "resume-2",
           profileFactIds: [],
           gapType: null,
           resumeStatusZh: "简历有可回查的相邻证据。",
@@ -121,7 +136,7 @@ describe("resume JD compact provider protocol", () => {
       expect.objectContaining({
         id: "matched-1",
         jdOriginal: jdSegments[2]?.text,
-        resumeExcerpt: resumeSegments[0]?.text,
+        resumeExcerpt: resumeSegments[1]?.text,
       }),
     ]);
     expect(output.directions).toEqual([
@@ -134,6 +149,100 @@ describe("resume JD compact provider protocol", () => {
     expect(output.overallDifference.topIssueIds).toEqual(["issue-1"]);
   });
 
+  it("downgrades a strict matched claim when the cited resume lacks the exact term", () => {
+    const providerOutput = resumeJDDifferenceProviderOutputSchema.parse({
+      missionZh: "维护云端服务。",
+      coreCapabilities: ["云平台", "服务开发", "系统运维"],
+      overallSummaryZh: "云平台要求需要严格核对。",
+      requirements: [
+        {
+          jdSegmentId: "jd-1",
+          kind: "core",
+          comparisonMode: "strict",
+          conceptLabelZh: "AWS 云平台",
+          jdTerms: ["AWS"],
+          importanceReasonZh: "岗位明确要求 AWS。",
+          priority: "critical",
+          translationZh: "需要 AWS 实践经验。",
+          assessment: "matched",
+          resumeSegmentId: "resume-1",
+          profileFactIds: [],
+          gapType: null,
+          resumeStatusZh: "简历提到云平台经验。",
+          problemZh: null,
+          reasonZh: "模型声称已经匹配。",
+          improvement: null,
+        },
+      ],
+    });
+
+    const output = materializeResumeJDDifferenceOutput(providerOutput, {
+      jdSegments: [{ id: "jd-1", text: "Hands-on AWS experience is required." }],
+      resumeSegments: [{ id: "resume-1", text: "Deployed services on Azure." }],
+      confirmedFactIds: new Set(),
+    });
+
+    expect(output.matched).toEqual([]);
+    expect(output.issues[0]).toMatchObject({
+      type: "missing",
+      authenticity: "unsupported",
+      resumeExcerpt: "Deployed services on Azure.",
+    });
+    expect(output.directions[0]).toMatchObject({
+      synonymousJobLanguage: [],
+      needsConfirmation: true,
+      authenticity: "unsupported",
+    });
+  });
+
+  it("does not turn a missing assessment into supported evidence from an unrelated citation", () => {
+    const providerOutput = resumeJDDifferenceProviderOutputSchema.parse({
+      missionZh: "开展实验分析。",
+      coreCapabilities: ["实验设计", "数据分析", "业务洞察"],
+      overallSummaryZh: "简历尚未覆盖实验设计。",
+      requirements: [
+        {
+          jdSegmentId: "jd-1",
+          kind: "core",
+          comparisonMode: "semantic",
+          conceptLabelZh: "A/B testing",
+          jdTerms: ["A/B testing"],
+          importanceReasonZh: "核心职责。",
+          priority: "critical",
+          translationZh: "需要 A/B 测试经验。",
+          assessment: "missing",
+          resumeSegmentId: "resume-1",
+          profileFactIds: [],
+          gapType: "missing",
+          resumeStatusZh: "引用了不相关的报告经历。",
+          problemZh: "没有实验设计证据。",
+          reasonZh: "当前材料未覆盖。",
+          improvement: {
+            targetSection: "experience",
+            targetExperienceZh: null,
+            focusAreas: ["method"],
+            synonymousJobLanguage: ["A/B testing"],
+            needsConfirmation: false,
+            directionZh: "先确认是否做过相关实验。",
+          },
+        },
+      ],
+    });
+
+    const output = materializeResumeJDDifferenceOutput(providerOutput, {
+      jdSegments: [{ id: "jd-1", text: "Experience with A/B testing." }],
+      resumeSegments: [{ id: "resume-1", text: "Prepared weekly reports." }],
+      confirmedFactIds: new Set(),
+    });
+
+    expect(output.issues[0]?.authenticity).toBe("unsupported");
+    expect(output.directions[0]).toMatchObject({
+      synonymousJobLanguage: [],
+      needsConfirmation: true,
+      authenticity: "unsupported",
+    });
+  });
+
   it("drops unknown references instead of publishing invented excerpts", () => {
     const providerOutput = resumeJDDifferenceProviderOutputSchema.parse({
       missionZh: "支持业务决策。",
@@ -143,6 +252,7 @@ describe("resume JD compact provider protocol", () => {
         {
           jdSegmentId: "jd-99",
           kind: "core",
+          comparisonMode: "semantic",
           conceptLabelZh: "分析",
           jdTerms: ["business data"],
           importanceReasonZh: "核心职责。",

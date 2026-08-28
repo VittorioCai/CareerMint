@@ -22,6 +22,7 @@ const sharedContract = `
 - 所有解释和方向使用简体中文；资料引用只填写输入中真实存在的 jdSegmentId、resumeSegmentId 和 profileFactIds。jdTerms 只能摘取该 JD 片段中真实连续出现的核心原词。
 - 每项独立核心要求输出一个 requirement，最多 24 项；不要把公司介绍、福利或同一要求的重复措辞当成独立要求。
 - kind：核心职责/必要能力用 core；明确资格门槛用 gate；明确加分项用 preferred。
+- comparisonMode：职责、业务语言和专业方向可做合理语义对应时用 semantic；工具、框架、云平台、具体方法、数字、等级和明确资格必须用 strict。strict 只有在简历引用中出现所有关键原词时才能 assessment=matched。
 - assessment：有直接或合理语义等价的简历证据用 matched；仅覆盖一部分用 partial；简历没有但已确认职业事实有证据用 profile_only；材料不足以可靠判断用 needs_confirmation；两处都没有用 missing。
 - matched 必须有 resumeSegmentId；只有 assessment=matched 时 gapType、problemZh、improvement 才为 null。
 - 非 matched 项必须填写 gapType 和 problemZh。非门槛项必须填写 improvement；门槛项 improvement 为 null，因为真实资格不能靠改措辞解决。
@@ -29,12 +30,13 @@ const sharedContract = `
 - 只输出 JSON，不要 Markdown、前后说明或代码围栏。
 
 严格 JSON 输出契约（示例值仅说明结构，不是可复用事实）：
-{"missionZh":"中文岗位使命","coreCapabilities":["能力一","能力二","能力三"],"overallSummaryZh":"中文总体差异判断","requirements":[{"jdSegmentId":"jd-1","kind":"core","conceptLabelZh":"中文概念","jdTerms":["JD 片段中的连续原词"],"importanceReasonZh":"中文重要性理由","priority":"critical","translationZh":"JD 片段的中文翻译","assessment":"partial","resumeSegmentId":"resume-2","profileFactIds":[],"gapType":"missing_context","resumeStatusZh":"当前简历已有内容的中文说明","problemZh":"尚未对上的具体问题","reasonZh":"中文判断依据","improvement":{"targetSection":"experience","targetExperienceZh":"应核对的真实经历","focusAreas":["context","stakeholders"],"synonymousJobLanguage":["JD 常用表达"],"needsConfirmation":false,"directionZh":"应核对和补足哪些真实要素，不写可直接粘贴的句子。"}}]}
+{"missionZh":"中文岗位使命","coreCapabilities":["能力一","能力二","能力三"],"overallSummaryZh":"中文总体差异判断","requirements":[{"jdSegmentId":"jd-1","kind":"core","comparisonMode":"semantic","conceptLabelZh":"中文概念","jdTerms":["JD 片段中的连续原词"],"importanceReasonZh":"中文重要性理由","priority":"critical","translationZh":"JD 片段的中文翻译","assessment":"partial","resumeSegmentId":"resume-2","profileFactIds":[],"gapType":"missing_context","resumeStatusZh":"当前简历已有内容的中文说明","problemZh":"尚未对上的具体问题","reasonZh":"中文判断依据","improvement":{"targetSection":"experience","targetExperienceZh":"应核对的真实经历","focusAreas":["context","stakeholders"],"synonymousJobLanguage":["JD 常用表达"],"needsConfirmation":false,"directionZh":"应核对和补足哪些真实要素，不写可直接粘贴的句子。"}}]}
 
 结构规则：
 - 所有对象只能包含示例中列出的字段，所有字段都必须保留；没有值时使用 null 或空数组。
 - jdSegmentId 必须来自输入的 JD 编号；resumeSegmentId 必须来自输入的简历编号或为 null；profileFactIds 只能使用输入中真实存在且已确认的 UUID。
 - priority 只能是 critical、important、minor。gapType 只能是 missing、language_misaligned、profile_only、skill_only、too_vague、missing_context、missing_result、needs_confirmation、gate 或 null。
+- comparisonMode 只能是 semantic 或 strict；不要把具体工具、等级、数字或资格标为 semantic。
 - targetSection 只能是 summary、experience、project、skills、education、languages、other。focusAreas 只能来自 action、context、stakeholders、method、result、placement。
 - synonymousJobLanguage 只能是适合描述已有真实经历的岗位语言提示；directionZh 只能是中文方向，不能写成可直接粘贴的外语简历句子。
 - 返回前静默核对引用编号、必填键和枚举；只返回 JSON。

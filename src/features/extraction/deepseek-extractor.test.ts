@@ -1094,6 +1094,7 @@ describe("DeepSeek resume JD difference compact adapter", () => {
       {
         jdSegmentId: "jd-1",
         kind: "core",
+        comparisonMode: "semantic",
         conceptLabelZh: "业务相关方协作",
         jdTerms: ["business stakeholders", "reporting needs"],
         importanceReasonZh: "岗位核心职责直接要求。",

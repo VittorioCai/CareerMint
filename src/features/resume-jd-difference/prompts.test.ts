@@ -25,6 +25,8 @@ describe("resume JD difference prompts", () => {
       expect(prompt.instructions).toContain("学科大类和业务语言");
       expect(prompt.instructions).toContain("工具、框架、云平台");
       expect(prompt.instructions).toContain("年限、数字、语言等级");
+      expect(prompt.instructions).toContain("comparisonMode");
+      expect(prompt.instructions).toContain("strict 只有在简历引用中出现所有关键原词");
       expect(prompt.instructions).toContain("只使用已确认职业事实");
       expect(prompt.instructions).toContain("当前材料未找到相关证据");
       expect(prompt.instructions).toContain("不得生成可直接粘贴");

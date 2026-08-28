@@ -40,6 +40,7 @@ const providerRequirementSchema = z
   .object({
     jdSegmentId: sourceSegmentIdSchema,
     kind: z.enum(["core", "gate", "preferred"]),
+    comparisonMode: z.enum(["semantic", "strict"]),
     conceptLabelZh: boundedText(160),
     jdTerms: z.array(boundedText(160)).min(1).max(12),
     importanceReasonZh: boundedText(600),
@@ -105,7 +106,7 @@ export function buildSourceSegments(
     }
   };
 
-  for (const rawLine of document.normalize("NFKC").split(/\r?\n/u)) {
+  for (const rawLine of document.split(/\r?\n/u)) {
     const line = rawLine.trim();
     if (!line) continue;
     const sentences =
@@ -147,10 +148,21 @@ function authenticity(input: {
   resumeExcerpt: string | null;
   profileFactIds: string[];
 }): DifferenceAuthenticity {
-  if (input.resumeExcerpt) return "supported";
-  if (input.profileFactIds.length > 0) return "profile_only";
+  if (input.assessment === "missing") return "unsupported";
   if (input.assessment === "needs_confirmation") return "needs_confirmation";
-  return "unsupported";
+  if (input.assessment === "profile_only") {
+    return input.profileFactIds.length > 0 ? "profile_only" : "unsupported";
+  }
+  if (input.resumeExcerpt) return "supported";
+  return input.profileFactIds.length > 0 ? "profile_only" : "unsupported";
+}
+
+function includesAllStrictTerms(excerpt: string | null, terms: string[]) {
+  if (!excerpt) return false;
+  const normalizedExcerpt = excerpt.normalize("NFKC").toLocaleLowerCase();
+  return terms.every((term) =>
+    normalizedExcerpt.includes(term.normalize("NFKC").toLocaleLowerCase()),
+  );
 }
 
 const priorityRank = { critical: 0, important: 1, minor: 2 } as const;
@@ -215,13 +227,19 @@ export function materializeResumeJDDifferenceOutput(
     const profileFactIds = item.profileFactIds.filter((id) =>
       context.confirmedFactIds.has(id),
     );
+    const effectiveAssessment =
+      item.assessment === "matched" &&
+      item.comparisonMode === "strict" &&
+      !includesAllStrictTerms(resumeExcerpt, sourceTerms)
+        ? "missing"
+        : item.assessment;
     const itemAuthenticity = authenticity({
-      assessment: item.assessment,
+      assessment: effectiveAssessment,
       resumeExcerpt,
       profileFactIds,
     });
     const canPublishAsMatched =
-      item.assessment === "matched" && resumeExcerpt !== null;
+      effectiveAssessment === "matched" && resumeExcerpt !== null;
 
     if (canPublishAsMatched) {
       matched.push({
@@ -246,7 +264,7 @@ export function materializeResumeJDDifferenceOutput(
           ? "missing"
           : itemAuthenticity === "needs_confirmation"
             ? "needs_confirmation"
-            : issueType(item);
+            : issueType({ ...item, assessment: effectiveAssessment });
     issues.push({
       id: issueId,
       conceptId,
@@ -286,6 +304,7 @@ export function materializeResumeJDDifferenceOutput(
       needsConfirmation:
         itemAuthenticity === "unsupported" ||
         itemAuthenticity === "profile_only" ||
+        itemAuthenticity === "needs_confirmation" ||
         (guidance?.needsConfirmation ?? true),
       directionZh:
         guidance?.directionZh ??
