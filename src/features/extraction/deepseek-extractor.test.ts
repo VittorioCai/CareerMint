@@ -1174,6 +1174,21 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
         },
       },
     });
+    const schema = body.text.format.schema;
+    expect(
+      schema.properties.jobCore.properties.gates.items.properties.originalText
+        .enum,
+    ).toEqual([input.jdText]);
+    expect(
+      schema.properties.jobCore.properties.preferredItems.items.properties
+        .originalText.enum,
+    ).toEqual([input.jdText]);
+    expect(schema.properties.issues.items.properties.jdOriginal.enum).toEqual([
+      input.jdText,
+    ]);
+    expect(schema.properties.matched.items.properties.jdOriginal.enum).toEqual([
+      input.jdText,
+    ]);
     expect(body.input).toBe(
       [
         `<job_description>\n${input.jdText}\n</job_description>`,

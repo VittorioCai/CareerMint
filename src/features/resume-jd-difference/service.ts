@@ -219,15 +219,53 @@ async function readResumeText(
   }
 }
 
-function requireJDExcerpt(jdText: string, candidate: string) {
+function requireJDExcerpt(
+  jdText: string,
+  candidate: string,
+  section: "concept" | "gate" | "preferred" | "issue" | "matched" | "direction",
+) {
   const exact = findExactExcerpt(jdText, candidate);
   if (!exact) {
     throw stagedFailure(
       "resume-jd-difference-evidence-invalid",
-      "evidence-jd",
+      `evidence-jd:${section}`,
     );
   }
   return exact;
+}
+
+function boundedDerivedTerm(sourceExcerpt: string) {
+  if (sourceExcerpt.length <= 160) return sourceExcerpt;
+  const wordBoundary = sourceExcerpt.lastIndexOf(" ", 160);
+  const end = wordBoundary >= 80 ? wordBoundary : 160;
+  return sourceExcerpt.slice(0, end).trim();
+}
+
+function verifiedDerivedTerms(input: {
+  jdText: string;
+  candidates: string[];
+  fallbackExcerpt: string | null;
+  section: "concept" | "direction";
+}) {
+  const exact = [
+    ...new Set(
+      input.candidates.flatMap((candidate) => {
+        const excerpt = findExactExcerpt(input.jdText, candidate);
+        return excerpt ? [excerpt] : [];
+      }),
+    ),
+  ];
+  if (exact.length > 0) return exact;
+  if (!input.fallbackExcerpt) {
+    requireJDExcerpt(input.jdText, input.candidates[0] ?? "", input.section);
+  }
+  return [
+    requireJDExcerpt(
+      input.jdText,
+      boundedDerivedTerm(input.fallbackExcerpt ?? ""),
+      input.section,
+    ),
+  ];
 }
 
 function strictConceptText(output: ResumeJDDifferenceOutput, issue: DifferenceIssue) {
@@ -294,14 +332,19 @@ export function verifyAndNormalizeDifferenceOutput(
   }
 
   const output = structuredClone(parsed.data);
-  for (const concept of output.jobCore.concepts) {
-    for (const term of concept.originalTerms) requireJDExcerpt(context.jdText, term);
-  }
   for (const gate of output.jobCore.gates) {
-    gate.originalText = requireJDExcerpt(context.jdText, gate.originalText);
+    gate.originalText = requireJDExcerpt(
+      context.jdText,
+      gate.originalText,
+      "gate",
+    );
   }
   for (const item of output.jobCore.preferredItems) {
-    item.originalText = requireJDExcerpt(context.jdText, item.originalText);
+    item.originalText = requireJDExcerpt(
+      context.jdText,
+      item.originalText,
+      "preferred",
+    );
   }
 
   const factById = new Map(context.confirmedFacts.map((fact) => [fact.id, fact]));
@@ -312,11 +355,60 @@ export function verifyAndNormalizeDifferenceOutput(
 
   output.issues = output.issues.map((issue) => {
     const next = { ...issue };
-    next.jdOriginal = requireJDExcerpt(context.jdText, issue.jdOriginal);
+    next.jdOriginal = requireJDExcerpt(
+      context.jdText,
+      issue.jdOriginal,
+      "issue",
+    );
     next.profileFactIds = verifyConfirmedFactIds(
       issue.profileFactIds,
       context.confirmedFacts,
     );
+
+    return next;
+  });
+
+  output.matched = output.matched.map((item) => {
+    const resumeExcerpt = findExactExcerpt(context.resumeText, item.resumeExcerpt);
+    if (!resumeExcerpt) {
+      throw stagedFailure(
+        "resume-jd-difference-evidence-invalid",
+        "evidence-resume",
+      );
+    }
+    return {
+      ...item,
+      jdOriginal: requireJDExcerpt(
+        context.jdText,
+        item.jdOriginal,
+        "matched",
+      ),
+      resumeExcerpt,
+      profileFactIds: verifyConfirmedFactIds(
+        item.profileFactIds,
+        context.confirmedFacts,
+      ),
+    };
+  });
+
+  output.jobCore.concepts = output.jobCore.concepts.map((concept) => {
+    const fallbackExcerpt =
+      output.issues.find((issue) => issue.conceptId === concept.id)?.jdOriginal ??
+      output.matched.find((item) => item.conceptId === concept.id)?.jdOriginal ??
+      null;
+    return {
+      ...concept,
+      originalTerms: verifiedDerivedTerms({
+        jdText: context.jdText,
+        candidates: concept.originalTerms,
+        fallbackExcerpt,
+        section: "concept",
+      }),
+    };
+  });
+
+  output.issues = output.issues.map((issue) => {
+    const next = { ...issue };
 
     const strictTerms = strictConceptText(output, next);
     if (strictTerms) {
@@ -364,39 +456,33 @@ export function verifyAndNormalizeDifferenceOutput(
     return next;
   });
 
-  output.matched = output.matched.map((item) => {
-    const resumeExcerpt = findExactExcerpt(context.resumeText, item.resumeExcerpt);
-    if (!resumeExcerpt) {
-      throw stagedFailure(
-        "resume-jd-difference-evidence-invalid",
-        "evidence-resume",
-      );
-    }
-    return {
-      ...item,
-      jdOriginal: requireJDExcerpt(context.jdText, item.jdOriginal),
-      resumeExcerpt,
-      profileFactIds: verifyConfirmedFactIds(
-        item.profileFactIds,
-        context.confirmedFacts,
-      ),
-    };
-  });
-
   output.directions = output.directions.map((direction) => {
-    for (const term of direction.jdTerms) requireJDExcerpt(context.jdText, term);
+    const linkedIssue = output.issues.find(({ id }) => id === direction.issueId);
+    const linkedConcept = output.jobCore.concepts.find(
+      ({ id }) => id === direction.conceptId,
+    );
+    const next = {
+      ...direction,
+      jdTerms: verifiedDerivedTerms({
+        jdText: context.jdText,
+        candidates: direction.jdTerms,
+        fallbackExcerpt:
+          linkedConcept?.originalTerms[0] ?? linkedIssue?.jdOriginal ?? null,
+        section: "direction",
+      }),
+    };
     const issueAuthenticity = authenticityByIssue.get(direction.issueId);
     if (issueAuthenticity === "unsupported") {
-      return unsupportedDirection(direction);
+      return unsupportedDirection(next);
     }
     if (issueAuthenticity === "profile_only") {
       return {
-        ...direction,
+        ...next,
         authenticity: "profile_only" as const,
         needsConfirmation: true,
       };
     }
-    return direction;
+    return next;
   });
 
   const final = resumeJDDifferenceOutputSchema.safeParse(output);

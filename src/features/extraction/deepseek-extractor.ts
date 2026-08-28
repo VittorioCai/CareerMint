@@ -71,6 +71,8 @@ const jdGapV3MaxTokens = 8192;
 const resumeJDDifferenceInvalidOutputError =
   "resume-jd-difference-invalid-output";
 const resumeJDDifferenceMaxTokens = 8192;
+const resumeJDDifferenceCitationMaxLength = 1_000;
+const resumeJDDifferenceCitationMaxCandidates = 320;
 
 const usageSchema = z
   .object({
@@ -283,12 +285,114 @@ function requestBody(
   };
 }
 
+type JSONSchemaNode = Record<string, unknown>;
+
+function asJSONSchemaNode(value: unknown): JSONSchemaNode | null {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as JSONSchemaNode)
+    : null;
+}
+
+function boundedExactSegments(value: string, maxLength: number) {
+  const segments: string[] = [];
+  let remaining = value.trim();
+  while (remaining.length > maxLength) {
+    const wordBoundary = remaining.lastIndexOf(" ", maxLength);
+    const end = wordBoundary >= Math.floor(maxLength / 2)
+      ? wordBoundary
+      : maxLength;
+    const segment = remaining.slice(0, end).trim();
+    if (segment) segments.push(segment);
+    remaining = remaining.slice(end).trimStart();
+  }
+  if (remaining) segments.push(remaining);
+  return segments;
+}
+
+function jdCitationCandidates(jdText: string) {
+  const candidates = new Set<string>();
+  const add = (value: string) => {
+    for (const segment of boundedExactSegments(
+      value,
+      resumeJDDifferenceCitationMaxLength,
+    )) {
+      if (candidates.size >= resumeJDDifferenceCitationMaxCandidates) return;
+      candidates.add(segment);
+    }
+  };
+
+  for (const rawLine of jdText.normalize("NFKC").split(/\r?\n/u)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    add(line);
+    for (const sentence of line.match(/[^.!?。！？;；]+(?:[.!?。！？;；]+|$)/gu) ?? []) {
+      add(sentence.trim());
+    }
+    if (candidates.size >= resumeJDDifferenceCitationMaxCandidates) break;
+  }
+
+  if (candidates.size === 0) {
+    throw new AdapterError(
+      resumeJDDifferenceInvalidOutputError,
+      false,
+      emptyUsage,
+      "citation-candidates-empty",
+    );
+  }
+  return [...candidates];
+}
+
+function constrainStringEnum(
+  schema: JSONSchemaNode,
+  path: readonly string[],
+  values: string[],
+) {
+  let current: JSONSchemaNode | null = schema;
+  for (const key of path) {
+    current = current ? asJSONSchemaNode(current[key]) : null;
+  }
+  if (!current) {
+    throw new AdapterError(
+      resumeJDDifferenceInvalidOutputError,
+      false,
+      emptyUsage,
+      "citation-schema-path",
+    );
+  }
+  current.enum = values;
+}
+
+function resumeJDDifferenceJSONSchema(jdText: string) {
+  const schema = asJSONSchemaNode(
+    z.toJSONSchema(resumeJDDifferenceOutputSchema),
+  );
+  if (!schema) {
+    throw new AdapterError(
+      resumeJDDifferenceInvalidOutputError,
+      false,
+      emptyUsage,
+      "citation-schema-root",
+    );
+  }
+  const citations = jdCitationCandidates(jdText);
+  for (const path of [
+    ["properties", "jobCore", "properties", "gates", "items", "properties", "originalText"],
+    ["properties", "jobCore", "properties", "preferredItems", "items", "properties", "originalText"],
+    ["properties", "issues", "items", "properties", "jdOriginal"],
+    ["properties", "matched", "items", "properties", "jdOriginal"],
+  ] as const) {
+    constrainStringEnum(schema, path, citations);
+  }
+  return schema;
+}
+
 function responsesRequestBody(
   model: string,
   instructions: string,
   input: string,
   maxOutputTokens: number,
   schema: z.ZodType,
+  jsonSchema?: JSONSchemaNode,
 ) {
   return {
     model,
@@ -299,7 +403,7 @@ function responsesRequestBody(
       format: {
         type: "json_schema",
         name: "resume_jd_difference",
-        schema: z.toJSONSchema(schema),
+        schema: jsonSchema ?? z.toJSONSchema(schema),
       },
     },
     stream: false,
@@ -503,12 +607,14 @@ export function createDeepSeekAIProvider(
     outputSchema,
     invalidOutputError,
     maxTokens,
+    jsonSchema,
   }: {
     systemInstructions: string;
     userContent: string;
     outputSchema: z.ZodType<Output>;
     invalidOutputError: string;
     maxTokens: number;
+    jsonSchema?: JSONSchemaNode;
   }): Promise<AIResult<Output>> {
     const startedAt = performance.now();
     let status: number | null = null;
@@ -529,6 +635,7 @@ export function createDeepSeekAIProvider(
             userContent,
             maxTokens,
             outputSchema,
+            jsonSchema,
           ),
         ),
         signal: AbortSignal.timeout(50_000),
@@ -810,6 +917,7 @@ export function createDeepSeekAIProvider(
         outputSchema: resumeJDDifferenceOutputSchema,
         invalidOutputError: resumeJDDifferenceInvalidOutputError,
         maxTokens: configuredResumeJDDifferenceMaxTokens,
+        jsonSchema: resumeJDDifferenceJSONSchema(input.jdText),
       });
     },
   };
