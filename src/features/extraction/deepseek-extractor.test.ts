@@ -66,6 +66,40 @@ function successResponse(
   );
 }
 
+function responsesSuccessResponse(
+  content: string,
+  status: "completed" | "incomplete" | "failed" = "completed",
+) {
+  return new Response(
+    JSON.stringify({
+      id: "response-123",
+      object: "response",
+      status,
+      error: status === "failed" ? { code: "provider_error" } : null,
+      incomplete_details:
+        status === "incomplete" ? { reason: "max_output_tokens" } : null,
+      model: "deepseek-v4-flash",
+      output: [
+        {
+          type: "message",
+          id: "message-123",
+          status,
+          role: "assistant",
+          content: [{ type: "output_text", text: content }],
+        },
+      ],
+      usage: {
+        input_tokens: 30,
+        input_tokens_details: { cached_tokens: 10 },
+        output_tokens: 40,
+        output_tokens_details: { reasoning_tokens: 0 },
+        total_tokens: 70,
+      },
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+}
+
 function createProvider(fetchImpl: typeof fetch, log = vi.fn()) {
   return {
     provider: createDeepSeekAIProvider({
@@ -1112,7 +1146,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("sends JD, selected resume, and confirmed facts in one request", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(successResponse(JSON.stringify(output)));
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(output)));
     const { provider, log } = createProvider(fetchImpl);
 
     const result = await provider.analyzeResumeJDDifference(input, {
@@ -1120,14 +1154,27 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
-    const [, init] = fetchImpl.mock.calls[0]!;
+    const [url, init] = fetchImpl.mock.calls[0]!;
     const body = JSON.parse(String(init?.body));
-    expect(body.max_tokens).toBe(8192);
-    expect(body.messages[0]).toEqual({
-      role: "system",
-      content: differencePromptVariants.p2.instructions,
+    expect(url).toBe("https://api.deepseek.com/responses");
+    expect(body).toMatchObject({
+      model: "deepseek-v4-flash",
+      instructions: differencePromptVariants.p2.instructions,
+      reasoning: { effort: "none" },
+      stream: false,
+      max_output_tokens: 8192,
+      text: {
+        format: {
+          type: "json_schema",
+          name: "resume_jd_difference",
+          schema: {
+            type: "object",
+            additionalProperties: false,
+          },
+        },
+      },
     });
-    expect(body.messages[1].content).toBe(
+    expect(body.input).toBe(
       [
         `<job_description>\n${input.jdText}\n</job_description>`,
         `<selected_resume>\n${input.resumeText}\n</selected_resume>`,
@@ -1142,7 +1189,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("allows the evaluation runner to lower only V4 output tokens", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(successResponse(JSON.stringify(output)));
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(output)));
     const provider = createDeepSeekAIProvider({
       apiKey: "test-key",
       model: "deepseek-v4-flash",
@@ -1153,13 +1200,13 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     await provider.analyzeResumeJDDifference(input, { promptVariant: "p1" });
 
     const [, init] = fetchImpl.mock.calls[0]!;
-    expect(JSON.parse(String(init?.body)).max_tokens).toBe(4096);
+    expect(JSON.parse(String(init?.body)).max_output_tokens).toBe(4096);
   });
 
   it("does not retry invalid V4 output", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(successResponse('{"jobCore":'));
+      .mockResolvedValue(responsesSuccessResponse('{"jobCore":'));
     const { provider, log } = createProvider(fetchImpl);
 
     await expect(
@@ -1178,7 +1225,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("logs only a safe stage when V4 JSON violates the output schema", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(successResponse('{"jobCore":{}}'));
+      .mockResolvedValue(responsesSuccessResponse('{"jobCore":{}}'));
     const { provider, log } = createProvider(fetchImpl);
 
     await expect(

@@ -60,6 +60,7 @@ import {
 } from "./schemas";
 
 const endpoint = "https://api.deepseek.com/chat/completions";
+const responsesEndpoint = "https://api.deepseek.com/responses";
 const providerName = "deepseek";
 const invalidOutputError = "resume-extraction-invalid-output";
 const resumeGapInvalidOutputError = "resume-gap-invalid-output";
@@ -90,6 +91,33 @@ const responseEnvelopeSchema = z.object({
     )
     .min(1),
   usage: usageSchema,
+});
+
+const responsesEnvelopeSchema = z.object({
+  id: z.string().min(1),
+  status: z.enum(["in_progress", "completed", "incomplete", "failed"]),
+  output: z.array(
+    z.object({
+      type: z.string(),
+      content: z
+        .array(
+          z.object({
+            type: z.string(),
+            text: z.string().optional(),
+          }),
+        )
+        .optional(),
+    }),
+  ),
+  usage: z
+    .object({
+      input_tokens: z.number().int().nonnegative(),
+      input_tokens_details: z
+        .object({ cached_tokens: z.number().int().nonnegative().optional() })
+        .optional(),
+      output_tokens: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 export type AIMetadataLog = {
@@ -252,6 +280,30 @@ function requestBody(
     thinking: { type: "disabled" },
     stream: false,
     max_tokens: maxTokens,
+  };
+}
+
+function responsesRequestBody(
+  model: string,
+  instructions: string,
+  input: string,
+  maxOutputTokens: number,
+  schema: z.ZodType,
+) {
+  return {
+    model,
+    instructions,
+    input,
+    reasoning: { effort: "none" },
+    text: {
+      format: {
+        type: "json_schema",
+        name: "resume_jd_difference",
+        schema: z.toJSONSchema(schema),
+      },
+    },
+    stream: false,
+    max_output_tokens: maxOutputTokens,
   };
 }
 
@@ -445,6 +497,177 @@ export function createDeepSeekAIProvider(
     throw new AdapterError(invalidOutputError);
   }
 
+  async function runStructuredResponseAttempt<Output>({
+    systemInstructions,
+    userContent,
+    outputSchema,
+    invalidOutputError,
+    maxTokens,
+  }: {
+    systemInstructions: string;
+    userContent: string;
+    outputSchema: z.ZodType<Output>;
+    invalidOutputError: string;
+    maxTokens: number;
+  }): Promise<AIResult<Output>> {
+    const startedAt = performance.now();
+    let status: number | null = null;
+    let requestId: string | null = null;
+    let usage = emptyUsage;
+
+    try {
+      const response = await fetchImpl(responsesEndpoint, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${apiKey}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(
+          responsesRequestBody(
+            model,
+            systemInstructions,
+            userContent,
+            maxTokens,
+            outputSchema,
+          ),
+        ),
+        signal: AbortSignal.timeout(50_000),
+      });
+
+      status = response.status;
+      requestId = response.headers.get("x-request-id");
+      if (!response.ok) throw new AdapterError(httpError(response.status));
+
+      let rawEnvelope: unknown;
+      try {
+        rawEnvelope = await response.json();
+      } catch {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          emptyUsage,
+          "envelope-json",
+        );
+      }
+
+      const envelope = responsesEnvelopeSchema.safeParse(rawEnvelope);
+      if (!envelope.success) {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          emptyUsage,
+          "envelope-schema",
+        );
+      }
+
+      requestId = envelope.data.id;
+      const cachedTokens =
+        envelope.data.usage?.input_tokens_details?.cached_tokens ?? 0;
+      usage = {
+        inputCacheHitTokens: cachedTokens,
+        inputCacheMissTokens: Math.max(
+          0,
+          (envelope.data.usage?.input_tokens ?? 0) - cachedTokens,
+        ),
+        outputTokens: envelope.data.usage?.output_tokens ?? 0,
+      };
+
+      if (envelope.data.status === "failed") {
+        throw new AdapterError(
+          "ai-provider-request-failed",
+          false,
+          usage,
+          "response-failed",
+        );
+      }
+      if (envelope.data.status !== "completed") {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          "response-incomplete",
+        );
+      }
+
+      const content = envelope.data.output
+        .filter((item) => item.type === "message")
+        .flatMap((item) => item.content ?? [])
+        .filter((part) => part.type === "output_text")
+        .map((part) => part.text ?? "")
+        .join("")
+        .trim();
+      if (!content) {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          "empty-content",
+        );
+      }
+
+      let rawExtraction: unknown;
+      try {
+        rawExtraction = JSON.parse(content);
+      } catch {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          "content-json",
+        );
+      }
+
+      const extraction = outputSchema.safeParse(rawExtraction);
+      if (!extraction.success) {
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          schemaFailureStage(extraction.error),
+        );
+      }
+
+      safeLog(logger, {
+        provider: providerName,
+        model,
+        requestId,
+        status,
+        latencyMs: Math.round(performance.now() - startedAt),
+        usage,
+        errorCode: null,
+      });
+
+      return {
+        data: extraction.data,
+        provider: providerName,
+        model,
+        requestId,
+        usage,
+      };
+    } catch (error) {
+      const adapterError =
+        error instanceof AdapterError
+          ? error
+          : error instanceof DOMException && error.name === "AbortError"
+            ? new AdapterError("ai-provider-timeout")
+            : error instanceof DOMException && error.name === "TimeoutError"
+              ? new AdapterError("ai-provider-timeout")
+              : new AdapterError("ai-provider-request-failed");
+
+      safeLog(logger, {
+        provider: providerName,
+        model,
+        requestId,
+        status,
+        latencyMs: Math.round(performance.now() - startedAt),
+        usage,
+        errorCode: adapterError.code,
+        failureStage: adapterError.failureStage,
+      });
+      throw adapterError;
+    }
+  }
+
   return {
     async extractResumeFacts(resumeText) {
       return withInvalidOutputRetry<ResumeExtraction>(
@@ -577,7 +800,7 @@ export function createDeepSeekAIProvider(
       options: { promptVariant: DifferencePromptVariant },
     ) {
       const prompt = differencePromptVariants[options.promptVariant];
-      return runAttempt<ResumeJDDifferenceOutput>({
+      return runStructuredResponseAttempt<ResumeJDDifferenceOutput>({
         systemInstructions: prompt.instructions,
         userContent: [
           `<job_description>\n${input.jdText}\n</job_description>`,
