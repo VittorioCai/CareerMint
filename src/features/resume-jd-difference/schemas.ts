@@ -134,7 +134,7 @@ export const resumeJDDifferenceOutputSchema = z
     jobCore: z
       .object({
         missionZh: boundedText(800),
-        coreCapabilities: z.array(boundedText(240)).min(3).max(5),
+        coreCapabilities: z.array(boundedText(240)).max(5),
         concepts: z.array(jobConceptSchema).min(1).max(24),
         gates: z.array(jobGateSchema).max(16),
         preferredItems: z.array(preferredItemSchema).max(16),
@@ -143,10 +143,10 @@ export const resumeJDDifferenceOutputSchema = z
     overallDifference: z
       .object({
         summaryZh: boundedText(1_000),
-        topIssueIds: z.array(localIdSchema).min(1).max(3),
+        topIssueIds: z.array(localIdSchema).max(3),
       })
       .strict(),
-    issues: z.array(differenceIssueSchema).min(1).max(80),
+    issues: z.array(differenceIssueSchema).max(80),
     matched: z.array(matchedItemSchema).max(80),
     directions: z.array(improvementDirectionSchema).max(80),
   })

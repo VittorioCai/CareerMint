@@ -42,6 +42,16 @@ function stagedFailure(code: string, failureStage: string) {
   return error;
 }
 
+function safeOutputTokens(error: unknown) {
+  if (!error || typeof error !== "object" || !("usage" in error)) return null;
+  const usage = (error as { usage?: unknown }).usage;
+  if (!usage || typeof usage !== "object") return null;
+  const tokens = (usage as { outputTokens?: unknown }).outputTokens;
+  return typeof tokens === "number" && Number.isInteger(tokens) && tokens >= 0
+    ? tokens
+    : null;
+}
+
 function safeFailureStage(error: unknown) {
   if (!error || typeof error !== "object" || !("failureStage" in error)) {
     return null;
@@ -679,6 +689,7 @@ export function createResumeJDDifferenceService(
             policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
             errorCode: safe.errorCode,
             failureStage: safeFailureStage(error),
+            outputTokens: safeOutputTokens(error),
           });
           return { run: failed, reused: false };
         } catch {

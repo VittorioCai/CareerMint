@@ -30,34 +30,22 @@ describe("resume JD difference prompts", () => {
       expect(prompt.instructions).toContain("不得生成可直接粘贴");
       expect(prompt.instructions).toContain("不得虚构");
       expect(prompt.instructions).toContain("严格 JSON");
-      expect(prompt.instructions).toContain(
-        "从 Schema 提供的 JD 原文候选中原样选择",
-      );
+      expect(prompt.instructions).toContain("只引用编号，不复制原文");
     },
   );
 
   it.each(Object.entries(differencePromptVariants))(
     "%s gives the model the complete strict JSON contract",
     (_name, prompt) => {
-      expect(prompt.instructions).toContain(
-        '{"jobCore":{"missionZh"',
-      );
-      expect(prompt.instructions).toContain(
-        '"overallDifference":{"summaryZh"',
-      );
-      expect(prompt.instructions).toContain('"issues":[{"id":"issue-1"');
-      expect(prompt.instructions).toContain('"matched":[{"id":"matched-1"');
-      expect(prompt.instructions).toContain(
-        '"directions":[{"id":"direction-1"',
-      );
+      expect(prompt.instructions).toContain('{"missionZh"');
+      expect(prompt.instructions).toContain('"coreCapabilities"');
+      expect(prompt.instructions).toContain('"overallSummaryZh"');
+      expect(prompt.instructions).toContain('"improvement":{');
       expect(prompt.instructions).toContain(
         "所有对象只能包含示例中列出的字段",
       );
       expect(prompt.instructions).toContain(
-        "所有非门槛 issue 都必须至少关联一条 direction",
-      );
-      expect(prompt.instructions).toContain(
-        "topIssueIds、conceptId 和 issueId 必须引用本次输出中真实存在的 ID",
+        "jdSegmentId 必须来自输入的 JD 编号",
       );
     },
   );
@@ -67,9 +55,21 @@ describe("resume JD difference prompts", () => {
       .toBe(3);
     expect(Object.values(differencePromptVariants).map(({ version }) => version))
       .toEqual([
-        "resume-jd-difference-p1-v4.2",
-        "resume-jd-difference-p2-v4.2",
-        "resume-jd-difference-p3-v4.2",
+        "resume-jd-difference-p1-v5.0",
+        "resume-jd-difference-p2-v5.0",
+        "resume-jd-difference-p3-v5.0",
       ]);
   });
+
+  it.each(Object.entries(differencePromptVariants))(
+    "%s asks for segment ids rather than copied source text",
+    (_name, prompt) => {
+      expect(prompt.instructions).toContain("jdSegmentId");
+      expect(prompt.instructions).toContain("resumeSegmentId");
+      expect(prompt.instructions).toContain('"requirements":[{');
+      expect(prompt.instructions).not.toContain('"jobCore"');
+      expect(prompt.instructions).not.toContain('"issues"');
+      expect(prompt.instructions).not.toContain('"directions"');
+    },
+  );
 });

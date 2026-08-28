@@ -48,11 +48,15 @@ import {
   differencePromptVariants,
   type DifferencePromptVariant,
 } from "@/features/resume-jd-difference/prompts";
+import { type ResumeJDDifferenceInput } from "@/features/resume-jd-difference/schemas";
 import {
-  resumeJDDifferenceOutputSchema,
-  type ResumeJDDifferenceInput,
-  type ResumeJDDifferenceOutput,
-} from "@/features/resume-jd-difference/schemas";
+  buildSourceSegments,
+  materializeResumeJDDifferenceOutput,
+  repairProviderOutput,
+  resumeJDDifferenceProviderOutputSchema,
+  type DifferenceSourceSegment,
+  type ResumeJDDifferenceProviderOutput,
+} from "@/features/resume-jd-difference/provider-output";
 import { resumeExtractionInstructions } from "./prompt";
 import {
   resumeExtractionSchema,
@@ -71,8 +75,6 @@ const jdGapV3MaxTokens = 8192;
 const resumeJDDifferenceInvalidOutputError =
   "resume-jd-difference-invalid-output";
 const resumeJDDifferenceMaxTokens = 8192;
-const resumeJDDifferenceCitationMaxLength = 1_000;
-const resumeJDDifferenceCitationMaxCandidates = 320;
 
 const usageSchema = z
   .object({
@@ -266,6 +268,55 @@ function schemaFailureStage(error: z.ZodError) {
   return `content-schema:${code}${path ? `:${path}` : ""}`.slice(0, 80);
 }
 
+function escapeControlCharsInStrings(value: string) {
+  let out = "";
+  let inString = false;
+  let escaped = false;
+  for (const character of value) {
+    if (escaped) {
+      out += character;
+      escaped = false;
+      continue;
+    }
+    if (character === "\\") {
+      out += character;
+      escaped = true;
+      continue;
+    }
+    if (character === '"') {
+      inString = !inString;
+      out += character;
+      continue;
+    }
+    const code = character.codePointAt(0) ?? 0;
+    if (inString && code < 0x20) {
+      out += code === 10 ? "\\n" : code === 13 ? "\\r" : code === 9 ? "\\t" : "";
+      continue;
+    }
+    out += character;
+  }
+  return out;
+}
+
+function parseStructuredContent(content: string) {
+  const trimmed = content.trim();
+  const fenced = /^```(?:json)?\s*([\s\S]*?)\s*```$/iu.exec(trimmed)?.[1]?.trim();
+  const base = fenced ?? trimmed;
+  for (const candidate of new Set([
+    trimmed,
+    fenced,
+    escapeControlCharsInStrings(base),
+  ])) {
+    if (!candidate) continue;
+    try {
+      return { ok: true as const, value: JSON.parse(candidate) as unknown };
+    } catch {
+      // Try the next deterministic unwrapping without repairing content.
+    }
+  }
+  return { ok: false as const };
+}
+
 function requestBody(
   model: string,
   systemInstructions: string,
@@ -293,96 +344,34 @@ function asJSONSchemaNode(value: unknown): JSONSchemaNode | null {
     : null;
 }
 
-function boundedExactSegments(value: string, maxLength: number) {
-  const segments: string[] = [];
-  let remaining = value.trim();
-  while (remaining.length > maxLength) {
-    const wordBoundary = remaining.lastIndexOf(" ", maxLength);
-    const end = wordBoundary >= Math.floor(maxLength / 2)
-      ? wordBoundary
-      : maxLength;
-    const segment = remaining.slice(0, end).trim();
-    if (segment) segments.push(segment);
-    remaining = remaining.slice(end).trimStart();
-  }
-  if (remaining) segments.push(remaining);
-  return segments;
-}
-
-function jdCitationCandidates(jdText: string) {
-  const candidates = new Set<string>();
-  const add = (value: string) => {
-    for (const segment of boundedExactSegments(
-      value,
-      resumeJDDifferenceCitationMaxLength,
-    )) {
-      if (candidates.size >= resumeJDDifferenceCitationMaxCandidates) return;
-      candidates.add(segment);
-    }
-  };
-
-  for (const rawLine of jdText.normalize("NFKC").split(/\r?\n/u)) {
-    const line = rawLine.trim();
-    if (!line) continue;
-    add(line);
-    for (const sentence of line.match(/[^.!?。！？;；]+(?:[.!?。！？;；]+|$)/gu) ?? []) {
-      add(sentence.trim());
-    }
-    if (candidates.size >= resumeJDDifferenceCitationMaxCandidates) break;
-  }
-
-  if (candidates.size === 0) {
-    throw new AdapterError(
-      resumeJDDifferenceInvalidOutputError,
-      false,
-      emptyUsage,
-      "citation-candidates-empty",
-    );
-  }
-  return [...candidates];
-}
-
-function constrainStringEnum(
-  schema: JSONSchemaNode,
-  path: readonly string[],
-  values: string[],
+function resumeJDDifferenceProviderJSONSchema(
+  jdSegments: DifferenceSourceSegment[],
+  resumeSegments: DifferenceSourceSegment[],
 ) {
-  let current: JSONSchemaNode | null = schema;
-  for (const key of path) {
-    current = current ? asJSONSchemaNode(current[key]) : null;
-  }
-  if (!current) {
-    throw new AdapterError(
-      resumeJDDifferenceInvalidOutputError,
-      false,
-      emptyUsage,
-      "citation-schema-path",
-    );
-  }
-  current.enum = values;
-}
-
-function resumeJDDifferenceJSONSchema(jdText: string) {
   const schema = asJSONSchemaNode(
-    z.toJSONSchema(resumeJDDifferenceOutputSchema),
+    z.toJSONSchema(resumeJDDifferenceProviderOutputSchema),
   );
-  if (!schema) {
+  const items = asJSONSchemaNode(
+    asJSONSchemaNode(asJSONSchemaNode(schema?.properties)?.requirements)?.items,
+  );
+  const itemProperties = asJSONSchemaNode(items?.properties);
+  const jdSegmentId = asJSONSchemaNode(itemProperties?.jdSegmentId);
+  const resumeSegmentId = asJSONSchemaNode(itemProperties?.resumeSegmentId);
+  const resumeString = (
+    Array.isArray(resumeSegmentId?.anyOf) ? resumeSegmentId.anyOf : []
+  )
+    .map(asJSONSchemaNode)
+    .find((variant) => variant?.type === "string");
+  if (!schema || !jdSegmentId || !resumeString) {
     throw new AdapterError(
       resumeJDDifferenceInvalidOutputError,
       false,
       emptyUsage,
-      "citation-schema-root",
+      "source-reference-schema",
     );
   }
-  const citations = jdCitationCandidates(jdText);
-  for (const path of [
-    ["properties", "jobCore", "properties", "gates", "items", "properties", "originalText"],
-    ["properties", "jobCore", "properties", "preferredItems", "items", "properties", "originalText"],
-    ["properties", "issues", "items", "properties", "jdOriginal"],
-    ["properties", "matched", "items", "properties", "jdOriginal"],
-  ] as const) {
-    constrainStringEnum(schema, path, citations);
-  }
+  jdSegmentId.enum = jdSegments.map(({ id }) => id);
+  resumeString.enum = resumeSegments.map(({ id }) => id);
   return schema;
 }
 
@@ -608,6 +597,7 @@ export function createDeepSeekAIProvider(
     invalidOutputError,
     maxTokens,
     jsonSchema,
+    preprocess,
   }: {
     systemInstructions: string;
     userContent: string;
@@ -615,6 +605,7 @@ export function createDeepSeekAIProvider(
     invalidOutputError: string;
     maxTokens: number;
     jsonSchema?: JSONSchemaNode;
+    preprocess?: (value: unknown) => unknown;
   }): Promise<AIResult<Output>> {
     const startedAt = performance.now();
     let status: number | null = null;
@@ -712,10 +703,8 @@ export function createDeepSeekAIProvider(
         );
       }
 
-      let rawExtraction: unknown;
-      try {
-        rawExtraction = JSON.parse(content);
-      } catch {
+      const parsedContent = parseStructuredContent(content);
+      if (!parsedContent.ok) {
         throw new AdapterError(
           invalidOutputError,
           false,
@@ -724,7 +713,9 @@ export function createDeepSeekAIProvider(
         );
       }
 
-      const extraction = outputSchema.safeParse(rawExtraction);
+      const extraction = outputSchema.safeParse(
+        preprocess ? preprocess(parsedContent.value) : parsedContent.value,
+      );
       if (!extraction.success) {
         throw new AdapterError(
           invalidOutputError,
@@ -907,18 +898,50 @@ export function createDeepSeekAIProvider(
       options: { promptVariant: DifferencePromptVariant },
     ) {
       const prompt = differencePromptVariants[options.promptVariant];
-      return runStructuredResponseAttempt<ResumeJDDifferenceOutput>({
-        systemInstructions: prompt.instructions,
-        userContent: [
-          `<job_description>\n${input.jdText}\n</job_description>`,
-          `<selected_resume>\n${input.resumeText}\n</selected_resume>`,
-          `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
-        ].join("\n"),
-        outputSchema: resumeJDDifferenceOutputSchema,
-        invalidOutputError: resumeJDDifferenceInvalidOutputError,
-        maxTokens: configuredResumeJDDifferenceMaxTokens,
-        jsonSchema: resumeJDDifferenceJSONSchema(input.jdText),
-      });
+      const jdSegments = buildSourceSegments(input.jdText, "jd");
+      const resumeSegments = buildSourceSegments(input.resumeText, "resume");
+      if (jdSegments.length === 0) {
+        throw new AdapterError(
+          resumeJDDifferenceInvalidOutputError,
+          false,
+          emptyUsage,
+          "source-segments-empty",
+        );
+      }
+      const compact =
+        await runStructuredResponseAttempt<ResumeJDDifferenceProviderOutput>({
+          systemInstructions: prompt.instructions,
+          userContent: [
+            `<job_description_segments_json>\n${JSON.stringify(jdSegments)}\n</job_description_segments_json>`,
+            `<selected_resume_segments_json>\n${JSON.stringify(resumeSegments)}\n</selected_resume_segments_json>`,
+            `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
+          ].join("\n"),
+          outputSchema: resumeJDDifferenceProviderOutputSchema,
+          invalidOutputError: resumeJDDifferenceInvalidOutputError,
+          maxTokens: configuredResumeJDDifferenceMaxTokens,
+          jsonSchema: resumeJDDifferenceProviderJSONSchema(
+            jdSegments,
+            resumeSegments,
+          ),
+          preprocess: repairProviderOutput,
+        });
+      try {
+        return {
+          ...compact,
+          data: materializeResumeJDDifferenceOutput(compact.data, {
+            jdSegments,
+            resumeSegments,
+            confirmedFactIds: new Set(input.confirmedFacts.map(({ id }) => id)),
+          }),
+        };
+      } catch {
+        throw new AdapterError(
+          resumeJDDifferenceInvalidOutputError,
+          false,
+          compact.usage,
+          "source-reference",
+        );
+      }
     },
   };
 }
