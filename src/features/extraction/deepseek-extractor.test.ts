@@ -1188,9 +1188,9 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     expect(log).toHaveBeenCalledWith(
       expect.objectContaining({
         errorCode: "resume-jd-difference-invalid-output",
-        failureStage: "content-schema",
+        failureStage: "content-schema:invalid-type:jobCore-missionZh",
       }),
     );
-    expect(JSON.stringify(log.mock.calls)).not.toContain("jobCore");
+    expect(JSON.stringify(log.mock.calls)).not.toContain('{"jobCore":{}}');
   });
 });

@@ -224,6 +224,18 @@ function safeLog(logger: MetadataLogger, entry: AIMetadataLog) {
   }
 }
 
+function schemaFailureStage(error: z.ZodError) {
+  const issue = error.issues[0];
+  if (!issue) return "content-schema";
+  const code = issue.code.replaceAll("_", "-");
+  const path = issue.path
+    .map((part) => String(part))
+    .join("-")
+    .replaceAll(/[^A-Za-z0-9-]/gu, "-")
+    .slice(0, 48);
+  return `content-schema:${code}${path ? `:${path}` : ""}`.slice(0, 80);
+}
+
 function requestBody(
   model: string,
   systemInstructions: string,
@@ -361,7 +373,7 @@ export function createDeepSeekAIProvider(
           invalidOutputError,
           true,
           usage,
-          "content-schema",
+          schemaFailureStage(extraction.error),
         );
       }
 
