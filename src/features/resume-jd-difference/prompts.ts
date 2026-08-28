@@ -23,6 +23,20 @@ const sharedContract = `
 - 每个非门槛问题必须关联至少一条完善方向；门槛问题可以说明无法通过改简历解决。
 - unsupported 的方向不得提供可直接采用的同义岗位语言，必须提醒先确认真实经历或不要加入。
 - 只输出 JSON，不要 Markdown、前后说明或代码围栏。
+
+严格 JSON 输出契约（示例值仅说明结构，不是可复用事实）：
+{"jobCore":{"missionZh":"中文岗位使命","coreCapabilities":["能力一","能力二","能力三"],"concepts":[{"id":"concept-1","labelZh":"中文概念","originalTerms":["JD 原词"],"importanceReasonZh":"中文重要性理由","priority":"critical"}],"gates":[{"id":"gate-1","originalText":"JD 门槛原文","translationZh":"中文翻译","reasonZh":"中文理由"}],"preferredItems":[{"id":"preferred-1","originalText":"JD 加分项原文","translationZh":"中文翻译","reasonZh":"中文理由"}]},"overallDifference":{"summaryZh":"中文总体判断","topIssueIds":["issue-1"]},"issues":[{"id":"issue-1","conceptId":"concept-1","jdOriginal":"JD 连续原文","jdTranslationZh":"中文解释","resumeExcerpt":null,"resumeStatusZh":"当前材料未找到相关证据","profileFactIds":[],"type":"missing","problemZh":"中文问题点","reasonZh":"中文判断依据","priority":"critical","isGate":false,"authenticity":"unsupported"}],"matched":[{"id":"matched-1","conceptId":"concept-1","jdOriginal":"JD 连续原文","jdTranslationZh":"中文解释","resumeExcerpt":"简历连续原文","profileFactIds":[],"reasonZh":"中文匹配理由"}],"directions":[{"id":"direction-1","issueId":"issue-1","targetSection":"experience","targetExperienceZh":null,"conceptId":"concept-1","jdTerms":["JD 原词"],"focusAreas":["context"],"synonymousJobLanguage":[],"authenticity":"unsupported","needsConfirmation":true,"directionZh":"先确认是否有真实相关经历；没有则不要加入。"}]}
+
+结构规则：
+- 所有对象只能包含示例中列出的字段；即使数组为空也必须保留 jobCore、overallDifference、issues、matched、directions 及其规定字段。
+- ID 使用小写英文字母加连字符和正整数，例如 concept-1、gate-1、preferred-1、issue-1、matched-1、direction-1；全部 ID 在整个输出中唯一。
+- topIssueIds、conceptId 和 issueId 必须引用本次输出中真实存在的 ID；无法关联概念时 conceptId 使用 null。
+- priority 只能是 critical、important、minor。issue.type 只能是 missing、language_misaligned、profile_only、skill_only、too_vague、missing_context、missing_result、needs_confirmation、gate。
+- authenticity 只能是 supported、profile_only、needs_confirmation、unsupported。targetSection 只能是 summary、experience、project、skills、education、languages、other。focusAreas 只能来自 action、context、stakeholders、method、result、placement。
+- resumeExcerpt 只能是简历中的连续原文或 null；profileFactIds 只能使用输入中真实存在且已确认的 UUID。
+- type 为 gate 时 isGate 必须为 true，其他 type 的 isGate 必须为 false。所有非门槛 issue 都必须至少关联一条 direction。
+- unsupported direction 的 synonymousJobLanguage 必须为空数组且 needsConfirmation 必须为 true；directionZh 只能是中文方向，不能写成可直接粘贴的外语简历句子。
+- 返回前静默核对全部必填键、枚举、ID 引用和非门槛 issue 的 direction；只返回 JSON。
 `.trim();
 
 const variantStrategies = {
@@ -33,15 +47,15 @@ const variantStrategies = {
 
 export const differencePromptVariants = {
   p1: {
-    version: "resume-jd-difference-p1-v4.0",
+    version: "resume-jd-difference-p1-v4.1",
     instructions: `${sharedContract}\n\n${variantStrategies.p1}`,
   },
   p2: {
-    version: "resume-jd-difference-p2-v4.0",
+    version: "resume-jd-difference-p2-v4.1",
     instructions: `${sharedContract}\n\n${variantStrategies.p2}`,
   },
   p3: {
-    version: "resume-jd-difference-p3-v4.0",
+    version: "resume-jd-difference-p3-v4.1",
     instructions: `${sharedContract}\n\n${variantStrategies.p3}`,
   },
 } as const;

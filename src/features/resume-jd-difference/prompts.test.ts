@@ -33,6 +33,32 @@ describe("resume JD difference prompts", () => {
     },
   );
 
+  it.each(Object.entries(differencePromptVariants))(
+    "%s gives the model the complete strict JSON contract",
+    (_name, prompt) => {
+      expect(prompt.instructions).toContain(
+        '{"jobCore":{"missionZh"',
+      );
+      expect(prompt.instructions).toContain(
+        '"overallDifference":{"summaryZh"',
+      );
+      expect(prompt.instructions).toContain('"issues":[{"id":"issue-1"');
+      expect(prompt.instructions).toContain('"matched":[{"id":"matched-1"');
+      expect(prompt.instructions).toContain(
+        '"directions":[{"id":"direction-1"',
+      );
+      expect(prompt.instructions).toContain(
+        "所有对象只能包含示例中列出的字段",
+      );
+      expect(prompt.instructions).toContain(
+        "所有非门槛 issue 都必须至少关联一条 direction",
+      );
+      expect(prompt.instructions).toContain(
+        "topIssueIds、conceptId 和 issueId 必须引用本次输出中真实存在的 ID",
+      );
+    },
+  );
+
   it("keeps prompt variants independently versioned", () => {
     expect(new Set(Object.values(differencePromptVariants).map(({ version }) => version)).size)
       .toBe(3);
