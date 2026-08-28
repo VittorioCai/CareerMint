@@ -143,10 +143,10 @@ export const resumeJDDifferenceOutputSchema = z
     overallDifference: z
       .object({
         summaryZh: boundedText(1_000),
-        topIssueIds: z.array(localIdSchema).min(1).max(3),
+        topIssueIds: z.array(localIdSchema).max(3),
       })
       .strict(),
-    issues: z.array(differenceIssueSchema).min(1).max(80),
+    issues: z.array(differenceIssueSchema).max(80),
     matched: z.array(matchedItemSchema).max(80),
     directions: z.array(improvementDirectionSchema).max(80),
   })
