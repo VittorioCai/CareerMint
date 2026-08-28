@@ -36,6 +36,22 @@ import type {
 const SAFE_ERROR_MESSAGE = "Resume and job difference analysis failed.";
 const NO_EVIDENCE = "当前材料未找到相关证据";
 
+function stagedFailure(code: string, failureStage: string) {
+  const error = new Error(code) as Error & { failureStage: string };
+  error.failureStage = failureStage;
+  return error;
+}
+
+function safeFailureStage(error: unknown) {
+  if (!error || typeof error !== "object" || !("failureStage" in error)) {
+    return null;
+  }
+  const value = (error as { failureStage?: unknown }).failureStage;
+  return typeof value === "string" && /^[a-z0-9:-]{1,80}$/u.test(value)
+    ? value
+    : null;
+}
+
 type DifferenceRunRepository = {
   createOrGet(input: {
     applicationId: string;
@@ -205,7 +221,12 @@ async function readResumeText(
 
 function requireJDExcerpt(jdText: string, candidate: string) {
   const exact = findExactExcerpt(jdText, candidate);
-  if (!exact) throw new Error("resume-jd-difference-evidence-invalid");
+  if (!exact) {
+    throw stagedFailure(
+      "resume-jd-difference-evidence-invalid",
+      "evidence-jd",
+    );
+  }
   return exact;
 }
 
@@ -259,11 +280,17 @@ export function verifyAndNormalizeDifferenceOutput(
 ): ResumeJDDifferenceOutput {
   const parsed = resumeJDDifferenceOutputSchema.safeParse(candidate);
   if (!parsed.success) {
-    throw new Error("resume-jd-difference-invalid-output");
+    throw stagedFailure(
+      "resume-jd-difference-invalid-output",
+      "output-schema",
+    );
   }
   const initialGraph = validateResumeJDDifferenceGraph(parsed.data);
   if (!initialGraph.ok) {
-    throw new Error("resume-jd-difference-invalid-output");
+    throw stagedFailure(
+      "resume-jd-difference-invalid-output",
+      `graph-initial:${initialGraph.code}`,
+    );
   }
 
   const output = structuredClone(parsed.data);
@@ -340,7 +367,10 @@ export function verifyAndNormalizeDifferenceOutput(
   output.matched = output.matched.map((item) => {
     const resumeExcerpt = findExactExcerpt(context.resumeText, item.resumeExcerpt);
     if (!resumeExcerpt) {
-      throw new Error("resume-jd-difference-evidence-invalid");
+      throw stagedFailure(
+        "resume-jd-difference-evidence-invalid",
+        "evidence-resume",
+      );
     }
     return {
       ...item,
@@ -370,8 +400,18 @@ export function verifyAndNormalizeDifferenceOutput(
   });
 
   const final = resumeJDDifferenceOutputSchema.safeParse(output);
-  if (!final.success || !validateResumeJDDifferenceGraph(final.data).ok) {
-    throw new Error("resume-jd-difference-invalid-output");
+  if (!final.success) {
+    throw stagedFailure(
+      "resume-jd-difference-invalid-output",
+      "output-final-schema",
+    );
+  }
+  const finalGraph = validateResumeJDDifferenceGraph(final.data);
+  if (!finalGraph.ok) {
+    throw stagedFailure(
+      "resume-jd-difference-invalid-output",
+      `graph-final:${finalGraph.code}`,
+    );
   }
   return final.data;
 }
@@ -552,6 +592,7 @@ export function createResumeJDDifferenceService(
             schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
             policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
             errorCode: safe.errorCode,
+            failureStage: safeFailureStage(error),
           });
           return { run: failed, reused: false };
         } catch {
