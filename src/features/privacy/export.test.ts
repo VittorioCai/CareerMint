@@ -10,6 +10,7 @@ import {
   JD_STRUCTURE_CRITERION_EXPORT_SELECT,
   JD_STRUCTURE_REQUIREMENT_EXPORT_SELECT,
   JD_STRUCTURE_RUN_EXPORT_SELECT,
+  RESUME_JD_DIFFERENCE_EXPORT_SELECT,
   RESUME_GAP_ITEM_EXPORT_SELECT,
   RESUME_GAP_RUN_EXPORT_SELECT,
   buildAccountExport,
@@ -39,6 +40,17 @@ describe("JD gap V3 export query contract", () => {
     expect(JD_STRUCTURE_CRITERION_EXPORT_SELECT).toContain("constraint_payload");
     expect(JD_GAP_V3_RESULT_EXPORT_SELECT).toContain("coverage_status");
     expect(JD_GAP_V3_ASSESSMENT_EXPORT_SELECT).toContain("verified_resume_excerpt");
+  });
+});
+
+describe("resume JD difference export query contract", () => {
+  it("selects the user result and public metadata without internal hashes or errors", () => {
+    expect(RESUME_JD_DIFFERENCE_EXPORT_SELECT).toBe(
+      "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,status,result,ai_usage,estimated_cost_usd,completed_at,created_at",
+    );
+    expect(RESUME_JD_DIFFERENCE_EXPORT_SELECT).not.toMatch(
+      /input_hash|source_sha256|jd_sha256|fact_fingerprint|error_code|error_message/u,
+    );
   });
 });
 
@@ -463,6 +475,105 @@ describe("buildAccountExport", () => {
           providerRawBody: "ASSESSMENT PROVIDER BODY MUST NOT EXPORT",
         },
       ]),
+      listResumeJDDifferenceRuns: vi.fn().mockResolvedValue([
+        {
+          id: "10707070-7070-4070-8070-707070707070",
+          userId,
+          applicationId: "33333333-3333-4333-8333-333333333333",
+          sourceAssetId: "11111111-1111-4111-8111-111111111111",
+          sourceFilename: "resume.pdf",
+          provider: "deepseek",
+          model: "deepseek-v4-flash",
+          schemaVersion: "resume-jd-difference-v4",
+          promptVersion: "resume-jd-difference-p1-v4.0",
+          policyVersion: "resume-jd-difference-policy-v4.0",
+          status: "succeeded",
+          result: {
+            jobCore: {
+              missionZh: "支持业务决策。",
+              coreCapabilities: ["分析", "SQL", "协作"],
+              concepts: [{
+                id: "concept-1",
+                labelZh: "分析",
+                originalTerms: ["analysis"],
+                importanceReasonZh: "核心职责。",
+                priority: "critical",
+              }],
+              gates: [],
+              preferredItems: [],
+            },
+            overallDifference: {
+              summaryZh: "需要补足业务场景。",
+              topIssueIds: ["issue-1"],
+            },
+            issues: [{
+              id: "issue-1",
+              conceptId: "concept-1",
+              jdOriginal: "Analyze customer data.",
+              jdTranslationZh: "分析客户数据。",
+              resumeExcerpt: "Analyzed user data.",
+              resumeStatusZh: "有相邻证据。",
+              profileFactIds: [],
+              type: "missing_context",
+              problemZh: "缺少业务场景。",
+              reasonZh: "简历未说明分析用途。",
+              priority: "critical",
+              isGate: false,
+              authenticity: "supported",
+            }],
+            matched: [],
+            directions: [{
+              id: "direction-1",
+              issueId: "issue-1",
+              targetSection: "experience",
+              targetExperienceZh: "数据分析经历",
+              conceptId: "concept-1",
+              jdTerms: ["customer data"],
+              focusAreas: ["context"],
+              synonymousJobLanguage: [],
+              authenticity: "supported",
+              needsConfirmation: false,
+              directionZh: "核对真实业务场景。",
+            }],
+          },
+          aiUsage: {
+            provider: "deepseek",
+            model: "deepseek-v4-flash",
+            requestId: "private-request-id",
+            usage: {
+              inputCacheHitTokens: 10,
+              inputCacheMissTokens: 20,
+              outputTokens: 30,
+            },
+            priceScheduleVersion: "2026-08-16",
+          },
+          estimatedCostUsd: 0.001,
+          completedAt: "2026-08-28T00:01:00.000Z",
+          createdAt: "2026-08-28T00:00:00.000Z",
+          inputHash: "INTERNAL INPUT HASH MUST NOT EXPORT",
+          sourceSha256: "INTERNAL SOURCE HASH MUST NOT EXPORT",
+          errorMessage: "PRIVATE DIFFERENCE ERROR MUST NOT EXPORT",
+          providerRawResponse: "RAW DIFFERENCE RESPONSE MUST NOT EXPORT",
+        },
+        {
+          id: "bbbbbbbb-7070-4070-8070-707070707070",
+          userId: otherUserId,
+          applicationId: "77777777-7777-4777-8777-777777777777",
+          sourceAssetId: null,
+          sourceFilename: "secret.pdf",
+          provider: "deepseek",
+          model: "deepseek-v4-flash",
+          schemaVersion: "resume-jd-difference-v4",
+          promptVersion: "resume-jd-difference-p1-v4.0",
+          policyVersion: "resume-jd-difference-policy-v4.0",
+          status: "succeeded",
+          result: { secret: "OTHER USER DIFFERENCE SECRET" },
+          aiUsage: null,
+          estimatedCostUsd: null,
+          completedAt: null,
+          createdAt: "2026-08-28T00:00:00.000Z",
+        },
+      ]),
       listResumeSuggestions: vi.fn().mockResolvedValue([
         {
           id: "aaaaaaaa-2222-4222-8222-222222222222",
@@ -643,6 +754,7 @@ describe("buildAccountExport", () => {
       "interview-preparation.json",
       "jd-gap-analysis-v3.json",
       "profile.json",
+      "resume-jd-difference.json",
       "resume-gaps.json",
       "source-assets.json",
     ].sort());
@@ -656,6 +768,7 @@ describe("buildAccountExport", () => {
       .async("string");
     const resumeGapsJson = await zip.file("resume-gaps.json")!.async("string");
     const jdGapV3Json = await zip.file("jd-gap-analysis-v3.json")!.async("string");
+    const differenceJson = await zip.file("resume-jd-difference.json")!.async("string");
     expect(profileJson).toContain("Lin Chen");
     expect(profileJson).toContain("SQL");
     expect(profileJson).not.toContain("Other user secret");
@@ -818,6 +931,30 @@ describe("buildAccountExport", () => {
     expect(jdGapV3Json).not.toContain("Other V3 user secret");
     expect(jdGapV3Json).not.toContain("private.example");
     expect(jdGapV3Json).not.toContain("storagePath");
+    const differenceExport = JSON.parse(differenceJson) as {
+      schemaVersion: string;
+      runs: Array<Record<string, unknown>>;
+    };
+    expect(differenceExport.schemaVersion).toBe("resume-jd-difference-history-v4");
+    expect(differenceExport.runs).toHaveLength(1);
+    expect(differenceExport.runs[0]).toMatchObject({
+      id: "10707070-7070-4070-8070-707070707070",
+      applicationId: "33333333-3333-4333-8333-333333333333",
+      sourceAssetId: "11111111-1111-4111-8111-111111111111",
+      sourceFilename: "resume.pdf",
+      status: "succeeded",
+      result: expect.objectContaining({
+        overallDifference: { summaryZh: "需要补足业务场景。", topIssueIds: ["issue-1"] },
+      }),
+    });
+    expect(differenceExport.runs[0]).not.toHaveProperty("inputHash");
+    expect(differenceExport.runs[0]).not.toHaveProperty("sourceSha256");
+    expect(differenceExport.runs[0]).not.toHaveProperty("errorMessage");
+    expect(JSON.stringify(differenceExport.runs[0])).not.toContain("private-request-id");
+    expect(differenceJson).not.toContain("RAW DIFFERENCE RESPONSE MUST NOT EXPORT");
+    expect(differenceJson).not.toContain("INTERNAL INPUT HASH MUST NOT EXPORT");
+    expect(differenceJson).not.toContain("PRIVATE DIFFERENCE ERROR MUST NOT EXPORT");
+    expect(differenceJson).not.toContain("OTHER USER DIFFERENCE SECRET");
     expect(dependencies.download).toHaveBeenCalledTimes(3);
     expect(dependencies.download).toHaveBeenCalledWith(
       `${userId}/asset/source.pdf`,

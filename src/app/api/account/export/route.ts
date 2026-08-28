@@ -11,6 +11,7 @@ import {
   JD_STRUCTURE_CRITERION_EXPORT_SELECT,
   JD_STRUCTURE_REQUIREMENT_EXPORT_SELECT,
   JD_STRUCTURE_RUN_EXPORT_SELECT,
+  RESUME_JD_DIFFERENCE_EXPORT_SELECT,
   RESUME_GAP_ITEM_EXPORT_SELECT,
   RESUME_GAP_RUN_EXPORT_SELECT,
   buildAccountExport,
@@ -248,6 +249,35 @@ async function listJDGapV3Assessments(userId: string) {
   }));
 }
 
+async function listResumeJDDifferenceRuns(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resume_jd_difference_runs")
+    .select(RESUME_JD_DIFFERENCE_EXPORT_SELECT)
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+  if (error) throw new Error("resume-jd-difference-export-read-failed");
+  return (data ?? []).map((run) => ({
+    id: run.id,
+    userId,
+    applicationId: run.application_id,
+    sourceAssetId: run.source_asset_id,
+    sourceFilename: run.source_filename,
+    provider: run.provider,
+    model: run.model,
+    schemaVersion: run.schema_version,
+    promptVersion: run.prompt_version,
+    policyVersion: run.policy_version,
+    status: run.status,
+    result: run.result,
+    aiUsage: run.ai_usage,
+    estimatedCostUsd: run.estimated_cost_usd,
+    completedAt: run.completed_at,
+    createdAt: run.created_at,
+  }));
+}
+
 export async function GET() {
   const user = await getCurrentUser();
   if (!user) return Response.json({ error: "unauthorized" }, { status: 401 });
@@ -270,6 +300,7 @@ export async function GET() {
       listJDGapV3Runs,
       listJDGapV3RequirementResults,
       listJDGapV3Assessments,
+      listResumeJDDifferenceRuns,
       listResumeSuggestions: resumeCustomizationRepository.listSuggestions,
       listResumeVersions: resumeCustomizationRepository.listVersions,
       listInterviewQuestions: interviewPreparationRepository.list,

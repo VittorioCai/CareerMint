@@ -567,6 +567,7 @@ export default async function ApplicationDetailPage({
             <ResumeJDDifferencePanel
               applicationId={application.id}
               run={displayedDifferenceRun}
+              stale={first(query.result) === "previous"}
             />
           </div>
         ) : null}

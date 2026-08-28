@@ -259,4 +259,29 @@ describe("ResumeJDDifferencePanel", () => {
     expect(screen.queryByText("你不具备")).not.toBeInTheDocument();
     expect(screen.getByTestId("matched-details")).not.toHaveAttribute("open");
   });
+
+  it("offers a Markdown export for the displayed run and marks previous results", () => {
+    const { rerender } = render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+      />,
+    );
+    expect(screen.getByRole("link", { name: "导出 Markdown" })).toHaveAttribute(
+      "href",
+      `/api/applications/${applicationId}/resume-jd-difference/export?runId=33333333-3333-4333-8333-333333333333`,
+    );
+
+    rerender(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        stale
+      />,
+    );
+    expect(screen.getByRole("link", { name: "导出 Markdown" })).toHaveAttribute(
+      "href",
+      expect.stringContaining("&stale=1"),
+    );
+  });
 });

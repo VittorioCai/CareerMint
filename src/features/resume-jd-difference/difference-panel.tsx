@@ -6,6 +6,7 @@ import type { DifferenceIssue, ResumeJDDifferenceOutput } from "./schemas";
 export type ResumeJDDifferencePanelProps = {
   applicationId: string;
   run: ResumeJDDifferenceRun | null;
+  stale?: boolean;
 };
 
 const priorityCopy: Record<DifferenceIssue["priority"], string> = {
@@ -146,6 +147,7 @@ function topIssues(result: ResumeJDDifferenceOutput) {
 export function ResumeJDDifferencePanel({
   applicationId,
   run,
+  stale = false,
 }: ResumeJDDifferencePanelProps) {
   if (!run || run.status !== "succeeded" || !run.result) {
     return (
@@ -166,13 +168,22 @@ export function ResumeJDDifferencePanel({
         <div className="bg-[var(--cream)] px-5 py-4 text-xs font-black uppercase tracking-[0.14em]">
           本次对照简历
         </div>
-        <div className="min-w-0 px-5 py-4">
-          <h2 id="resume-jd-difference-title" className="break-words text-base font-black">
-            {run.sourceFilename}
-          </h2>
-          <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
-            所有判断只针对这份简历；职业档案只作为已确认补充，不计作简历已覆盖。
-          </p>
+        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-4">
+          <div className="min-w-0">
+            <h2 id="resume-jd-difference-title" className="break-words text-base font-black">
+              {run.sourceFilename}
+            </h2>
+            <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
+              所有判断只针对这份简历；职业档案只作为已确认补充，不计作简历已覆盖。
+            </p>
+          </div>
+          <a
+            className="button-secondary inline-flex min-h-10 shrink-0 items-center px-4 text-xs font-black"
+            href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
+            download
+          >
+            导出 Markdown
+          </a>
         </div>
       </div>
 

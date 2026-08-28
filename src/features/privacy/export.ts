@@ -1,5 +1,7 @@
 import JSZip from "jszip";
 
+import { resumeJDDifferenceOutputSchema } from "@/features/resume-jd-difference/schemas";
+
 export const RESUME_GAP_RUN_EXPORT_SELECT =
   "id,user_id,application_id,analysis_run_id,source_asset_id,source_filename,source_sha256,provider,model,status,attempt_count,result,error_code,created_at,updated_at,started_at,finished_at";
 
@@ -18,6 +20,8 @@ export const JD_GAP_V3_RESULT_EXPORT_SELECT =
   "id,run_id,requirement_id,application_id,user_id,coverage_status,impact_level,covered_criterion_count,missing_criterion_count,sort_order,created_at";
 export const JD_GAP_V3_ASSESSMENT_EXPORT_SELECT =
   "id,run_id,criterion_id,requirement_id,application_id,user_id,resume_evidence_status,verified_resume_excerpt,profile_fact_ids,gap_type,reason_zh,user_question_zh,created_at";
+export const RESUME_JD_DIFFERENCE_EXPORT_SELECT =
+  "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,status,result,ai_usage,estimated_cost_usd,completed_at,created_at";
 
 type OwnedRecord = { userId: string };
 type OwnedApplication = OwnedRecord & { id: string };
@@ -195,6 +199,24 @@ type JDGapV3ExportAssessment = OwnedRecord & {
   createdAt: string;
 };
 
+type ResumeJDDifferenceExportRun = OwnedRecord & {
+  id: string;
+  applicationId: string;
+  sourceAssetId: string | null;
+  sourceFilename: string;
+  provider: string;
+  model: string;
+  schemaVersion: string;
+  promptVersion: string;
+  policyVersion: string;
+  status: string;
+  result: unknown;
+  aiUsage: unknown;
+  estimatedCostUsd: number | null;
+  completedAt: string | null;
+  createdAt: string;
+};
+
 export type AccountExportDependencies = {
   getProfile(userId: string): Promise<OwnedRecord | null>;
   listFacts(userId: string): Promise<OwnedRecord[]>;
@@ -230,6 +252,9 @@ export type AccountExportDependencies = {
   listJDGapV3Assessments(
     userId: string,
   ): Promise<JDGapV3ExportAssessment[]>;
+  listResumeJDDifferenceRuns(
+    userId: string,
+  ): Promise<ResumeJDDifferenceExportRun[]>;
   listResumeSuggestions(
     userId: string,
     runId: string,
@@ -562,6 +587,73 @@ function publicJDGapV3Assessment(
   };
 }
 
+function publicDifferenceAIUsage(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const input = value as Record<string, unknown>;
+  const usage = input.usage;
+  if (!usage || typeof usage !== "object") return null;
+  const tokens = usage as Record<string, unknown>;
+  const inputCacheHitTokens = boundedInteger(
+    tokens.inputCacheHitTokens,
+    1_000_000_000,
+  );
+  const inputCacheMissTokens = boundedInteger(
+    tokens.inputCacheMissTokens,
+    1_000_000_000,
+  );
+  const outputTokens = boundedInteger(tokens.outputTokens, 1_000_000_000);
+  if (
+    typeof input.provider !== "string" ||
+    typeof input.model !== "string" ||
+    inputCacheHitTokens === null ||
+    inputCacheMissTokens === null ||
+    outputTokens === null
+  ) {
+    return null;
+  }
+  return {
+    provider: boundedText(input.provider, 80),
+    model: boundedText(input.model, 160),
+    usage: { inputCacheHitTokens, inputCacheMissTokens, outputTokens },
+    priceScheduleVersion:
+      input.priceScheduleVersion === null
+        ? null
+        : boundedText(input.priceScheduleVersion, 80),
+  };
+}
+
+function publicResumeJDDifferenceRun(
+  run: ResumeJDDifferenceExportRun,
+  ownedAssetIds: ReadonlySet<string>,
+) {
+  const result = resumeJDDifferenceOutputSchema.safeParse(run.result);
+  return {
+    id: run.id,
+    applicationId: run.applicationId,
+    sourceAssetId:
+      run.sourceAssetId && ownedAssetIds.has(run.sourceAssetId)
+        ? run.sourceAssetId
+        : null,
+    sourceFilename: boundedText(run.sourceFilename, 260),
+    provider: boundedText(run.provider, 80),
+    model: boundedText(run.model, 160),
+    schemaVersion: boundedText(run.schemaVersion, 80),
+    promptVersion: boundedText(run.promptVersion, 80),
+    policyVersion: boundedText(run.policyVersion, 80),
+    status: boundedText(run.status, 40),
+    result: result.success ? result.data : null,
+    aiUsage: publicDifferenceAIUsage(run.aiUsage),
+    estimatedCostUsd:
+      typeof run.estimatedCostUsd === "number" &&
+      Number.isFinite(run.estimatedCostUsd) &&
+      run.estimatedCostUsd >= 0
+        ? run.estimatedCostUsd
+        : null,
+    completedAt: run.completedAt,
+    createdAt: run.createdAt,
+  };
+}
+
 function safeRequestId(value: unknown) {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
@@ -696,6 +788,7 @@ export async function buildAccountExport(
     allJDGapV3Runs,
     allJDGapV3RequirementResults,
     allJDGapV3Assessments,
+    allResumeJDDifferenceRuns,
     allInterviewQuestions,
     allInterviewGenerationRuns,
     allInterviewGenerationCandidates,
@@ -715,6 +808,7 @@ export async function buildAccountExport(
       dependencies.listJDGapV3Runs(userId),
       dependencies.listJDGapV3RequirementResults(userId),
       dependencies.listJDGapV3Assessments(userId),
+      dependencies.listResumeJDDifferenceRuns(userId),
       dependencies.listInterviewQuestions(userId),
       dependencies.listInterviewGenerationRuns(userId),
       dependencies.listInterviewGenerationCandidates(userId),
@@ -814,6 +908,9 @@ export async function buildAccountExport(
       criterion?.requirementId === requirement.id &&
       criterion.runId === run.structureRunId;
   });
+  const resumeJDDifferenceRuns = allResumeJDDifferenceRuns.filter(
+    (run) => run.userId === userId && applicationIds.has(run.applicationId),
+  );
   const interviewQuestions = allInterviewQuestions
     .filter((question) => question.userId === userId)
     .map((question) => ({
@@ -957,6 +1054,20 @@ export async function buildAccountExport(
         ),
         assessments: jdGapV3Assessments.map((assessment) =>
           publicJDGapV3Assessment(assessment, ownedFactIds),
+        ),
+      },
+      null,
+      2,
+    ),
+  );
+  zip.file(
+    "resume-jd-difference.json",
+    JSON.stringify(
+      {
+        schemaVersion: "resume-jd-difference-history-v4",
+        generatedAt: new Date().toISOString(),
+        runs: resumeJDDifferenceRuns.map((run) =>
+          publicResumeJDDifferenceRun(run, ownedAssetIds),
         ),
       },
       null,
