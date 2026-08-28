@@ -168,4 +168,62 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
       `/applications/${applicationId}?tab=difference&result=previous`,
     );
   });
+
+  it("recovers a scanned PDF with browser OCR and submits the text once", async () => {
+    const user = userEvent.setup();
+    const ocrText =
+      "Data analyst resume with SQL dashboards, stakeholder reporting, and measurable results.";
+    const ocrPdf = vi.fn().mockResolvedValue(ocrText);
+    const { request, refresh } = renderControl({ ocrPdf });
+    request
+      .mockResolvedValueOnce(
+        json({
+          runId: "33333333-3333-4333-8333-333333333333",
+          status: "failed",
+          reused: false,
+          freshness: "current",
+          errorCode: "resume-text-insufficient",
+        }),
+      )
+      .mockResolvedValueOnce(
+        new Response(new Blob(["scanned-pdf"], { type: "application/pdf" })),
+      )
+      .mockResolvedValueOnce(
+        json({
+          runId: "33333333-3333-4333-8333-333333333333",
+          status: "succeeded",
+          reused: false,
+          freshness: "current",
+          errorCode: null,
+        }),
+      );
+
+    await user.click(screen.getByRole("button", { name: "开始差异分析" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "没有读到足够的简历文字",
+    );
+    await user.click(
+      screen.getByRole("button", { name: "在本机识别扫描版 PDF" }),
+    );
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(ocrPdf).toHaveBeenCalledOnce();
+    expect(request).toHaveBeenNthCalledWith(
+      2,
+      `/api/source-assets/${asset.id}/download`,
+      expect.objectContaining({ method: "GET" }),
+    );
+    expect(request).toHaveBeenNthCalledWith(
+      3,
+      `/api/applications/${applicationId}/resume-jd-difference/analyze`,
+      expect.objectContaining({
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-resume-source-asset-id": asset.id,
+        },
+        body: JSON.stringify({ ocrText }),
+      }),
+    );
+  });
 });

@@ -238,7 +238,11 @@ export function ResumeJDImprovementPanel({
   }
 
   return (
-    <section className="space-y-8" aria-labelledby="improvement-panel-title">
+    <section
+      className="space-y-8"
+      aria-labelledby="improvement-panel-title"
+      data-run-id={run.id}
+    >
       <header className="sticker-border bg-[var(--mint)] p-5 shadow-[6px_6px_0_var(--ink)] sm:p-6">
         <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           Grounded guidance

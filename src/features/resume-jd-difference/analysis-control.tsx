@@ -2,9 +2,22 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import type { ResumeAssetOption } from "@/features/resume-gaps/baseline-selector";
+import type {
+  OcrProgress,
+  ScannedPdfOcrOptions,
+} from "@/features/source-assets/ocr";
+
+export type DifferenceBrowserOcrHook = (
+  file: File,
+  options?: ScannedPdfOcrOptions,
+) => Promise<string>;
+
+declare global {
+  var __JOB_BUDDY_E2E_OCR__: DifferenceBrowserOcrHook | undefined;
+}
 
 type RunStatus = "queued" | "running" | "succeeded" | "failed";
 type Freshness = "current" | "stale" | "missing";
@@ -30,6 +43,7 @@ export type ResumeJDDifferenceAnalysisControlProps = {
   hasPreviousResult?: boolean;
   request?: typeof fetch;
   refresh?: () => void;
+  ocrPdf?: DifferenceBrowserOcrHook;
 };
 
 const errorCopy: Record<string, string> = {
@@ -52,7 +66,29 @@ const errorCopy: Record<string, string> = {
   "ai-request-failed": "分析服务请求失败，请稍后再试。",
   "resume-jd-difference-request-failed": "分析请求失败，请稍后重试。",
   "resume-jd-difference-failed": "分析没有完成，请重新尝试。",
+  "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
+  "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
+  "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
+  "invalid-ocr-text": "识别文字无效，请重新识别或上传文字版简历。",
+  "download-failed": "无法下载这份私有简历，请重试。",
   "network-error": "网络暂时不可用，请检查连接后重试。",
+};
+
+export function resolveDifferenceBrowserOcrHook(
+  environment: string | undefined = process.env.NODE_ENV,
+  candidate: DifferenceBrowserOcrHook | undefined =
+    globalThis.__JOB_BUDDY_E2E_OCR__,
+) {
+  return environment !== "production" && typeof candidate === "function"
+    ? candidate
+    : null;
+}
+
+const defaultOcrPdf: DifferenceBrowserOcrHook = async (file, options) => {
+  const injected = resolveDifferenceBrowserOcrHook();
+  if (injected) return injected(file, options);
+  const { extractScannedPdfText } = await import("@/features/source-assets/ocr");
+  return extractScannedPdfText(file, options);
 };
 
 async function responseBody(response: Response): Promise<AnalyzeResponse> {
@@ -94,6 +130,7 @@ function AnalysisControlState({
   hasPreviousResult = false,
   request = fetch,
   refresh,
+  ocrPdf = defaultOcrPdf,
 }: ResumeJDDifferenceAnalysisControlProps) {
   const router = useRouter();
   const refreshPage = refresh ?? router.refresh;
@@ -106,6 +143,18 @@ function AnalysisControlState({
     initialRun?.status === "failed" ? initialRun.errorCode : null,
   );
   const [reused, setReused] = useState(false);
+  const [ocrActive, setOcrActive] = useState(false);
+  const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
+  const cachedOcrTextRef = useRef<string | null>(null);
+  const ocrAbortControllerRef = useRef<AbortController | null>(null);
+
+  useEffect(
+    () => () => {
+      ocrAbortControllerRef.current?.abort();
+      ocrAbortControllerRef.current = null;
+    },
+    [],
+  );
 
   if (!asset) {
     return (
@@ -134,25 +183,50 @@ function AnalysisControlState({
   }
   const selectedAsset = asset;
 
-  const busy = status === "submitting" || status === "queued" || status === "running";
+  const busy =
+    ocrActive ||
+    status === "submitting" ||
+    status === "queued" ||
+    status === "running";
   const completed = status === "succeeded";
   const stale = status === "stale";
   const visibleError = error
     ? errorCopy[error] ?? "分析没有完成，请重新尝试。"
     : null;
 
-  async function analyze() {
-    if (busy) return;
+  const canRecoverWithOcr =
+    (asset.contentType === "application/pdf" ||
+      asset.originalName.toLowerCase().endsWith(".pdf")) &&
+    error === "resume-text-insufficient";
+
+  async function analyze(
+    ocrText?: string,
+    signal?: AbortSignal,
+    continueFromOcr = false,
+  ) {
+    if (busy && !continueFromOcr) return;
     setStatus("submitting");
     setError(null);
     setReused(false);
     try {
+      const init: RequestInit =
+        ocrText === undefined
+          ? {
+              method: "POST",
+              headers: { "x-resume-source-asset-id": selectedAsset.id },
+            }
+          : {
+              method: "POST",
+              headers: {
+                "content-type": "application/json",
+                "x-resume-source-asset-id": selectedAsset.id,
+              },
+              body: JSON.stringify({ ocrText }),
+            };
+      if (signal) init.signal = signal;
       const response = await request(
         `/api/applications/${applicationId}/resume-jd-difference/analyze`,
-        {
-          method: "POST",
-          headers: { "x-resume-source-asset-id": selectedAsset.id },
-        },
+        init,
       );
       const body = await responseBody(response);
       const code = returnedError(body);
@@ -185,8 +259,63 @@ function AnalysisControlState({
     }
   }
 
-  const statusCopy = busy
-    ? "正在分析岗位与简历差异"
+  async function runOcr() {
+    if (busy) return;
+    const cached = cachedOcrTextRef.current;
+    if (cached !== null) {
+      await analyze(cached);
+      return;
+    }
+    const controller = new AbortController();
+    ocrAbortControllerRef.current = controller;
+    setOcrActive(true);
+    setError(null);
+    setOcrProgress(null);
+    try {
+      const response = await request(
+        `/api/source-assets/${selectedAsset.id}/download`,
+        { method: "GET", signal: controller.signal },
+      );
+      if (!response.ok) throw new Error("download-failed");
+      const file = new File([await response.blob()], selectedAsset.originalName, {
+        type: selectedAsset.contentType,
+      });
+      const text = await ocrPdf(file, {
+        signal: controller.signal,
+        onProgress: setOcrProgress,
+      });
+      if (controller.signal.aborted) {
+        throw new DOMException("The OCR operation was aborted.", "AbortError");
+      }
+      cachedOcrTextRef.current = text;
+      await analyze(text, controller.signal, true);
+    } catch (caught) {
+      const code =
+        caught instanceof Error && caught.name === "AbortError"
+          ? "AbortError"
+          : caught instanceof Error &&
+              Object.prototype.hasOwnProperty.call(errorCopy, caught.message)
+            ? caught.message
+            : "resume-ocr-unavailable";
+      setStatus("failed");
+      setError(code === "AbortError" ? "resume-ocr-unavailable" : code);
+    } finally {
+      setOcrActive(false);
+      setOcrProgress(null);
+      if (ocrAbortControllerRef.current === controller) {
+        ocrAbortControllerRef.current = null;
+      }
+    }
+  }
+
+  function cancelOcr() {
+    ocrAbortControllerRef.current?.abort();
+  }
+
+  const statusCopy = ocrActive
+    ? "正在本机识别扫描版简历"
+    : busy
+      ? "正在分析岗位与简历差异"
     : stale
       ? "材料已变化，请重新分析"
       : completed
@@ -224,6 +353,44 @@ function AnalysisControlState({
               {visibleError}
             </p>
           ) : null}
+          {canRecoverWithOcr && !ocrActive ? (
+            <button
+              type="button"
+              className="button-secondary mt-3 min-h-11 px-4 text-sm font-black"
+              onClick={() => void runOcr()}
+              disabled={busy}
+            >
+              在本机识别扫描版 PDF
+            </button>
+          ) : null}
+          {ocrActive ? (
+            <div className="mt-3" aria-live="polite">
+              <p className="text-sm font-black">
+                {ocrProgress?.phase === "recognizing"
+                  ? `正在本机识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
+                  : "正在准备本机识别…"}
+              </p>
+              <progress
+                aria-label="扫描版 PDF 本机识别进度"
+                className="mt-2 h-2 w-full accent-[var(--coral)]"
+                max={
+                  ocrProgress?.phase === "recognizing"
+                    ? ocrProgress.totalPages
+                    : 1
+                }
+                value={
+                  ocrProgress?.phase === "recognizing" ? ocrProgress.page : 0
+                }
+              />
+              <button
+                type="button"
+                className="button-secondary mt-2 min-h-10 px-4 text-xs font-black"
+                onClick={cancelOcr}
+              >
+                取消本机识别
+              </button>
+            </div>
+          ) : null}
           {hasPreviousResult && (busy || status === "failed") ? (
             <Link
               href={`/applications/${applicationId}?tab=difference&result=previous`}
@@ -237,9 +404,15 @@ function AnalysisControlState({
           type="button"
           className="button-primary min-h-11 min-w-36 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
-          onClick={() => void analyze()}
+          onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >
-          {busy ? "正在分析…" : completed || stale ? "重新分析" : "开始差异分析"}
+          {ocrActive
+            ? "正在识别…"
+            : busy
+              ? "正在分析…"
+              : completed || stale
+                ? "重新分析"
+                : "开始差异分析"}
         </button>
       </div>
     </section>

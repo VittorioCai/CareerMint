@@ -163,7 +163,11 @@ export function ResumeJDDifferencePanel({
   const leadingIssues = topIssues(result);
 
   return (
-    <section className="space-y-8" aria-labelledby="resume-jd-difference-title">
+    <section
+      className="space-y-8"
+      aria-labelledby="resume-jd-difference-title"
+      data-run-id={run.id}
+    >
       <div className="dense-surface grid overflow-hidden sm:grid-cols-[220px_minmax(0,1fr)]">
         <div className="bg-[var(--cream)] px-5 py-4 text-xs font-black uppercase tracking-[0.14em]">
           本次对照简历
