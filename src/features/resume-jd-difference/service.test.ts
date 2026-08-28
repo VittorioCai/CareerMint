@@ -492,6 +492,12 @@ describe("resume JD difference service", () => {
     expect(dependencies.aiProvider.analyzeResumeJDDifference).toHaveBeenCalledTimes(1);
     expect(dependencies.runs.complete).not.toHaveBeenCalled();
     expect(dependencies.runs.fail).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith(
+      "resume-jd-difference-failed",
+      expect.objectContaining({
+        failureStage: "graph-initial:paste-ready-rewrite-not-allowed",
+      }),
+    );
   });
 
   it("persists token usage and configured cost but logs no source content", async () => {

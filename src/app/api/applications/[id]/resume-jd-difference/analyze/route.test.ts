@@ -146,6 +146,10 @@ describe("resume JD difference route wiring", () => {
         storage: { download: mocks.downloadSource },
         parser: mocks.extractResumeText,
         providerFactory: expect.any(Function),
+        logger: {
+          info: expect.any(Function),
+          error: expect.any(Function),
+        },
       }),
     );
     expect(mocks.serviceRun).toHaveBeenCalledTimes(1);

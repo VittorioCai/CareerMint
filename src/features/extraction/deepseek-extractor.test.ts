@@ -1160,11 +1160,37 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
       .mockResolvedValue(successResponse('{"jobCore":'));
-    const { provider } = createProvider(fetchImpl);
+    const { provider, log } = createProvider(fetchImpl);
 
     await expect(
       provider.analyzeResumeJDDifference(input, { promptVariant: "p1" }),
     ).rejects.toThrow("resume-jd-difference-invalid-output");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "resume-jd-difference-invalid-output",
+        failureStage: "content-json",
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain('{"jobCore":');
+  });
+
+  it("logs only a safe stage when V4 JSON violates the output schema", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse('{"jobCore":{}}'));
+    const { provider, log } = createProvider(fetchImpl);
+
+    await expect(
+      provider.analyzeResumeJDDifference(input, { promptVariant: "p1" }),
+    ).rejects.toThrow("resume-jd-difference-invalid-output");
+
+    expect(log).toHaveBeenCalledWith(
+      expect.objectContaining({
+        errorCode: "resume-jd-difference-invalid-output",
+        failureStage: "content-schema",
+      }),
+    );
+    expect(JSON.stringify(log.mock.calls)).not.toContain("jobCore");
   });
 });

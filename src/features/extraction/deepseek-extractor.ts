@@ -100,6 +100,7 @@ export type AIMetadataLog = {
   latencyMs: number;
   usage: AIUsage;
   errorCode: string | null;
+  failureStage?: string | null;
 };
 
 export type MetadataLogger = {
@@ -126,6 +127,7 @@ class AdapterError extends Error {
     public readonly code: string,
     public readonly retryableOutput: boolean = false,
     public readonly usage: AIUsage = emptyUsage,
+    public readonly failureStage: string | null = null,
   ) {
     super(code);
     this.name = "AIProviderAdapterError";
@@ -311,36 +313,56 @@ export function createDeepSeekAIProvider(
       try {
         rawEnvelope = await response.json();
       } catch {
-        throw new AdapterError(invalidOutputError, true);
+        throw new AdapterError(invalidOutputError, true, emptyUsage, "envelope-json");
       }
 
       const envelope = responseEnvelopeSchema.safeParse(rawEnvelope);
       if (!envelope.success) {
-        throw new AdapterError(invalidOutputError, true);
+        throw new AdapterError(
+          invalidOutputError,
+          true,
+          emptyUsage,
+          "envelope-schema",
+        );
       }
 
       requestId = envelope.data.id ?? requestId;
       usage = mapUsage(envelope.data.usage);
       const choice = envelope.data.choices[0];
       if (choice.finish_reason !== "stop") {
-        throw new AdapterError(invalidOutputError);
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          "finish-reason",
+        );
       }
       if (!choice.message.content?.trim()) {
-        throw new AdapterError(invalidOutputError);
+        throw new AdapterError(
+          invalidOutputError,
+          false,
+          usage,
+          "empty-content",
+        );
       }
 
       let rawExtraction: unknown;
       try {
         rawExtraction = JSON.parse(choice.message.content);
       } catch {
-        throw new AdapterError(invalidOutputError, true, usage);
+        throw new AdapterError(invalidOutputError, true, usage, "content-json");
       }
 
       const extraction = outputSchema.safeParse(
         preprocess ? preprocess(rawExtraction) : rawExtraction,
       );
       if (!extraction.success) {
-        throw new AdapterError(invalidOutputError, true, usage);
+        throw new AdapterError(
+          invalidOutputError,
+          true,
+          usage,
+          "content-schema",
+        );
       }
 
       safeLog(logger, {
@@ -378,6 +400,7 @@ export function createDeepSeekAIProvider(
         latencyMs: Math.round(performance.now() - startedAt),
         usage,
         errorCode: adapterError.code,
+        failureStage: adapterError.failureStage,
       });
       throw adapterError;
     }

@@ -23,6 +23,14 @@ export const maxDuration = 60;
 
 const fakeProviderName = "fake";
 const fakeProviderModel = "fake-resume-jd-difference-v4";
+const serviceLogger = {
+  info(event: string, metadata: Record<string, unknown>) {
+    console.info(event, metadata);
+  },
+  error(event: string, metadata: Record<string, unknown>) {
+    console.error(event, metadata);
+  },
+};
 
 function boundedExactSource(value: string, maxLength: number) {
   const normalized = value.trim();
@@ -279,6 +287,7 @@ export const POST = createResumeJDDifferencePostHandler({
       promptVariant,
       priceSchedule: configuredPriceSchedule(now),
       clock: () => now,
+      logger: serviceLogger,
     }).run(input);
   },
 });
