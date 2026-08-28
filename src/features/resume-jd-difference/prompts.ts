@@ -20,6 +20,7 @@ const sharedContract = `
 
 输出要求：
 - 所有解释和方向使用简体中文；JD 原词与简历引用保持原语言。
+- gates.originalText、preferredItems.originalText、issues.jdOriginal 和 matched.jdOriginal 必须从 Schema 提供的 JD 原文候选中原样选择，不得自行改写、拼接或翻译。
 - 每个非门槛问题必须关联至少一条完善方向；门槛问题可以说明无法通过改简历解决。
 - unsupported 的方向不得提供可直接采用的同义岗位语言，必须提醒先确认真实经历或不要加入。
 - 只输出 JSON，不要 Markdown、前后说明或代码围栏。
@@ -47,15 +48,15 @@ const variantStrategies = {
 
 export const differencePromptVariants = {
   p1: {
-    version: "resume-jd-difference-p1-v4.1",
+    version: "resume-jd-difference-p1-v4.2",
     instructions: `${sharedContract}\n\n${variantStrategies.p1}`,
   },
   p2: {
-    version: "resume-jd-difference-p2-v4.1",
+    version: "resume-jd-difference-p2-v4.2",
     instructions: `${sharedContract}\n\n${variantStrategies.p2}`,
   },
   p3: {
-    version: "resume-jd-difference-p3-v4.1",
+    version: "resume-jd-difference-p3-v4.2",
     instructions: `${sharedContract}\n\n${variantStrategies.p3}`,
   },
 } as const;

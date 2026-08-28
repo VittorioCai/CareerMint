@@ -289,7 +289,7 @@ describe("resume JD difference service", () => {
         provider: "deepseek",
         model: "deepseek-v4-flash",
         schemaVersion: "resume-jd-difference-v4",
-        promptVersion: "resume-jd-difference-p1-v4.1",
+        promptVersion: "resume-jd-difference-p1-v4.2",
         policyVersion: "resume-jd-difference-policy-v4.0",
         jdSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         factFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/u),
@@ -389,6 +389,41 @@ describe("resume JD difference service", () => {
     expect(result.run.errorCode).toBe("resume-jd-difference-evidence-invalid");
     expect(dependencies.runs.complete).not.toHaveBeenCalled();
     expect(dependencies.aiProvider.analyzeResumeJDDifference).toHaveBeenCalledTimes(1);
+    expect(dependencies.logger.error).toHaveBeenCalledWith(
+      "resume-jd-difference-failed",
+      expect.objectContaining({ failureStage: "evidence-jd:issue" }),
+    );
+  });
+
+  it("repairs derived concept and direction terms from a verified JD quotation", async () => {
+    const dependencies = fakes();
+    const recoverable = structuredClone(output);
+    recoverable.jobCore.concepts[0].originalTerms = [
+      "stakeholder alignment terminology",
+    ];
+    recoverable.directions[0].jdTerms = [
+      "stakeholder alignment terminology",
+    ];
+    dependencies.aiProvider.analyzeResumeJDDifference.mockResolvedValueOnce({
+      data: recoverable,
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      requestId: "req-1",
+      usage: { inputCacheHitTokens: 0, inputCacheMissTokens: 100, outputTokens: 200 },
+    });
+
+    const result = await createResumeJDDifferenceService(dependencies).run(
+      input({ ocrText: resumeText }),
+    );
+
+    expect(result.run.status).toBe("succeeded");
+    const published = dependencies.runs.complete.mock.calls[0][0].result;
+    expect(published.jobCore.concepts[0].originalTerms).toEqual([
+      "Collaborate with business stakeholders to align reporting needs.",
+    ]);
+    expect(published.directions[0].jdTerms).toEqual([
+      "Collaborate with business stakeholders to align reporting needs.",
+    ]);
   });
 
   it("removes unverifiable resume and fact evidence and downgrades related advice", async () => {

@@ -30,6 +30,9 @@ describe("resume JD difference prompts", () => {
       expect(prompt.instructions).toContain("不得生成可直接粘贴");
       expect(prompt.instructions).toContain("不得虚构");
       expect(prompt.instructions).toContain("严格 JSON");
+      expect(prompt.instructions).toContain(
+        "从 Schema 提供的 JD 原文候选中原样选择",
+      );
     },
   );
 
@@ -62,5 +65,11 @@ describe("resume JD difference prompts", () => {
   it("keeps prompt variants independently versioned", () => {
     expect(new Set(Object.values(differencePromptVariants).map(({ version }) => version)).size)
       .toBe(3);
+    expect(Object.values(differencePromptVariants).map(({ version }) => version))
+      .toEqual([
+        "resume-jd-difference-p1-v4.2",
+        "resume-jd-difference-p2-v4.2",
+        "resume-jd-difference-p3-v4.2",
+      ]);
   });
 });
