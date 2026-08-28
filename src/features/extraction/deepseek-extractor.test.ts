@@ -1139,6 +1139,23 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     expect(JSON.stringify(log.mock.calls)).not.toContain(input.resumeText);
   });
 
+  it("allows the evaluation runner to lower only V4 output tokens", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(successResponse(JSON.stringify(output)));
+    const provider = createDeepSeekAIProvider({
+      apiKey: "test-key",
+      model: "deepseek-v4-flash",
+      fetchImpl,
+      resumeJDDifferenceMaxTokens: 4096,
+    });
+
+    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1" });
+
+    const [, init] = fetchImpl.mock.calls[0]!;
+    expect(JSON.parse(String(init?.body)).max_tokens).toBe(4096);
+  });
+
   it("does not retry invalid V4 output", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()

@@ -112,6 +112,7 @@ type DeepSeekProviderOptions = {
   fetchImpl?: typeof fetch;
   logger?: MetadataLogger;
   jdGapMaxTokens?: number;
+  resumeJDDifferenceMaxTokens?: number;
 };
 
 const emptyUsage: AIUsage = {
@@ -250,6 +251,8 @@ export function createDeepSeekAIProvider(
   const logger = options.logger ?? noOpLogger;
   const configuredJDGapMaxTokens =
     options.jdGapMaxTokens ?? jdGapV3MaxTokens;
+  const configuredResumeJDDifferenceMaxTokens =
+    options.resumeJDDifferenceMaxTokens ?? resumeJDDifferenceMaxTokens;
 
   if (!apiKey?.trim()) throw new Error("deepseek-api-key-missing");
   if (
@@ -258,6 +261,13 @@ export function createDeepSeekAIProvider(
     configuredJDGapMaxTokens > jdGapV3MaxTokens
   ) {
     throw new Error("deepseek-jd-gap-max-tokens-invalid");
+  }
+  if (
+    !Number.isInteger(configuredResumeJDDifferenceMaxTokens) ||
+    configuredResumeJDDifferenceMaxTokens < 1 ||
+    configuredResumeJDDifferenceMaxTokens > resumeJDDifferenceMaxTokens
+  ) {
+    throw new Error("deepseek-resume-jd-difference-max-tokens-invalid");
   }
 
   async function runAttempt<Output>({
@@ -541,7 +551,7 @@ export function createDeepSeekAIProvider(
         ].join("\n"),
         outputSchema: resumeJDDifferenceOutputSchema,
         invalidOutputError: resumeJDDifferenceInvalidOutputError,
-        maxTokens: resumeJDDifferenceMaxTokens,
+        maxTokens: configuredResumeJDDifferenceMaxTokens,
       });
     },
   };

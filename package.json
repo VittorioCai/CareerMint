@@ -19,6 +19,7 @@
     "db:reset": "supabase db reset",
     "db:types": "supabase gen types typescript --local > src/lib/supabase/database.types.ts",
     "eval:jd-gap": "tsx scripts/evaluate-jd-gap-prompts.ts",
+    "eval:resume-jd-difference": "tsx scripts/evaluate-resume-jd-difference-prompts.ts",
     "verify": "pnpm lint && pnpm typecheck && pnpm test"
   },
   "dependencies": {
