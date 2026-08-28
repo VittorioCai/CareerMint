@@ -124,6 +124,17 @@ describe("resume JD difference V4 output", () => {
     expect(validateResumeJDDifferenceGraph(parsed)).toEqual({ ok: true });
   });
 
+  it("accepts a fully matched result with no artificial difference", () => {
+    const candidate = fixture();
+    candidate.issues = [];
+    candidate.directions = [];
+    candidate.overallDifference.topIssueIds = [];
+
+    const parsed = resumeJDDifferenceOutputSchema.parse(candidate);
+
+    expect(validateResumeJDDifferenceGraph(parsed)).toEqual({ ok: true });
+  });
+
   it("rejects unknown output keys", () => {
     expect(() =>
       resumeJDDifferenceOutputSchema.parse({

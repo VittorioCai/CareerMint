@@ -289,7 +289,7 @@ describe("resume JD difference service", () => {
         provider: "deepseek",
         model: "deepseek-v4-flash",
         schemaVersion: "resume-jd-difference-v4",
-        promptVersion: "resume-jd-difference-p1-v4.2",
+        promptVersion: "resume-jd-difference-p1-v5.0",
         policyVersion: "resume-jd-difference-policy-v4.0",
         jdSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         factFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/u),
