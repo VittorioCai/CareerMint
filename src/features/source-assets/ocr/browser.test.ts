@@ -13,7 +13,7 @@ describe("createBrowserOcrAdapter", () => {
   beforeEach(() => resetBrowserOcrModelForTests());
   afterEach(() => resetBrowserOcrModelForTests());
 
-  it("configures PP-OCRv6 Small in a single-threaded WASM worker", async () => {
+  it("configures PP-OCRv6 Tiny in a single-threaded WASM worker", async () => {
     const create = vi.fn(async () => ({
       initialize: vi.fn(async () => undefined),
       predict: vi.fn(async () => [{ items: [] }]),
@@ -28,8 +28,8 @@ describe("createBrowserOcrAdapter", () => {
     expect(create).toHaveBeenCalledWith(PADDLE_OPTIONS);
     expect(PADDLE_OPTIONS).toMatchObject({
       worker: true,
-      textDetectionModelName: "PP-OCRv6_small_det",
-      textRecognitionModelName: "PP-OCRv6_small_rec",
+      textDetectionModelName: "PP-OCRv6_tiny_det",
+      textRecognitionModelName: "PP-OCRv6_tiny_rec",
       ortOptions: {
         backend: "wasm",
         numThreads: 1,

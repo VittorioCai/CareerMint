@@ -149,8 +149,8 @@ interface PaddleCacheEntry {
 let paddleCacheEntry: PaddleCacheEntry | undefined;
 
 const PADDLE_OPTIONS: Record<string, unknown> = {
-  textDetectionModelName: "PP-OCRv6_small_det",
-  textRecognitionModelName: "PP-OCRv6_small_rec",
+  textDetectionModelName: "PP-OCRv6_tiny_det",
+  textRecognitionModelName: "PP-OCRv6_tiny_rec",
   worker: true,
   initialize: false,
   ortOptions: {
