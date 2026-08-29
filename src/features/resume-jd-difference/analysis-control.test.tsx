@@ -226,4 +226,97 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
       }),
     );
   });
+
+  it("analyses text the user pastes when the file cannot be read", async () => {
+    const user = userEvent.setup();
+    const pasted =
+      "Product analyst. Built SQL funnel dashboards and reported measurable outcomes to business stakeholders.";
+    const { request, refresh } = renderControl();
+    request
+      .mockResolvedValueOnce(
+        json({
+          runId: "33333333-3333-4333-8333-333333333333",
+          status: "failed",
+          reused: false,
+          freshness: "current",
+          errorCode: "resume-text-insufficient",
+        }),
+      )
+      .mockResolvedValueOnce(
+        json({
+          runId: "33333333-3333-4333-8333-333333333333",
+          status: "succeeded",
+          reused: false,
+          freshness: "current",
+          errorCode: null,
+        }),
+      );
+
+    await user.click(screen.getByRole("button", { name: "开始差异分析" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "没有读到足够的简历文字",
+    );
+
+    await user.click(screen.getByRole("button", { name: "改为粘贴简历文字" }));
+    await user.click(screen.getByRole("textbox", { name: "简历文字" }));
+    await user.paste(pasted);
+    await user.click(screen.getByRole("button", { name: "用这段文字分析" }));
+
+    await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
+    expect(request).toHaveBeenCalledTimes(2);
+    const [, init] = request.mock.calls[1]!;
+    expect(JSON.parse(String(init?.body))).toEqual({ ocrText: pasted });
+  });
+
+  it("offers pasting when the file cannot be parsed at all, where OCR cannot help", async () => {
+    const user = userEvent.setup();
+    const { request } = renderControl({
+      asset: { ...asset, originalName: "resume.docx", contentType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document" },
+    });
+    request.mockResolvedValueOnce(
+      json({
+        runId: "33333333-3333-4333-8333-333333333333",
+        status: "failed",
+        reused: false,
+        freshness: "current",
+        errorCode: "resume-parse-failed",
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "开始差异分析" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("无法读取这份简历");
+
+    expect(
+      screen.queryByRole("button", { name: "在本机识别扫描版 PDF" }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "改为粘贴简历文字" }),
+    ).toBeInTheDocument();
+  });
+
+  it("refuses to send text too short to be a resume", async () => {
+    const user = userEvent.setup();
+    const { request } = renderControl();
+    request.mockResolvedValueOnce(
+      json({
+        runId: "33333333-3333-4333-8333-333333333333",
+        status: "failed",
+        reused: false,
+        freshness: "current",
+        errorCode: "resume-text-insufficient",
+      }),
+    );
+
+    await user.click(screen.getByRole("button", { name: "开始差异分析" }));
+    await screen.findByRole("alert");
+    await user.click(screen.getByRole("button", { name: "改为粘贴简历文字" }));
+    await user.click(screen.getByRole("textbox", { name: "简历文字" }));
+    await user.paste("太短了");
+    await user.click(screen.getByRole("button", { name: "用这段文字分析" }));
+
+    expect(request).toHaveBeenCalledTimes(1);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "粘贴的文字太短",
+    );
+  });
 });

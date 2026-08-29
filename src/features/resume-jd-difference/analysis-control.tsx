@@ -15,6 +15,11 @@ export type DifferenceBrowserOcrHook = (
   options?: ScannedPdfOcrOptions,
 ) => Promise<string>;
 
+// Mirrors normalizeResumeText on the server, so a paste that would be rejected
+// there is refused here instead of costing a round trip.
+const MIN_PASTED_RESUME_CHARS = 40;
+const MAX_PASTED_RESUME_CHARS = 100_000;
+
 declare global {
   var __JOB_BUDDY_E2E_OCR__: DifferenceBrowserOcrHook | undefined;
 }
@@ -144,6 +149,9 @@ function AnalysisControlState({
   );
   const [reused, setReused] = useState(false);
   const [ocrActive, setOcrActive] = useState(false);
+  const [pasteOpen, setPasteOpen] = useState(false);
+  const [pastedText, setPastedText] = useState("");
+  const [pasteError, setPasteError] = useState<string | null>(null);
   const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
   const cachedOcrTextRef = useRef<string | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
@@ -190,9 +198,13 @@ function AnalysisControlState({
     status === "running";
   const completed = status === "succeeded";
   const stale = status === "stale";
-  const visibleError = error
-    ? errorCopy[error] ?? "分析没有完成，请重新尝试。"
-    : null;
+  // Once the paste box is open the upload error is stale advice — it tells the
+  // user to go back and re-upload, which is the opposite of what they are doing.
+  const visibleError =
+    error && !pasteOpen ? errorCopy[error] ?? "分析没有完成，请重新尝试。" : null;
+
+  const canPasteText =
+    error === "resume-text-insufficient" || error === "resume-parse-failed";
 
   const canRecoverWithOcr =
     (asset.contentType === "application/pdf" ||
@@ -368,6 +380,73 @@ function AnalysisControlState({
                 的识别引擎，之后浏览器会缓存，不必重复下载。
               </p>
             </div>
+          ) : null}
+          {canPasteText && !ocrActive ? (
+            pasteOpen ? (
+              <div className="mt-3">
+                <label
+                  htmlFor="difference-pasted-resume"
+                  className="text-xs font-black uppercase tracking-[0.12em]"
+                >
+                  简历文字
+                </label>
+                <textarea
+                  id="difference-pasted-resume"
+                  rows={6}
+                  value={pastedText}
+                  onChange={(event) => setPastedText(event.target.value)}
+                  placeholder="把简历内容粘贴到这里。不会上传原文件，只发送这段文字。"
+                  className="mt-2 w-full rounded-xl border-2 border-[var(--ink)] bg-white p-3 text-sm font-semibold leading-6"
+                />
+                {pasteError ? (
+                  <p role="alert" className="mt-2 text-sm font-black text-[var(--error)]">
+                    {pasteError}
+                  </p>
+                ) : null}
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className="button-primary min-h-11 px-4 text-sm font-black disabled:opacity-60"
+                    disabled={busy}
+                    onClick={() => {
+                      const text = pastedText.trim();
+                      if (text.length < MIN_PASTED_RESUME_CHARS) {
+                        setPasteError(
+                          `粘贴的文字太短，至少需要 ${MIN_PASTED_RESUME_CHARS} 个字符。`,
+                        );
+                        return;
+                      }
+                      if (text.length > MAX_PASTED_RESUME_CHARS) {
+                        setPasteError(
+                          "粘贴的文字超出长度上限，请只保留简历正文。",
+                        );
+                        return;
+                      }
+                      setPasteError(null);
+                      void analyze(text);
+                    }}
+                  >
+                    用这段文字分析
+                  </button>
+                  <button
+                    type="button"
+                    className="button-secondary min-h-11 px-4 text-sm font-black"
+                    onClick={() => setPasteOpen(false)}
+                  >
+                    取消
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <button
+                type="button"
+                className="button-secondary mt-3 min-h-11 px-4 text-sm font-black"
+                onClick={() => setPasteOpen(true)}
+                disabled={busy}
+              >
+                改为粘贴简历文字
+              </button>
+            )
           ) : null}
           {ocrActive ? (
             <div className="mt-3" aria-live="polite">

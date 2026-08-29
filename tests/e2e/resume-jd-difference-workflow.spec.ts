@@ -327,3 +327,50 @@ test("recovers scanned PDF text through OCR and remains usable on mobile", async
     await admin.auth.admin.deleteUser(userId);
   }
 });
+
+test("lets a user paste resume text when the file cannot be read", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const { admin, account } = clients();
+  const { email, userId } = await createUser(admin, "paste");
+  const pasted = [
+    "Product analyst with SQL funnel analysis experience.",
+    "Built dashboards and communicated measurable outcomes to business stakeholders.",
+  ].join(" ");
+  const analyzeBodies: Array<string | null> = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      new URL(request.url()).pathname.endsWith("/resume-jd-difference/analyze")
+    ) {
+      analyzeBodies.push(request.postData());
+    }
+  });
+
+  try {
+    await prepareAccount(page, account, email, userId);
+    const application = await createApplication(page, "Paste Labs", "Insights Analyst");
+    await uploadBaseline(
+      page,
+      application.applicationId,
+      "tests/fixtures/resume-scanned.pdf",
+    );
+
+    await page.getByRole("button", { name: "开始差异分析" }).click();
+    await expect(
+      page.getByRole("alert").filter({ hasText: "没有读到足够的简历文字" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "改为粘贴简历文字" }).click();
+    await page.getByRole("textbox", { name: "简历文字" }).fill(pasted);
+    await page.getByRole("button", { name: "用这段文字分析" }).click();
+
+    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    expect(analyzeBodies).toHaveLength(2);
+    expect(analyzeBodies[0]).toBeNull();
+    expect(JSON.parse(String(analyzeBodies[1]))).toEqual({ ocrText: pasted });
+  } finally {
+    await admin.auth.admin.deleteUser(userId);
+  }
+});
