@@ -289,7 +289,7 @@ describe("resume JD difference service", () => {
         provider: "deepseek",
         model: "deepseek-v4-flash",
         schemaVersion: "resume-jd-difference-v4",
-        promptVersion: "resume-jd-difference-p1-v4.2",
+        promptVersion: "resume-jd-difference-p1-v5.0",
         policyVersion: "resume-jd-difference-policy-v4.0",
         jdSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         factFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/u),
@@ -392,6 +392,37 @@ describe("resume JD difference service", () => {
     expect(dependencies.logger.error).toHaveBeenCalledWith(
       "resume-jd-difference-failed",
       expect.objectContaining({ failureStage: "evidence-jd:issue" }),
+    );
+  });
+
+  it("records the failed attempt's output tokens for diagnosis", async () => {
+    const dependencies = fakes();
+    const failure = Object.assign(
+      new Error("resume-jd-difference-invalid-output"),
+      {
+        failureStage: "content-json",
+        usage: {
+          inputCacheHitTokens: 0,
+          inputCacheMissTokens: 5_484,
+          outputTokens: 6_034,
+        },
+      },
+    );
+    dependencies.aiProvider.analyzeResumeJDDifference.mockRejectedValueOnce(
+      failure,
+    );
+
+    const result = await createResumeJDDifferenceService(dependencies).run(
+      input({ ocrText: resumeText }),
+    );
+
+    expect(result.run.errorCode).toBe("resume-jd-difference-invalid-output");
+    expect(dependencies.logger.error).toHaveBeenCalledWith(
+      "resume-jd-difference-failed",
+      expect.objectContaining({
+        failureStage: "content-json",
+        outputTokens: 6_034,
+      }),
     );
   });
 

@@ -14,10 +14,7 @@ import {
 } from "@/features/jd-gap-analysis/prompts";
 import type { JDGapComparisonInput } from "@/features/jd-gap-analysis/schemas";
 import { differencePromptVariants } from "@/features/resume-jd-difference/prompts";
-import type {
-  ResumeJDDifferenceInput,
-  ResumeJDDifferenceOutput,
-} from "@/features/resume-jd-difference/schemas";
+import type { ResumeJDDifferenceInput } from "@/features/resume-jd-difference/schemas";
 
 const resumeText =
   "Product Analyst\nImproved checkout conversion by 18% through funnel analysis.";
@@ -1087,66 +1084,43 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       },
     ],
   };
-  const output: ResumeJDDifferenceOutput = {
-    jobCore: {
-      missionZh: "通过报告支持业务决策。",
-      coreCapabilities: ["业务分析", "报告", "跨团队协作"],
-      concepts: [
-        {
-          id: "concept-1",
-          labelZh: "业务相关方协作",
-          originalTerms: ["business stakeholders"],
-          importanceReasonZh: "岗位核心职责直接要求。",
-          priority: "critical",
-        },
-      ],
-      gates: [],
-      preferredItems: [],
-    },
-    overallDifference: {
-      summaryZh: "简历有相近经历，但岗位语言和场景表达较弱。",
-      topIssueIds: ["issue-1"],
-    },
-    issues: [
+  const compact = {
+    missionZh: "通过报告支持业务决策。",
+    coreCapabilities: ["业务分析", "报告", "跨团队协作"],
+    overallSummaryZh: "简历有相近经历，但岗位语言表达较弱。",
+    requirements: [
       {
-        id: "issue-1",
-        conceptId: "concept-1",
-        jdOriginal:
-          "Collaborate with business stakeholders to align reporting needs.",
-        jdTranslationZh: "与业务相关方协作并对齐报告需求。",
-        resumeExcerpt: "Worked with business teams on weekly reports.",
+        jdSegmentId: "jd-1",
+        kind: "core",
+        comparisonMode: "semantic",
+        conceptLabelZh: "业务相关方协作",
+        jdTerms: ["business stakeholders"],
+        importanceReasonZh: "岗位核心职责直接要求。",
+        priority: "critical",
+        translationZh: "与业务相关方协作并对齐报告需求。",
+        assessment: "partial",
+        resumeSegmentId: "resume-1",
+        profileFactIds: [],
+        gapType: "language_misaligned",
         resumeStatusZh: "简历提到业务团队和报告，但没有说明需求对齐。",
-        profileFactIds: [input.confirmedFacts[0]!.id],
-        type: "language_misaligned",
         problemZh: "岗位语言未对齐。",
         reasonZh: "有相近职责证据，但表达未覆盖需求对齐动作。",
-        priority: "critical",
-        isGate: false,
-        authenticity: "supported",
-      },
-    ],
-    matched: [],
-    directions: [
-      {
-        id: "direction-1",
-        issueId: "issue-1",
-        targetSection: "experience",
-        targetExperienceZh: "每周报告经历",
-        conceptId: "concept-1",
-        jdTerms: ["business stakeholders", "align reporting needs"],
-        focusAreas: ["action", "stakeholders", "context"],
-        synonymousJobLanguage: ["business stakeholders"],
-        authenticity: "supported",
-        needsConfirmation: false,
-        directionZh: "补充真实的需求确认过程、协作对象和报告用途。",
+        improvement: {
+          targetSection: "experience",
+          targetExperienceZh: "每周报告经历",
+          focusAreas: ["action", "stakeholders"],
+          synonymousJobLanguage: ["business stakeholders"],
+          needsConfirmation: false,
+          directionZh: "补充真实的需求确认过程、协作对象和报告用途。",
+        },
       },
     ],
   };
 
-  it("sends JD, selected resume, and confirmed facts in one request", async () => {
+  it("sends segmented JD, resume, and confirmed facts in one request", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(output)));
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
     const { provider, log } = createProvider(fetchImpl);
 
     const result = await provider.analyzeResumeJDDifference(input, {
@@ -1167,36 +1141,18 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
         format: {
           type: "json_schema",
           name: "resume_jd_difference",
-          schema: {
-            type: "object",
-            additionalProperties: false,
-          },
+          schema: { type: "object", additionalProperties: false },
         },
       },
     });
-    const schema = body.text.format.schema;
-    expect(
-      schema.properties.jobCore.properties.gates.items.properties.originalText
-        .enum,
-    ).toEqual([input.jdText]);
-    expect(
-      schema.properties.jobCore.properties.preferredItems.items.properties
-        .originalText.enum,
-    ).toEqual([input.jdText]);
-    expect(schema.properties.issues.items.properties.jdOriginal.enum).toEqual([
-      input.jdText,
-    ]);
-    expect(schema.properties.matched.items.properties.jdOriginal.enum).toEqual([
-      input.jdText,
-    ]);
     expect(body.input).toBe(
       [
-        `<job_description>\n${input.jdText}\n</job_description>`,
-        `<selected_resume>\n${input.resumeText}\n</selected_resume>`,
+        `<job_description_segments_json>\n${JSON.stringify([{ id: "jd-1", text: input.jdText }])}\n</job_description_segments_json>`,
+        `<selected_resume_segments_json>\n${JSON.stringify([{ id: "resume-1", text: input.resumeText }])}\n</selected_resume_segments_json>`,
         `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
       ].join("\n"),
     );
-    expect(result.data).toEqual(output);
+    expect(result.data.jobCore.missionZh).toBe(compact.missionZh);
     expect(JSON.stringify(log.mock.calls)).not.toContain(input.jdText);
     expect(JSON.stringify(log.mock.calls)).not.toContain(input.resumeText);
   });
@@ -1204,7 +1160,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("allows the evaluation runner to lower only V4 output tokens", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(output)));
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
     const provider = createDeepSeekAIProvider({
       apiKey: "test-key",
       model: "deepseek-v4-flash",
@@ -1240,7 +1196,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("logs only a safe stage when V4 JSON violates the output schema", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(responsesSuccessResponse('{"jobCore":{}}'));
+      .mockResolvedValue(responsesSuccessResponse('{"missionZh":{}}'));
     const { provider, log } = createProvider(fetchImpl);
 
     await expect(
@@ -1250,9 +1206,94 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     expect(log).toHaveBeenCalledWith(
       expect.objectContaining({
         errorCode: "resume-jd-difference-invalid-output",
-        failureStage: "content-schema:invalid-type:jobCore-missionZh",
+        failureStage: "content-schema:too-small:requirements",
       }),
     );
-    expect(JSON.stringify(log.mock.calls)).not.toContain('{"jobCore":{}}');
+    expect(JSON.stringify(log.mock.calls)).not.toContain('{"missionZh":{}}');
+  });
+
+  it("accepts a JSON payload the model wrapped in a markdown fence", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        responsesSuccessResponse(
+          "```json\n" + JSON.stringify(compact) + "\n```",
+        ),
+      );
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+    });
+
+    expect(result.data.issues).toHaveLength(1);
+  });
+
+  it("constrains citations to segment ids instead of embedding JD prose", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
+    const { provider } = createProvider(fetchImpl);
+
+    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1" });
+
+    const body = JSON.parse(String(fetchImpl.mock.calls[0]![1]?.body));
+    const schema = body.text.format.schema;
+    const requirement = schema.properties.requirements.items.properties;
+    expect(requirement.jdSegmentId.enum).toEqual(["jd-1"]);
+    expect(JSON.stringify(schema)).not.toContain("business stakeholders");
+    expect(JSON.stringify(schema).length).toBeLessThan(10_000);
+  });
+
+  it("materializes segment ids back into verbatim source text", async () => {
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+    });
+
+    expect(result.data.issues[0]!.jdOriginal).toBe(input.jdText);
+    expect(result.data.issues[0]!.resumeExcerpt).toBe(input.resumeText);
+  });
+
+  it("repairs an unenforced schema violation instead of failing the run", async () => {
+    const drifted = structuredClone(compact) as unknown as {
+      requirements: Record<string, unknown>[];
+    };
+    drifted.requirements[0]!.gapType = "totally_invented";
+    drifted.requirements[0]!.jdTerms = ["y".repeat(400)];
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        responsesSuccessResponse("```json\n" + JSON.stringify(drifted) + "\n```"),
+      );
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+    });
+
+    expect(result.data.issues).toHaveLength(1);
+    expect(result.data.issues[0]!.jdOriginal).toBe(input.jdText);
+  });
+
+  it("recovers when the model leaves a raw newline inside a string literal", async () => {
+    const withRawNewline = JSON.stringify(compact).replace(
+      '"directionZh":"',
+      '"directionZh":"\n',
+    );
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(responsesSuccessResponse(withRawNewline));
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+    });
+
+    expect(result.data.directions).toHaveLength(1);
   });
 });
