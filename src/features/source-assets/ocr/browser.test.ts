@@ -38,6 +38,24 @@ describe("createBrowserOcrAdapter", () => {
     });
   });
 
+  it("serves every OCR asset from our own origin", () => {
+    // Upstream defaults fetch models from Baidu object storage and the runtime
+    // from jsDelivr. Those sit in opposite regions, so one of them is slow or
+    // blocked for any given user, and a stalled fetch surfaces as a hung
+    // "preparing" spinner rather than an error. Nothing here may be absolute.
+    const urls = JSON.stringify(PADDLE_OPTIONS).match(/"[^"]*:\/\/[^"]*"/gu) ?? [];
+    expect(urls).toEqual([]);
+    expect(PADDLE_OPTIONS).toMatchObject({
+      textDetectionModelAsset: {
+        url: "/ocr/models/PP-OCRv6_tiny_det_onnx_infer.tar",
+      },
+      textRecognitionModelAsset: {
+        url: "/ocr/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
+      },
+      ortOptions: { wasmPaths: "/ocr/wasm/" },
+    });
+  });
+
   it("clears a rejected model promise so initialization can be retried", async () => {
     const create = vi
       .fn()

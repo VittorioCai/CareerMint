@@ -260,11 +260,10 @@ test("complete private career-profile foundation flow", async ({
   await expect(page).toHaveURL(/\/login(?:\?|$)/);
 });
 
-test("local OCR browser smoke stays lazy and recovers scanned resumes", async ({
+test("@real-ocr local OCR browser smoke stays lazy and recovers scanned resumes", async ({
   page,
   context,
 }) => {
-  test.skip(process.env.E2E_LOCAL_OCR !== "1", "local OCR smoke is opt-in");
   test.setTimeout(300_000);
 
   const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;

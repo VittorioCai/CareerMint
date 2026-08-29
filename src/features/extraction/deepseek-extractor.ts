@@ -477,15 +477,13 @@ export function createDeepSeekAIProvider(
         );
       }
 
-      let rawExtraction: unknown;
-      try {
-        rawExtraction = JSON.parse(choice.message.content);
-      } catch {
+      const parsedContent = parseStructuredContent(choice.message.content);
+      if (!parsedContent.ok) {
         throw new AdapterError(invalidOutputError, true, usage, "content-json");
       }
 
       const extraction = outputSchema.safeParse(
-        preprocess ? preprocess(rawExtraction) : rawExtraction,
+        preprocess ? preprocess(parsedContent.value) : parsedContent.value,
       );
       if (!extraction.success) {
         throw new AdapterError(

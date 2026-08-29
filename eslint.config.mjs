@@ -33,6 +33,8 @@ const eslintConfig = defineConfig([
     "build/**",
     "work/**",
     "next-env.d.ts",
+    // Vendored onnxruntime runtime, copied verbatim by scripts/sync-ocr-assets.mjs.
+    "public/ocr/wasm/**",
   ]),
 ]);
 

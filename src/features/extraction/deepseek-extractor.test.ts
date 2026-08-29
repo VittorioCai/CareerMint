@@ -1088,4 +1088,20 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
 
     expect(result.data.directions).toHaveLength(1);
   });
+
+  it("recovers a fenced payload on the chat-completions path too", async () => {
+    // Measured: DeepSeek honours json_object here today, so this is insurance
+    // rather than a live bug. The retry cannot cover it — a model that fences
+    // once tends to fence again — so both attempts are fenced on purpose.
+    const fetchImpl = vi
+      .fn<typeof fetch>()
+      .mockResolvedValue(
+        successResponse("```json\n" + JSON.stringify(extraction) + "\n```"),
+      );
+    const { provider } = createProvider(fetchImpl);
+
+    const result = await provider.extractResumeFacts(resumeText);
+
+    expect(result.data.facts).toHaveLength(1);
+  });
 });

@@ -148,14 +148,24 @@ interface PaddleCacheEntry {
 
 let paddleCacheEntry: PaddleCacheEntry | undefined;
 
+// Models and runtime are served from our own origin. Upstream defaults point
+// at Baidu object storage and jsDelivr, which sit in opposite regions: one of
+// them is slow or blocked for any given user, and a stalled fetch shows up as
+// a hung "preparing" spinner rather than an error. See scripts/sync-ocr-assets.mjs.
 const PADDLE_OPTIONS: Record<string, unknown> = {
   textDetectionModelName: "PP-OCRv6_tiny_det",
   textRecognitionModelName: "PP-OCRv6_tiny_rec",
+  textDetectionModelAsset: {
+    url: "/ocr/models/PP-OCRv6_tiny_det_onnx_infer.tar",
+  },
+  textRecognitionModelAsset: {
+    url: "/ocr/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
+  },
   worker: true,
   initialize: false,
   ortOptions: {
     backend: "wasm",
-    wasmPaths: "https://cdn.jsdelivr.net/npm/onnxruntime-web@1.27.0/dist/",
+    wasmPaths: "/ocr/wasm/",
     numThreads: 1,
     simd: true,
     proxy: false,

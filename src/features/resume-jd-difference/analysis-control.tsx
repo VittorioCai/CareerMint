@@ -354,24 +354,34 @@ function AnalysisControlState({
             </p>
           ) : null}
           {canRecoverWithOcr && !ocrActive ? (
-            <button
-              type="button"
-              className="button-secondary mt-3 min-h-11 px-4 text-sm font-black"
-              onClick={() => void runOcr()}
-              disabled={busy}
-            >
-              在本机识别扫描版 PDF
-            </button>
+            <div className="mt-3">
+              <button
+                type="button"
+                className="button-secondary min-h-11 px-4 text-sm font-black"
+                onClick={() => void runOcr()}
+                disabled={busy}
+              >
+                在本机识别扫描版 PDF
+              </button>
+              <p className="mt-2 max-w-xl text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+                识别在你的浏览器里完成，简历不会上传。首次使用需要下载约 30 MB
+                的识别引擎，之后浏览器会缓存，不必重复下载。
+              </p>
+            </div>
           ) : null}
           {ocrActive ? (
             <div className="mt-3" aria-live="polite">
               <p className="text-sm font-black">
                 {ocrProgress?.phase === "recognizing"
                   ? `正在本机识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
-                  : "正在准备本机识别…"}
+                  : "正在下载识别引擎（首次约 30 MB，之后会缓存）…"}
               </p>
               <progress
-                aria-label="扫描版 PDF 本机识别进度"
+                aria-label={
+                  ocrProgress?.phase === "recognizing"
+                    ? "扫描版 PDF 本机识别进度"
+                    : "识别引擎下载进度"
+                }
                 className="mt-2 h-2 w-full accent-[var(--coral)]"
                 max={
                   ocrProgress?.phase === "recognizing"
