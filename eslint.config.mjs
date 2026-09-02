@@ -35,6 +35,9 @@ const eslintConfig = defineConfig([
     "next-env.d.ts",
     // Vendored onnxruntime runtime, copied verbatim by scripts/sync-ocr-assets.mjs.
     "public/ocr/wasm/**",
+    // Nested git worktrees hold other branches' checkouts; linting them reports
+    // their problems as if they were this branch's.
+    ".worktrees/**",
   ]),
 ]);
 

@@ -10,6 +10,8 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./tests/setup.ts"],
     css: true,
-    exclude: [...configDefaults.exclude, "tests/e2e/**"],
+    // Nested git worktrees hold other branches' checkouts. Without this they are
+    // collected too, and `pnpm test` reports their failures as if they were ours.
+    exclude: [...configDefaults.exclude, "tests/e2e/**", ".worktrees/**"],
   },
 });
