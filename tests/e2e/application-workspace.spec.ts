@@ -182,3 +182,37 @@ test("keeps resume selection, preview, workflow navigation, and deletion coheren
     await admin.auth.admin.deleteUser(userId);
   }
 });
+
+test("does not greet a new account with a row of zeroes", async ({ page }) => {
+  test.setTimeout(120_000);
+  const { admin, account } = clients();
+  const { email, userId } = await createUser(admin);
+
+  try {
+    await prepareAccount(page, account, email, userId);
+
+    // prepareAccount guards its onboarding step on the URL right after login,
+    // which can still be /app while the client redirect is in flight. Finish
+    // onboarding explicitly so this lands on the home page instead of bouncing.
+    await page.goto("/onboarding");
+    if (/\/onboarding/u.test(page.url())) {
+      await page.getByLabel("姓名").fill("Zero Test");
+      await page.getByLabel("目标岗位").fill("Product Analyst");
+      await page.getByRole("button", { name: "保存求职目标" }).click();
+      await page.getByRole("button", { name: "暂时跳过" }).click();
+      await page.getByRole("button", { name: "进入工作台" }).click();
+    }
+    await page.goto("/app");
+    await expect(page).toHaveURL(/\/app$/u);
+
+    // Four counters all reading 0, directly above an empty state saying the
+    // same thing, is the first data a new user sees. Counters belong on the
+    // page once there is something to count.
+    await expect(page.getByText("总记录")).toBeHidden();
+    await expect(
+      page.getByRole("link", { name: "新建申请工作区" }),
+    ).toBeVisible();
+  } finally {
+    await admin.auth.admin.deleteUser(userId);
+  }
+});

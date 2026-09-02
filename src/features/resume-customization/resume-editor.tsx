@@ -265,7 +265,7 @@ export function ResumeEditor({
                     .map((item) => (
                       <div
                         key={item.id}
-                        className={`rounded-lg border-l-4 px-4 py-3 ${
+                        className={`rounded-lg border px-4 py-3 ${
                           item.decision === "accepted"
                             ? "border-[var(--mint-strong)] bg-white"
                             : "border-[var(--ink-soft)] bg-[#fbfbf8]"

@@ -280,7 +280,7 @@ export function ResumeJDDifferencePanel({
           </h2>
         </div>
         {gates.length ? (
-          <div className="dense-surface overflow-hidden border-l-4 border-l-[var(--coral)]">
+          <div className="overflow-hidden rounded-2xl border-2 border-[var(--coral)] bg-white">
             {gates.map((issue) => (
               <IssueDetails key={issue.id} issue={issue} kind="gate" />
             ))}

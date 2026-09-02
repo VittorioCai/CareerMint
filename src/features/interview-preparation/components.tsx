@@ -305,7 +305,7 @@ export function QuestionPreparationCard({
         </p>
       ) : null}
       {applicationLink?.sourceExcerpt ? (
-        <p className="mt-2 border-l-2 border-[var(--cream)] pl-3 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+        <p className="mt-2 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
           <span className="font-black text-[var(--ink)]">JD 依据：</span>
           “{applicationLink.sourceExcerpt}”
         </p>
@@ -322,7 +322,7 @@ export function QuestionPreparationCard({
         ) : null}
       </div>
       {question.variants.length ? (
-        <ul className="mt-3 space-y-1 border-l-2 border-[var(--mist-blue)] pl-3 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+        <ul className="mt-3 space-y-1 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
           {question.variants.map((item) => (
             <li key={item.id}>也可能问：{item.wording}</li>
           ))}

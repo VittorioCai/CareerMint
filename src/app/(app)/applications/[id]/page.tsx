@@ -95,23 +95,32 @@ function Overview({ application }: { application: Application }) {
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="grid gap-3 sm:grid-cols-2">
-        {[
-          ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
-          ["阶段开始", formatDate(application.stageChangedAt)],
-          ["首次投递", formatDate(application.appliedAt)],
-          ["办公方式", WORKPLACE_MODE_LABELS[application.workplaceMode]],
-          ["来源", application.source ?? "未填写"],
-          ["下一步", application.nextAction ?? "尚未设置"],
-        ].map(([label, value]) => (
-          <article key={label} className="rounded-xl border border-[var(--line)] bg-white p-4">
-            <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              {label}
-            </p>
-            <p className="mt-2 break-words text-sm font-black">{value}</p>
-          </article>
-        ))}
-        </div>
+        {/* Six one-line values do not need six bordered cards: as a grid of
+            articles they stretched to a uniform height and took 450px to say
+            what fits in a third of that. This is a description list, so it is
+            marked up as one. */}
+        <dl className="dense-surface grid self-start sm:grid-cols-2 sm:divide-x sm:divide-[var(--line)]">
+          {[
+            ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
+            ["阶段开始", formatDate(application.stageChangedAt)],
+            ["首次投递", formatDate(application.appliedAt)],
+            ["办公方式", WORKPLACE_MODE_LABELS[application.workplaceMode]],
+            ["来源", application.source ?? "未填写"],
+            ["下一步", application.nextAction ?? "尚未设置"],
+          ].map(([label, value]) => (
+            <div
+              key={label}
+              className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
+            >
+              <dt className="shrink-0 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                {label}
+              </dt>
+              <dd className="min-w-0 break-words text-right text-sm font-black">
+                {value}
+              </dd>
+            </div>
+          ))}
+        </dl>
         <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]">
         <p className="text-xs font-black uppercase tracking-[0.12em]">更新进度</p>
         <h2 className="heading-font mt-2 text-xl font-black">发生了什么？记下来</h2>

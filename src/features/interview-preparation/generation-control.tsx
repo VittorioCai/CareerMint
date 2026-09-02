@@ -285,7 +285,7 @@ export function InterviewQuestionGenerationControl({
                       <span className="status-chip bg-white">{candidateStatusLabels[candidate.status]}</span>
                     </div>
                     <h3 className="heading-font mt-3 text-lg font-black leading-7">{candidate.prompt}</h3>
-                    <p className="mt-3 border-l-2 border-[var(--cream)] pl-3 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
+                    <p className="mt-3 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
                       <span className="font-black text-[var(--ink)]">JD 依据：</span>“{candidate.sourceExcerpt}”
                     </p>
                     <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">

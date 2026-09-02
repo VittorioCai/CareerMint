@@ -120,27 +120,29 @@ export default async function DashboardPage() {
           </Link>
         </div>
 
-        <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            ["总记录", applicationSummary.total, "包含全部历史"],
-            ["进行中", applicationSummary.active, "不含拒绝与撤回"],
-            ["面试中", applicationSummary.interviews, "当前阶段"],
-            ["Offer", applicationSummary.offers, "当前阶段"],
-          ].map(([label, value, note], index) => (
-            <article
-              key={label}
-              className={`rounded-2xl border p-4 ${
-                index === 0
-                  ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[3px_3px_0_var(--ink)]"
-                  : "border-[var(--line)] bg-white"
-              }`}
-            >
-              <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
-              <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
-              <p className="mt-1 text-[10px] font-semibold text-[var(--ink-soft)]">{note}</p>
-            </article>
-          ))}
-        </div>
+          {applicationSummary.total > 0 ? (
+          <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+            {[
+              ["总记录", applicationSummary.total, "包含全部历史"],
+              ["进行中", applicationSummary.active, "不含拒绝与撤回"],
+              ["面试中", applicationSummary.interviews, "当前阶段"],
+              ["Offer", applicationSummary.offers, "当前阶段"],
+            ].map(([label, value, note], index) => (
+              <article
+                key={label}
+                className={`rounded-2xl border p-4 ${
+                  index === 0
+                    ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[3px_3px_0_var(--ink)]"
+                    : "border-[var(--line)] bg-white"
+                }`}
+              >
+                <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
+                <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
+                <p className="mt-1 text-[10px] font-semibold text-[var(--ink-soft)]">{note}</p>
+              </article>
+            ))}
+          </div>
+          ) : null}
 
         {applicationSummary.recent.length > 0 ? (
           <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
