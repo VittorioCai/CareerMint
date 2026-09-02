@@ -502,7 +502,7 @@ export default async function ApplicationDetailPage({
         </Link>
       </div>
 
-      <nav className="mt-7 flex gap-2 overflow-x-auto border-b border-[var(--line)] pb-3" aria-label="申请详情">
+      <nav className="mt-7 flex flex-wrap gap-2 border-b border-[var(--line)] pb-3" aria-label="申请详情">
         {applicationDetailTabs.map((tab) => (
           <Link
             key={tab.id}

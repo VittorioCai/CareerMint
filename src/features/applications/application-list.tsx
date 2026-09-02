@@ -129,7 +129,7 @@ export function ApplicationList({
 
   if (view === "table") {
     return (
-      <div className="overflow-x-auto rounded-2xl border border-[var(--line)] bg-white">
+      <div className="scroll-x-affordance overflow-x-auto rounded-2xl border border-[var(--line)] bg-white">
         <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-[var(--canvas)] text-xs font-black text-[var(--ink-muted)]">
             <tr>
@@ -185,7 +185,7 @@ export function ApplicationList({
   }
 
   return (
-    <div className="overflow-x-auto pb-4">
+    <div className="scroll-x-affordance overflow-x-auto pb-4">
       <div className="grid min-w-[1500px] grid-cols-7 gap-3">
         {APPLICATION_STAGES.map((stage) => {
           const grouped = applications.filter(

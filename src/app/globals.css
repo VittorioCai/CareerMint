@@ -185,3 +185,20 @@ button {
     animation-iteration-count: 1 !important;
   }
 }
+
+/* Horizontal scroll affordance.
+   Cover gradients are attached `local` so they scroll with the content; the
+   shadows are attached `scroll` so they stay pinned to the edges. At the start
+   of the track the left cover sits on top of the left shadow and hides it, so a
+   shadow is visible only while there is more content that way. */
+.scroll-x-affordance {
+  background-image:
+    linear-gradient(to right, var(--canvas) 40%, rgba(255, 250, 242, 0)),
+    linear-gradient(to left, var(--canvas) 40%, rgba(255, 250, 242, 0)),
+    radial-gradient(farthest-side at 0 50%, rgba(41, 55, 51, 0.16), rgba(41, 55, 51, 0)),
+    radial-gradient(farthest-side at 100% 50%, rgba(41, 55, 51, 0.16), rgba(41, 55, 51, 0));
+  background-position: 0 0, 100% 0, 0 0, 100% 0;
+  background-repeat: no-repeat;
+  background-size: 48px 100%, 48px 100%, 20px 100%, 20px 100%;
+  background-attachment: local, local, scroll, scroll;
+}

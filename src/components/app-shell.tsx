@@ -141,7 +141,7 @@ export function AppShell({ children, email }: AppShellProps) {
             </div>
           </div>
 
-          <nav className="mt-3 flex gap-2 overflow-x-auto pb-1 md:hidden" aria-label="移动端主导航">
+          <nav className="mt-3 flex flex-wrap gap-2 pb-1 md:hidden" aria-label="移动端主导航">
             <Link
               href="/applications/new"
               aria-label="移动端新建申请"

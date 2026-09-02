@@ -315,6 +315,18 @@ test("recovers scanned PDF text through OCR and remains usable on mobile", async
         page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
       )
       .toBe(true);
+
+    // The tab row used to scroll horizontally with no affordance, so the last
+    // two tabs were simply invisible on a phone. Every tab must now be reachable
+    // without discovering a hidden scroll.
+    for (const label of ["概览", "简历", "差异分析", "完善建议", "面试准备", "时间线"]) {
+      const box = await page
+        .getByRole("link", { name: label, exact: true })
+        .first()
+        .boundingBox();
+      expect(box, `tab ${label} is not rendered`).not.toBeNull();
+      expect(box!.x + box!.width, `tab ${label} is off-screen`).toBeLessThanOrEqual(390);
+    }
     const summary = page.getByTestId(/^difference-issue-/u).first().locator("summary");
     await summary.focus();
     await page.keyboard.press("Enter");
