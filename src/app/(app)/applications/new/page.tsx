@@ -1,4 +1,5 @@
 import { createApplicationAction } from "@/features/applications/actions";
+import { SetupProgress } from "@/features/applications/setup-progress";
 import { ApplicationDraftForm } from "@/features/applications/application-draft-form";
 
 export default function NewApplicationPage() {
@@ -24,23 +25,7 @@ export default function NewApplicationPage() {
         </aside>
       </div>
 
-      <ol className="mt-7 grid gap-2 sm:grid-cols-5" aria-label="新建申请步骤">
-        {["添加 JD", "解析要求", "匹配档案", "补充资料", "建立工作区"].map(
-          (label, index) => (
-            <li
-              key={label}
-              className={`rounded-xl border px-3 py-3 text-xs font-black ${
-                index === 0
-                  ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]"
-                  : "border-[var(--line)] bg-white text-[var(--ink-muted)]"
-              }`}
-            >
-              <span className="mr-1.5">{index + 1}.</span>
-              {label}
-            </li>
-          ),
-        )}
-      </ol>
+        <SetupProgress current="saved" />
 
       <div className="dense-surface mt-6 p-4 sm:p-7">
         <ApplicationDraftForm

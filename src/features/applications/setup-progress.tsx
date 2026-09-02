@@ -1,5 +1,5 @@
 const setupSteps = [
-  { id: "saved", label: "JD 已保存" },
+  { id: "saved", label: "保存 JD" },
   { id: "resume", label: "选择并预览简历" },
   { id: "jd", label: "分析 JD" },
   { id: "gap", label: "查看差距" },
