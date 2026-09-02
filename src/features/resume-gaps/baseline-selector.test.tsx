@@ -316,4 +316,22 @@ describe("BaselineSelector", () => {
     resolveAction(actionResult());
     await waitFor(() => expect(router.refresh).toHaveBeenCalledOnce());
   });
+
+  it("names the chosen file instead of leaving the browser to label the control", async () => {
+    // "Choose File / No file chosen" is supplied by the browser in its own
+    // locale. It cannot be translated or restyled, so it reads as a foreign
+    // control inside a Chinese interface.
+    const user = userEvent.setup();
+    renderSelector();
+
+    expect(screen.getByText("选择文件")).toBeVisible();
+    expect(screen.getByText("尚未选择文件")).toBeVisible();
+
+    await user.upload(
+      screen.getByLabelText("上传新的 PDF 或 DOCX 简历"),
+      new File(["%PDF-1.4"], "Vittorio_Cai_CV.pdf", { type: "application/pdf" }),
+    );
+
+    expect(screen.getByText("Vittorio_Cai_CV.pdf")).toBeVisible();
+  });
 });

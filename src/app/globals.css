@@ -106,8 +106,30 @@ button {
   transition: border-color 160ms ease, box-shadow 160ms ease;
 }
 
+select.form-input {
+  /* The native control paints its own chevron in the platform's style, which
+     reads as a different component vocabulary next to every other field. */
+  appearance: none;
+  padding-right: 2.5rem;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23293733' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1.125rem 1.125rem;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 160ms ease;
+}
+
+input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 .form-input::placeholder {
   color: var(--ink-soft);
+  font-weight: 400;
 }
 
 .form-input:hover {

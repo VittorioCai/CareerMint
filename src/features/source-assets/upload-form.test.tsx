@@ -325,4 +325,23 @@ describe("UploadForm", () => {
     await screen.findByText("简历分析完成");
     expect(ocrPdf).toHaveBeenCalledTimes(1);
   });
+
+  it("labels the file picker in the interface language and names the chosen file", async () => {
+    // A bare file input renders "Choose File / No file chosen" in the browser's
+    // locale. That text is not ours to translate or style, so a Chinese
+    // interface shows an English control at the very first step of the product.
+    const user = userEvent.setup();
+    render(<UploadForm request={vi.fn()} onUploaded={vi.fn()} />);
+
+    expect(screen.getByText("选择文件")).toBeVisible();
+    expect(screen.getByText("尚未选择文件")).toBeVisible();
+
+    await user.upload(
+      screen.getByLabelText("上传现有简历"),
+      new File(["%PDF-1.4"], "Vittorio_Cai_CV.pdf", { type: "application/pdf" }),
+    );
+
+    expect(screen.getByText("Vittorio_Cai_CV.pdf")).toBeVisible();
+    expect(screen.queryByText("尚未选择文件")).not.toBeInTheDocument();
+  });
 });

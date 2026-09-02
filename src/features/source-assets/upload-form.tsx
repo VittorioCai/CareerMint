@@ -99,6 +99,7 @@ export function UploadForm({
     "idle" | "uploading" | "extracting" | "ocr" | "succeeded" | "failed" | "consent"
   >("idle");
   const [error, setError] = useState<string | null>(null);
+  const [chosenName, setChosenName] = useState<string | null>(null);
   const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
 
   async function pollJob(jobId: string) {
@@ -316,16 +317,32 @@ export function UploadForm({
         <label className="form-label" htmlFor="resume-source">
           上传现有简历
         </label>
-        <input
-          ref={inputRef}
-          id="resume-source"
-          name="file"
-          type="file"
-          accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-          className="form-input max-w-full file:mr-3 file:rounded-lg file:border-0 file:bg-[var(--mint)] file:px-3 file:py-1.5 file:text-sm file:font-black"
-          disabled={busy || asset !== null}
-          required={!asset}
-        />
+        <div className="form-input mt-2 flex max-w-full items-center gap-3">
+          <input
+            ref={inputRef}
+            id="resume-source"
+            name="file"
+            type="file"
+            accept=".pdf,.docx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+            className="peer sr-only"
+            disabled={busy || asset !== null}
+            required={!asset}
+            onChange={(event) =>
+              setChosenName(event.target.files?.[0]?.name ?? null)
+            }
+          />
+          <label
+            htmlFor="resume-source"
+            className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--mint)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
+          >
+            选择文件
+          </label>
+          <span
+            className={`min-w-0 truncate text-sm ${chosenName ? "font-bold" : "font-medium text-[var(--ink-soft)]"}`}
+          >
+            {chosenName ?? "尚未选择文件"}
+          </span>
+        </div>
         <p className="mt-2 text-xs font-medium text-[var(--ink-muted)]">
           支持 PDF、DOCX，最大 10 MiB。原文件只保存在你的私有空间。
         </p>
