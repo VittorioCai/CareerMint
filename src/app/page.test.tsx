@@ -31,4 +31,18 @@ describe("public home", () => {
     expect(css).toContain("--mist-blue: #c8ddff");
     expect(css).toContain("--ink: #293733");
   });
+
+  it("never advertises a match score the product refuses to produce", async () => {
+    // PRODUCT.md rules out match percentages, admission probability and overall
+    // competence scores. A landing page that shows one sets an expectation the
+    // product deliberately never meets, and does it with the number users are
+    // most likely to remember.
+    const source = await readFile(
+      join(process.cwd(), "src/app/page.tsx"),
+      "utf8",
+    );
+    expect(source).not.toMatch(/匹配\s*\d+\s*%/u);
+    expect(source).not.toMatch(/完成度\s*\d+\s*%/u);
+    expect(source).not.toMatch(/(?:匹配度|胜任|录取)[^\n]{0,12}%/u);
+  });
 });

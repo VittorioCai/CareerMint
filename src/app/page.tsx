@@ -93,7 +93,7 @@ export default function Home() {
                 <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[var(--ink-muted)]">申请工作区</p>
                 <p className="heading-font mt-1 text-xl font-black">Senior Product Manager</p>
               </div>
-              <div className="rounded-full border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-1.5 text-xs font-black">匹配 78%</div>
+              <div className="rounded-full border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-1.5 text-xs font-black">1 项待确认</div>
             </div>
 
             <div className="grid sm:grid-cols-[1fr_180px]">
@@ -128,10 +128,16 @@ export default function Home() {
               <aside className="border-t-2 border-[var(--ink)] bg-[var(--canvas)] p-5 sm:border-l-2 sm:border-t-0" aria-label="申请状态">
                 <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">下一步</p>
                 <p className="heading-font mt-2 text-lg font-black">确认 1 条事实</p>
-                <div className="mt-4 h-2 overflow-hidden rounded-full border border-[var(--ink)] bg-white">
-                  <div className="h-full w-3/4 bg-[var(--coral)]" />
+                <div
+                  className="mt-4 flex h-2 gap-1 overflow-hidden"
+                  role="img"
+                  aria-label="3 项要求中 2 项有证据，1 项待确认"
+                >
+                  <span className="h-full flex-1 rounded-full border border-[var(--ink)] bg-[var(--mint-strong)]" />
+                  <span className="h-full flex-1 rounded-full border border-[var(--ink)] bg-[var(--mint-strong)]" />
+                  <span className="h-full flex-1 rounded-full border border-[var(--ink)] bg-white" />
                 </div>
-                <p className="mt-2 text-xs font-bold text-[var(--ink-muted)]">工作区完成度 75%</p>
+                <p className="mt-2 text-xs font-bold text-[var(--ink-muted)]">3 项要求 · 2 项有证据</p>
                 <button type="button" className="mt-6 w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-2.5 text-sm font-black shadow-[2px_2px_0_var(--ink)]">查看建议</button>
               </aside>
             </div>
