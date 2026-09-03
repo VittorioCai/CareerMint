@@ -223,9 +223,10 @@ export function BaselineSelector({
             <button
               type="button"
               className="button-secondary min-h-9 px-3 text-xs font-black"
+              aria-label={`预览 ${selectedAsset.originalName}`}
               onClick={(event) => openPreview(selectedAsset, event)}
             >
-              预览 {selectedAsset.originalName}
+              预览
             </button>
           </div>
         </div>

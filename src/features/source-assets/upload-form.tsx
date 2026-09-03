@@ -309,7 +309,7 @@ export function UploadForm({
 
   return (
     <form
-      className="dense-surface min-w-0 p-5 sm:p-6"
+      className="min-w-0"
       onSubmit={handleSubmit}
       noValidate
     >

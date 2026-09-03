@@ -85,7 +85,7 @@ function ApplicationCard({
           更新于 {formatDate(application.updatedAt)}
         </p>
       </Link>
-      <div className="border-t border-[var(--line)] px-4 py-3">
+      <div className="px-4 pb-3">
         <ApplicationDeleteControl
           compact
           applicationId={application.id}
@@ -186,7 +186,7 @@ export function ApplicationList({
 
   return (
     <div className="scroll-x-affordance overflow-x-auto pb-4">
-      <div className="grid min-w-[1500px] grid-cols-7 gap-3">
+      <div className="grid min-w-[1780px] grid-cols-7 gap-4">
         {APPLICATION_STAGES.map((stage) => {
           const grouped = applications.filter(
             (application) => application.stage === stage,
@@ -194,11 +194,11 @@ export function ApplicationList({
           return (
             <section
               key={stage}
-              className="min-w-0 rounded-2xl border border-[var(--line)] bg-[color:var(--canvas)] p-3"
+              className="min-w-0"
             >
-              <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-3">
+              <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-2">
                 <h2 className="text-sm font-black">{APPLICATION_STAGE_LABELS[stage]}</h2>
-                <span className="flex size-6 items-center justify-center rounded-full bg-white text-xs font-black">
+                <span className="text-xs font-black tabular-nums text-[var(--ink-muted)]">
                   {grouped.length}
                 </span>
               </div>
@@ -211,11 +211,7 @@ export function ApplicationList({
                       deleteApplication={deleteApplication}
                     />
                   ))
-                ) : (
-                  <p className="rounded-xl border border-dashed border-[var(--ink-soft)] p-3 text-xs font-semibold leading-5 text-[var(--ink-soft)]">
-                    暂无记录
-                  </p>
-                )}
+                ) : null}
               </div>
             </section>
           );

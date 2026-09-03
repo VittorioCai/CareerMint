@@ -216,3 +216,26 @@ test("does not greet a new account with a row of zeroes", async ({ page }) => {
     await admin.auth.admin.deleteUser(userId);
   }
 });
+
+test("gives board columns room for a real company name", async ({ page }) => {
+  test.setTimeout(120_000);
+  const { admin, account } = clients();
+  const { email, userId } = await createUser(admin);
+
+  try {
+    await prepareAccount(page, account, email, userId);
+    await createApplication(page, "Mercedes-Benz Group AG", "Praktikant*in Customer Experience");
+    await page.goto("/applications");
+
+    // At the old width a seven-column board gave each stage about 205px, which
+    // broke "Mercedes-Benz Group AG" across two lines and the role across three.
+    const column = await page
+      .getByRole("heading", { name: "准备中", exact: true })
+      .locator("xpath=ancestor::section[1]")
+      .boundingBox();
+    expect(column, "board column not found").not.toBeNull();
+    expect(column!.width).toBeGreaterThanOrEqual(230);
+  } finally {
+    await admin.auth.admin.deleteUser(userId);
+  }
+});

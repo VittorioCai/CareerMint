@@ -80,6 +80,15 @@ describe("ApplicationList", () => {
     ).toBeNull();
   });
 
+  it("leaves empty stages quiet instead of repeating a placeholder", () => {
+    // Seven stages and two records meant five dashed "暂无记录" boxes, which is
+    // five pieces of furniture saying nothing. The stage heading already
+    // carries a count.
+    render(<ApplicationList applications={applications} view="board" deleteApplication={deleteApplication} />);
+
+    expect(screen.queryAllByText("暂无记录")).toHaveLength(0);
+  });
+
   it("renders an information-dense table with stage text", () => {
     render(<ApplicationList applications={applications} view="table" deleteApplication={deleteApplication} />);
 
