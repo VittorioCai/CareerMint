@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { applicationRepository } from "@/features/applications/repository";
+import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import {
   buildResumeJDDifferenceMarkdown,
   safeResumeJDDifferenceMarkdownFilename,
@@ -87,6 +88,7 @@ export async function GET(
       sourceFilename: run.sourceFilename,
       stale,
       result: run.result,
+      facts: await listConfirmedFactsForAnalysis(user.id),
     });
     return new Response(markdown, {
       status: 200,

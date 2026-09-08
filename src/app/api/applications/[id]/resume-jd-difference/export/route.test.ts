@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => ({
   getCurrentUser: vi.fn(),
   getApplication: vi.fn(),
   getOwnedRun: vi.fn(),
+  listConfirmedFacts: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -24,6 +25,9 @@ vi.mock("@/features/applications/repository", () => ({
 }));
 vi.mock("@/features/resume-jd-difference/repository", () => ({
   resumeJDDifferenceRepository: { getOwned: mocks.getOwnedRun },
+}));
+vi.mock("@/features/jd-analysis/repository", () => ({
+  listConfirmedFactsForAnalysis: mocks.listConfirmedFacts,
 }));
 
 const application = {
@@ -103,6 +107,7 @@ beforeEach(() => {
   mocks.getCurrentUser.mockResolvedValue({ id: ids.user });
   mocks.getApplication.mockResolvedValue(application);
   mocks.getOwnedRun.mockResolvedValue(run);
+  mocks.listConfirmedFacts.mockResolvedValue([]);
 });
 
 describe("resume JD difference Markdown export route", () => {

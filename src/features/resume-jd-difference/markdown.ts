@@ -1,3 +1,5 @@
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+
 import type {
   DifferenceAuthenticity,
   DifferenceIssue,
@@ -12,6 +14,7 @@ export type ResumeJDDifferenceMarkdownInput = {
   sourceFilename: string;
   stale: boolean;
   result: ResumeJDDifferenceOutput;
+  facts: ConfirmedFactForAnalysis[];
 };
 
 const authenticityCopy: Record<DifferenceAuthenticity, string> = {
@@ -56,7 +59,15 @@ function safeDocumentName(value: string) {
   return escapeMarkdown(name || "resume");
 }
 
-function issueBlock(issue: DifferenceIssue, index: number) {
+function issueBlock(
+  issue: DifferenceIssue,
+  index: number,
+  factsById: Map<string, ConfirmedFactForAnalysis>,
+) {
+  // Ids can outlive the fact they point at; name only the ones still confirmed.
+  const citedTitles = issue.profileFactIds
+    .map((id) => factsById.get(id)?.title)
+    .filter((title): title is string => title !== undefined);
   return [
     `### ${index + 1}. ${escapeMarkdown(issue.jdTranslationZh)}`,
     "",
@@ -68,6 +79,9 @@ function issueBlock(issue: DifferenceIssue, index: number) {
     `- 判断依据：${escapeMarkdown(issue.reasonZh)}`,
     `- 优先级：${escapeMarkdown(issue.priority)}`,
     `- 真实性：${escapeMarkdown(authenticityCopy[issue.authenticity])}`,
+    ...(citedTitles.length
+      ? [`- 档案依据：${citedTitles.map(escapeMarkdown).join(" · ")}`]
+      : []),
     "",
   ];
 }
@@ -117,6 +131,7 @@ function jobCore(result: ResumeJDDifferenceOutput) {
 export function buildResumeJDDifferenceMarkdown(
   input: ResumeJDDifferenceMarkdownInput,
 ) {
+  const factsById = new Map(input.facts.map((fact) => [fact.id, fact]));
   const issues = input.result.issues.filter((issue) => !issue.isGate);
   const gates = input.result.issues.filter((issue) => issue.isGate);
   const issueById = new Map(input.result.issues.map((issue) => [issue.id, issue]));
@@ -135,12 +150,12 @@ export function buildResumeJDDifferenceMarkdown(
     "## 全部具体差异",
     "",
     ...(issues.length
-      ? issues.flatMap(issueBlock)
+      ? issues.flatMap((issue, index) => issueBlock(issue, index, factsById))
       : ["当前没有识别出一般差异。", ""]),
     "## 岗位门槛",
     "",
     ...(gates.length
-      ? gates.flatMap(issueBlock)
+      ? gates.flatMap((gate, index) => issueBlock(gate, index, factsById))
       : ["当前没有识别出需要单独确认的岗位门槛。", ""]),
     "## 完善方向",
     "",

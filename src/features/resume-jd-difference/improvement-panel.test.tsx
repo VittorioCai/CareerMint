@@ -1,6 +1,8 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { ResumeJDDifferenceOutput } from "./schemas";
 import {
@@ -10,6 +12,21 @@ import {
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const timestamp = "2026-08-28T10:00:00.000Z";
+
+const knownFactId = "44444444-4444-4444-8444-444444444444";
+const forgottenFactId = "55555555-5555-4555-8555-555555555555";
+
+const facts: ConfirmedFactForAnalysis[] = [
+  {
+    id: knownFactId,
+    factType: "work_experience",
+    title: "跨部门业务复盘",
+    organization: "Northstar GmbH",
+    description: "每季度与销售和运营复盘转化数据，输出改进项。",
+    skills: ["SQL", "stakeholder management"],
+    sourceExcerpt: "Ran quarterly reviews with sales and operations.",
+  },
+];
 
 const issueBase = {
   conceptId: "concept-1",
@@ -47,7 +64,13 @@ const result: ResumeJDDifferenceOutput = {
   },
   issues: [
     { ...issueBase, id: "issue-1", type: "language_misaligned" },
-    { ...issueBase, id: "issue-2", type: "missing_result" },
+    {
+      ...issueBase,
+      id: "issue-2",
+      type: "missing_result",
+      authenticity: "profile_only",
+      profileFactIds: [knownFactId, forgottenFactId],
+    },
     { ...issueBase, id: "issue-3", type: "skill_only" },
     {
       ...issueBase,
@@ -94,7 +117,7 @@ const result: ResumeJDDifferenceOutput = {
       jdTerms: ["business insights"],
       focusAreas: ["result"],
       synonymousJobLanguage: ["business insights"],
-      authenticity: "supported",
+      authenticity: "profile_only",
       needsConfirmation: false,
       directionZh: "核对分析结论被谁使用以及产生的真实影响。",
     },
@@ -177,6 +200,7 @@ describe("ResumeJDImprovementPanel", () => {
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={run()}
+        facts={facts}
         freshness="current"
       />,
     );
@@ -197,6 +221,7 @@ describe("ResumeJDImprovementPanel", () => {
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={run()}
+        facts={facts}
         freshness="current"
       />,
     );
@@ -217,6 +242,7 @@ describe("ResumeJDImprovementPanel", () => {
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={run()}
+        facts={facts}
         freshness="current"
       />,
     );
@@ -229,11 +255,71 @@ describe("ResumeJDImprovementPanel", () => {
     expect(container).not.toHaveTextContent("基础版本");
   });
 
+  it("names the confirmed career facts a suggestion is grounded in", () => {
+    render(
+      <ResumeJDImprovementPanel
+        applicationId={applicationId}
+        run={run()}
+        facts={facts}
+        freshness="current"
+      />,
+    );
+
+    const grounded = screen.getByTestId("improvement-item-issue-2");
+    expect(within(grounded).getByText("档案依据")).toBeVisible();
+    expect(within(grounded).getByText("跨部门业务复盘")).toBeVisible();
+  });
+
+  it("drops fact ids the profile no longer has instead of rendering an empty citation", () => {
+    render(
+      <ResumeJDImprovementPanel
+        applicationId={applicationId}
+        run={run()}
+        facts={facts}
+        freshness="current"
+      />,
+    );
+
+    const grounded = screen.getByTestId("improvement-item-issue-2");
+    expect(within(grounded).queryByText(forgottenFactId)).not.toBeInTheDocument();
+    expect(within(grounded).getAllByTestId(/^improvement-fact-/u)).toHaveLength(1);
+  });
+
+  it("omits the citation row entirely when a suggestion cites no facts", () => {
+    render(
+      <ResumeJDImprovementPanel
+        applicationId={applicationId}
+        run={run()}
+        facts={facts}
+        freshness="current"
+      />,
+    );
+
+    const ungrounded = screen.getByTestId("improvement-item-issue-1");
+    expect(within(ungrounded).queryByText("档案依据")).not.toBeInTheDocument();
+  });
+
+  it("still renders when the panel is given no facts at all", () => {
+    render(
+      <ResumeJDImprovementPanel
+        applicationId={applicationId}
+        run={run()}
+        facts={[]}
+        freshness="current"
+      />,
+    );
+
+    const grounded = screen.getByTestId("improvement-item-issue-2");
+    expect(within(grounded).queryByText("档案依据")).not.toBeInTheDocument();
+    expect(within(grounded).getByText("职业档案有已确认事实，当前简历未体现")).toBeVisible();
+  });
+
   it("shows only a prerequisite message when analysis is missing or stale", () => {
     const { rerender } = render(
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={null}
+        facts={facts}
         freshness="missing"
       />,
     );
@@ -247,6 +333,7 @@ describe("ResumeJDImprovementPanel", () => {
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={run()}
+        facts={facts}
         freshness="stale"
       />,
     );
@@ -259,6 +346,7 @@ describe("ResumeJDImprovementPanel", () => {
       <ResumeJDImprovementPanel
         applicationId={applicationId}
         run={run()}
+        facts={facts}
         freshness="current"
       />,
     );

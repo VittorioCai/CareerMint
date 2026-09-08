@@ -6,6 +6,19 @@ import {
   safeResumeJDDifferenceMarkdownFilename,
 } from "./markdown";
 
+const knownFactId = "44444444-4444-4444-8444-444444444444";
+const facts = [
+  {
+    id: knownFactId,
+    factType: "work_experience" as const,
+    title: "跨部门业务复盘",
+    organization: "Northstar GmbH",
+    description: "每季度与销售和运营复盘转化数据。",
+    skills: ["SQL"],
+    sourceExcerpt: null,
+  },
+];
+
 const result: ResumeJDDifferenceOutput = {
   jobCore: {
     missionZh: "用数据支持业务决策。",
@@ -32,7 +45,7 @@ const result: ResumeJDDifferenceOutput = {
       jdTranslationZh: "与相关方协作并汇报洞察。",
       resumeExcerpt: "Worked with business teams.",
       resumeStatusZh: "存在相邻经历。",
-      profileFactIds: [],
+      profileFactIds: [knownFactId],
       type: "language_misaligned",
       problemZh: "岗位语言没有对齐。",
       reasonZh: "经历相邻，但表达未覆盖协作和汇报。",
@@ -81,6 +94,34 @@ const result: ResumeJDDifferenceOutput = {
 };
 
 describe("resume JD difference Markdown", () => {
+  it("names the confirmed facts an issue is grounded in", () => {
+    const markdown = buildResumeJDDifferenceMarkdown({
+      companyName: "Acme",
+      roleTitle: "Analyst",
+      exportedAt: new Date("2026-08-28T10:00:00.000Z"),
+      sourceFilename: "resume.pdf",
+      stale: false,
+      result,
+      facts,
+    });
+
+    expect(markdown).toContain("- 档案依据：跨部门业务复盘");
+  });
+
+  it("omits the citation line when an issue cites no facts", () => {
+    const markdown = buildResumeJDDifferenceMarkdown({
+      companyName: "Acme",
+      roleTitle: "Analyst",
+      exportedAt: new Date("2026-08-28T10:00:00.000Z"),
+      sourceFilename: "resume.pdf",
+      stale: false,
+      result,
+      facts: [],
+    });
+
+    expect(markdown).not.toContain("档案依据");
+  });
+
   it("exports the complete bounded analysis in the approved order", () => {
     const markdown = buildResumeJDDifferenceMarkdown({
       companyName: "Acme #1",
@@ -89,6 +130,7 @@ describe("resume JD difference Markdown", () => {
       sourceFilename: "../resume [final].pdf",
       stale: false,
       result,
+      facts,
     });
 
     const headings = [
@@ -121,6 +163,7 @@ describe("resume JD difference Markdown", () => {
       sourceFilename: "resume.pdf",
       stale: true,
       result,
+      facts,
     });
     expect(markdown).toContain("此结果可能已过期");
   });

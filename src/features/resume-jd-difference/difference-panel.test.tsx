@@ -2,12 +2,29 @@ import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
 
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { ResumeJDDifferenceOutput } from "./schemas";
 import { ResumeJDDifferencePanel } from "./difference-panel";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const timestamp = "2026-08-28T10:00:00.000Z";
+
+const knownFactId = "44444444-4444-4444-8444-444444444444";
+const forgottenFactId = "55555555-5555-4555-8555-555555555555";
+
+const facts: ConfirmedFactForAnalysis[] = [
+  {
+    id: knownFactId,
+    factType: "work_experience",
+    title: "跨部门业务复盘",
+    organization: "Northstar GmbH",
+    description: "每季度与销售和运营复盘转化数据，输出改进项。",
+    skills: ["SQL"],
+    sourceExcerpt: "Ran quarterly reviews with sales and operations.",
+  },
+];
 
 const result: ResumeJDDifferenceOutput = {
   jobCore: {
@@ -37,7 +54,7 @@ const result: ResumeJDDifferenceOutput = {
       jdTranslationZh: "将业务需求转化为报告需求。",
       resumeExcerpt: "Worked with business teams on reports.",
       resumeStatusZh: "存在相邻协作经历。",
-      profileFactIds: [],
+      profileFactIds: [knownFactId, forgottenFactId],
       type: "language_misaligned",
       problemZh: "岗位语言没有对齐。",
       reasonZh: "简历没有明确说明需求转化过程。",
@@ -98,7 +115,7 @@ const result: ResumeJDDifferenceOutput = {
       jdOriginal: "Analyze business data.",
       jdTranslationZh: "分析业务数据。",
       resumeExcerpt: "Analyzed weekly user data.",
-      profileFactIds: [],
+      profileFactIds: [knownFactId],
       reasonZh: "简历已有直接的数据分析动作。",
     },
   ],
@@ -187,6 +204,7 @@ describe("ResumeJDDifferencePanel", () => {
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
       />,
     );
     const text = container.textContent ?? "";
@@ -216,6 +234,7 @@ describe("ResumeJDDifferencePanel", () => {
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
       />,
     );
     expect(screen.getAllByTestId("top-difference")).toHaveLength(3);
@@ -229,6 +248,7 @@ describe("ResumeJDDifferencePanel", () => {
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
       />,
     );
     const issue = screen.getByTestId("difference-issue-issue-1");
@@ -253,6 +273,7 @@ describe("ResumeJDDifferencePanel", () => {
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
       />,
     );
     expect(screen.getAllByText("当前材料未找到相关证据").length).toBeGreaterThan(0);
@@ -260,11 +281,32 @@ describe("ResumeJDDifferencePanel", () => {
     expect(screen.getByTestId("matched-details")).not.toHaveAttribute("open");
   });
 
+  it("names the confirmed facts behind a difference and a match", async () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    const issue = screen.getByTestId("difference-issue-issue-1");
+    await userEvent.click(issue.querySelector("summary")!);
+    expect(within(issue).getByText("档案依据")).toBeVisible();
+    expect(within(issue).getByText("跨部门业务复盘")).toBeVisible();
+    expect(within(issue).queryByText(forgottenFactId)).not.toBeInTheDocument();
+
+    const matched = screen.getByTestId("matched-details");
+    await userEvent.click(matched.querySelector("summary")!);
+    expect(within(matched).getByText(/档案依据：跨部门业务复盘/u)).toBeVisible();
+  });
+
   it("offers a Markdown export for the displayed run and marks previous results", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
       />,
     );
     expect(screen.getByRole("link", { name: "导出 Markdown" })).toHaveAttribute(
@@ -276,6 +318,7 @@ describe("ResumeJDDifferencePanel", () => {
       <ResumeJDDifferencePanel
         applicationId={applicationId}
         run={succeededRun()}
+        facts={facts}
         stale
       />,
     );

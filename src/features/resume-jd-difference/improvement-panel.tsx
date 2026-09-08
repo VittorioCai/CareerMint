@@ -1,5 +1,7 @@
 import Link from "next/link";
 
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+
 import type { ResumeJDDifferenceRun } from "./repository";
 import type {
   DifferenceAuthenticity,
@@ -13,6 +15,7 @@ import type {
 export type ResumeJDImprovementPanelProps = {
   applicationId: string;
   run: ResumeJDDifferenceRun | null;
+  facts: ConfirmedFactForAnalysis[];
   freshness: "current" | "stale" | "missing";
 };
 
@@ -100,12 +103,26 @@ function synthesizedGateDirection(issue: DifferenceIssue) {
   };
 }
 
+// A run stores fact ids, not facts. Ids can outlive the fact itself — the user
+// may have deleted or un-confirmed it since the analysis ran — so a citation is
+// only shown for facts the profile still has.
+function resolveCitedFacts(
+  issue: DifferenceIssue,
+  factsById: Map<string, ConfirmedFactForAnalysis>,
+) {
+  return issue.profileFactIds
+    .map((id) => factsById.get(id))
+    .filter((fact): fact is ConfirmedFactForAnalysis => fact !== undefined);
+}
+
 function ImprovementItem({
   issue,
   direction,
+  citedFacts,
 }: {
   issue: DifferenceIssue;
   direction: ImprovementDirection | null;
+  citedFacts: ConfirmedFactForAnalysis[];
 }) {
   const isGate = issue.isGate || issue.type === "gate";
   const unsupported =
@@ -171,6 +188,23 @@ function ImprovementItem({
               </dd>
             </div>
           ) : null}
+          {citedFacts.length ? (
+            <div>
+              <dt className="text-xs font-black text-[var(--ink-muted)]">档案依据</dt>
+              <dd className="mt-2 flex flex-wrap gap-2">
+                {citedFacts.map((fact) => (
+                  <span
+                    key={fact.id}
+                    data-testid={`improvement-fact-${fact.id}`}
+                    className="rounded-full border border-[var(--ink)] bg-[var(--mint)] px-3 py-1 text-xs font-black"
+                    title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
+                  >
+                    {fact.title}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-xs font-black text-[var(--ink-muted)]">真实性</dt>
             <dd className="mt-1 text-sm font-bold leading-6">
@@ -212,8 +246,10 @@ function Prerequisite({
 export function ResumeJDImprovementPanel({
   applicationId,
   run,
+  facts,
   freshness,
 }: ResumeJDImprovementPanelProps) {
+  const factsById = new Map(facts.map((fact) => [fact.id, fact]));
   if (
     freshness !== "current" ||
     !run ||
@@ -274,6 +310,7 @@ export function ResumeJDImprovementPanel({
                   key={issue.id}
                   issue={issue}
                   direction={directions.get(issue.id) ?? null}
+                  citedFacts={resolveCitedFacts(issue, factsById)}
                 />
               ))}
             </div>

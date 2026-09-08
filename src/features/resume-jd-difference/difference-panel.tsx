@@ -1,11 +1,14 @@
 import Link from "next/link";
 
+import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { DifferenceIssue, ResumeJDDifferenceOutput } from "./schemas";
 
 export type ResumeJDDifferencePanelProps = {
   applicationId: string;
   run: ResumeJDDifferenceRun | null;
+  facts: ConfirmedFactForAnalysis[];
   stale?: boolean;
 };
 
@@ -46,12 +49,25 @@ function resumeEvidence(issue: DifferenceIssue) {
   return issue.resumeExcerpt;
 }
 
+// Ids can outlive the fact they point at, so only facts the profile still has
+// are named. See the same resolver in improvement-panel.tsx.
+function resolveCitedFacts(
+  profileFactIds: readonly string[],
+  factsById: Map<string, ConfirmedFactForAnalysis>,
+) {
+  return profileFactIds
+    .map((id) => factsById.get(id))
+    .filter((fact): fact is ConfirmedFactForAnalysis => fact !== undefined);
+}
+
 function IssueDetails({
   issue,
   kind,
+  citedFacts,
 }: {
   issue: DifferenceIssue;
   kind: "difference" | "gate";
+  citedFacts: ConfirmedFactForAnalysis[];
 }) {
   return (
     <details
@@ -122,6 +138,24 @@ function IssueDetails({
               {safeCopy(issue.reasonZh)}
             </dd>
           </div>
+          {citedFacts.length ? (
+            <div>
+              <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                档案依据
+              </dt>
+              <dd className="mt-2 flex flex-wrap gap-2">
+                {citedFacts.map((fact) => (
+                  <span
+                    key={fact.id}
+                    className="rounded-full border border-[var(--ink)] bg-[var(--mint)] px-3 py-1 text-xs font-black"
+                    title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
+                  >
+                    {fact.title}
+                  </span>
+                ))}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
               优先级
@@ -147,8 +181,10 @@ function topIssues(result: ResumeJDDifferenceOutput) {
 export function ResumeJDDifferencePanel({
   applicationId,
   run,
+  facts,
   stale = false,
 }: ResumeJDDifferencePanelProps) {
+  const factsById = new Map(facts.map((fact) => [fact.id, fact]));
   if (!run || run.status !== "succeeded" || !run.result) {
     return (
       <section className="dense-surface px-5 py-8 text-sm font-semibold text-[var(--ink-muted)]">
@@ -265,7 +301,12 @@ export function ResumeJDDifferencePanel({
         </div>
         <div className="dense-surface overflow-hidden">
           {differences.map((issue) => (
-            <IssueDetails key={issue.id} issue={issue} kind="difference" />
+            <IssueDetails
+                key={issue.id}
+                issue={issue}
+                kind="difference"
+                citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
+              />
           ))}
         </div>
       </section>
@@ -282,7 +323,12 @@ export function ResumeJDDifferencePanel({
         {gates.length ? (
           <div className="overflow-hidden rounded-2xl border-2 border-[var(--coral)] bg-white">
             {gates.map((issue) => (
-              <IssueDetails key={issue.id} issue={issue} kind="gate" />
+              <IssueDetails
+                key={issue.id}
+                issue={issue}
+                kind="gate"
+                citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
+              />
             ))}
           </div>
         ) : (
@@ -318,6 +364,14 @@ export function ResumeJDDifferencePanel({
                 <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
                   {safeCopy(item.reasonZh)}
                 </p>
+                {resolveCitedFacts(item.profileFactIds, factsById).length ? (
+                  <p className="mt-1 text-xs font-bold leading-5 text-[var(--ink-muted)]">
+                    档案依据：
+                    {resolveCitedFacts(item.profileFactIds, factsById)
+                      .map((fact) => fact.title)
+                      .join(" · ")}
+                  </p>
+                ) : null}
               </li>
             ))}
           </ul>
