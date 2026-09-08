@@ -1,124 +1,44 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-type ResumeWorkspaceVersion = {
-  id: string;
-  versionNumber: number;
-  template: "simple" | "modern";
-  itemCount: number;
-  createdAt: string;
-};
-
-export type ResumeWorkspaceMode = "no-jd" | "profile-only" | "comparison";
-type GapRunStatus = "queued" | "running" | "succeeded" | "failed";
-
-export function selectGapRunPair<T extends { status: GapRunStatus }>(
-  exactLatest: T | null,
-  exactSucceeded: T | null,
-  latest: T | null,
-  fallback: T | null,
-) {
-  if (exactLatest || exactSucceeded) {
-    return {
-      latest: exactLatest ?? exactSucceeded,
-      fallback: exactLatest?.status === "succeeded" ? null : exactSucceeded,
-    };
-  }
-  return { latest, fallback };
-}
+export type ResumeWorkspaceMode = "no-baseline" | "ready";
 
 export function getResumeWorkspaceMode({
-  analysisRunId,
   selectedAssetId,
 }: {
-  analysisRunId: string | null;
   selectedAssetId: string | null;
 }): ResumeWorkspaceMode {
-  if (!analysisRunId) return "no-jd";
-  return selectedAssetId ? "comparison" : "profile-only";
-}
-
-export function isCurrentGapRun(
-  run: { sourceAssetId: string | null; analysisRunId: string } | null,
-  selectedAssetId: string | null,
-  analysisRunId: string | null,
-) {
-  return Boolean(
-    run &&
-      selectedAssetId &&
-      analysisRunId &&
-      run.sourceAssetId === selectedAssetId &&
-      run.analysisRunId === analysisRunId,
-  );
-}
-
-export function markItemsHistoricalUnlessCurrent<T extends { historical: boolean }>(
-  items: T[],
-  run: { sourceAssetId: string | null; analysisRunId: string } | null,
-  selectedAssetId: string | null,
-  analysisRunId: string | null,
-): T[] {
-  if (isCurrentGapRun(run, selectedAssetId, analysisRunId)) return items;
-  return items.map((item) => ({ ...item, historical: true }));
+  return selectedAssetId ? "ready" : "no-baseline";
 }
 
 export function ResumeWorkspace({
   applicationId,
   mode,
   baselineSelector,
-  gapPanel,
-  versions,
 }: {
   applicationId: string;
   mode: ResumeWorkspaceMode;
   baselineSelector: ReactNode;
-  gapControl?: ReactNode;
-  gapPanel?: ReactNode;
-  versions: ResumeWorkspaceVersion[];
 }) {
   return (
     <div className="space-y-6">
       <header>
-        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">简历与历史</h2>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">管理本次对照简历和不可变快照。当前分析统一在“差异分析”页面查看。</p>
+        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">对照简历</h2>
+        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">选定本次投递用来比对的简历。差异分析在“差异分析”页面进行。</p>
       </header>
       {baselineSelector}
-      {mode === "no-jd" ? (
-        <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-gap-empty-title">
-          <p id="resume-gap-empty-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">对照简历确定后，系统才能判断它与岗位要求之间的差异。</p>
-          <Link href={`/applications/${applicationId}?tab=difference&setup=1`} className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4">前往差异分析 →</Link>
-        </section>
-      ) : null}
-      {mode !== "no-jd" && gapPanel ? (
-        <section className="space-y-4" aria-labelledby="legacy-resume-gap-title">
-          <div className="flex flex-wrap items-end justify-between gap-3">
-            <div>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Legacy snapshot</p>
-              <h3 id="legacy-resume-gap-title" className="heading-font mt-1 text-2xl font-black">旧版简历差距（只读）</h3>
-            </div>
-            <Link href={`/applications/${applicationId}?tab=difference`} className="text-sm font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
-              前往差异分析
-            </Link>
-          </div>
-          {gapPanel}
-        </section>
-      ) : null}
-      <section>
-        <details className="dense-surface min-w-0 p-5 sm:p-6">
-          <summary className="cursor-pointer list-none text-sm font-black">历史版本 <span className="ml-2 text-xs font-bold text-[var(--ink-muted)]">{versions.length} 个版本</span></summary>
-          {versions.length ? (
-            <div className="mt-4 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-              {versions.map((version) => (
-                <Link key={version.id} href={`/applications/${applicationId}/resume/${version.id}`} className="group rounded-2xl border border-[var(--line)] bg-white p-4 transition hover:-translate-y-0.5 hover:border-[var(--ink)]">
-                  <div className="flex items-center justify-between gap-3"><span className="status-chip bg-[var(--mint)]">V{version.versionNumber}</span><span className="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">{version.template === "modern" ? "现代" : "简洁"}</span></div>
-                  <p className="mt-4 text-sm font-black">{version.itemCount} 条已核对内容</p>
-                  <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">{new Intl.DateTimeFormat("zh-CN", { year: "numeric", month: "long", day: "numeric", timeZone: "UTC" }).format(new Date(version.createdAt))} · 不可变快照</p>
-                  <p className="mt-4 text-xs font-black underline underline-offset-4">查看版本 →</p>
-                </Link>
-              ))}
-            </div>
-          ) : <p className="mt-4 text-sm font-semibold text-[var(--ink-muted)]">还没有简历版本。</p>}
-        </details>
+      <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-next-step-title">
+        <p id="resume-next-step-title" className="text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+          {mode === "no-baseline"
+            ? "对照简历确定后，系统才能判断它与岗位要求之间的差异。"
+            : "对照简历已确定，可以开始比对岗位要求了。"}
+        </p>
+        <Link
+          href={`/applications/${applicationId}?tab=difference${mode === "no-baseline" ? "&setup=1" : ""}`}
+          className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4"
+        >
+          前往差异分析 →
+        </Link>
       </section>
     </div>
   );

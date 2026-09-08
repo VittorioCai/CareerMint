@@ -7,30 +7,12 @@ import type {
   AIResult,
   AIUsage,
 } from "./provider";
-import { jdAnalysisInstructions } from "@/features/jd-analysis/prompt";
-import {
-  jdAnalysisSchema,
-  type JDAnalysis,
-  type JobDescriptionAnalysisInput,
-} from "@/features/jd-analysis/schemas";
-import { resumeCustomizationInstructions } from "@/features/resume-customization/prompt";
-import {
-  resumeSuggestionOutputSchema,
-  type ResumeGenerationInput,
-  type ResumeSuggestionOutput,
-} from "@/features/resume-customization/schemas";
 import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
 import {
   interviewQuestionGenerationOutputSchema,
   type InterviewQuestionGenerationInput,
   type InterviewQuestionGenerationOutput,
 } from "@/features/interview-preparation/generation-schemas";
-import { resumeGapAnalysisInstructions } from "@/features/resume-gaps/prompt";
-import {
-  resumeGapProviderOutputSchema,
-  type ResumeGapAnalysisInput,
-  type ResumeGapProviderOutput,
-} from "@/features/resume-gaps/schemas";
 import {
   differencePromptVariants,
   type DifferencePromptVariant,
@@ -54,8 +36,6 @@ const endpoint = "https://api.deepseek.com/chat/completions";
 const responsesEndpoint = "https://api.deepseek.com/responses";
 const providerName = "deepseek";
 const invalidOutputError = "resume-extraction-invalid-output";
-const resumeGapInvalidOutputError = "resume-gap-invalid-output";
-const resumeGapMaxTokens = 96_000;
 const resumeJDDifferenceInvalidOutputError =
   "resume-jd-difference-invalid-output";
 const resumeJDDifferenceMaxTokens = 8192;
@@ -753,41 +733,6 @@ export function createDeepSeekAIProvider(
         invalidOutputError,
       );
     },
-    async analyzeJobDescription(input: JobDescriptionAnalysisInput) {
-      const jdInvalidOutputError = "jd-analysis-invalid-output";
-      return withInvalidOutputRetry<JDAnalysis>(
-        () =>
-          runAttempt({
-            systemInstructions: jdAnalysisInstructions,
-            userContent: [
-              `<job_description>\n${input.jdText}\n</job_description>`,
-              `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
-            ].join("\n"),
-            outputSchema: jdAnalysisSchema,
-            invalidOutputError: jdInvalidOutputError,
-            maxTokens: 6144,
-          }),
-        jdInvalidOutputError,
-      );
-    },
-    async generateResumeSuggestions(input: ResumeGenerationInput) {
-      const generationInvalidOutputError = "resume-generation-invalid-output";
-      return withInvalidOutputRetry<ResumeSuggestionOutput>(
-        () =>
-          runAttempt({
-            systemInstructions: resumeCustomizationInstructions,
-            userContent: [
-              `<job_description>\n${input.jdText}\n</job_description>`,
-              `<job_requirements>\n${JSON.stringify(input.requirements)}\n</job_requirements>`,
-              `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
-            ].join("\n"),
-            outputSchema: resumeSuggestionOutputSchema,
-            invalidOutputError: generationInvalidOutputError,
-            maxTokens: 6144,
-          }),
-        generationInvalidOutputError,
-      );
-    },
     async generateInterviewQuestions(input: InterviewQuestionGenerationInput) {
       const generationInvalidOutputError =
         "interview-question-generation-invalid-output";
@@ -804,30 +749,6 @@ export function createDeepSeekAIProvider(
             maxTokens: 4096,
           }),
         generationInvalidOutputError,
-      );
-    },
-    async analyzeResumeGaps(input: ResumeGapAnalysisInput) {
-      const providerRequirements = input.requirements.map(
-        ({ id, category, text, priority }) => ({
-          id,
-          category,
-          text,
-          priority,
-        }),
-      );
-      return withInvalidOutputRetry<ResumeGapProviderOutput>(
-        () =>
-          runAttempt({
-            systemInstructions: resumeGapAnalysisInstructions,
-            userContent: [
-              `<requirements_json>\n${JSON.stringify(providerRequirements)}\n</requirements_json>`,
-              `<resume_document>\n${input.resumeText}\n</resume_document>`,
-            ].join("\n"),
-            outputSchema: resumeGapProviderOutputSchema,
-            invalidOutputError: resumeGapInvalidOutputError,
-            maxTokens: resumeGapMaxTokens,
-          }),
-        resumeGapInvalidOutputError,
       );
     },
     async analyzeResumeJDDifference(

@@ -2,14 +2,10 @@ import "server-only";
 
 import { z } from "zod";
 
-import type { Json, Database } from "@/lib/supabase/database.types";
+import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 import { careerFactRepository } from "@/features/career-profile/repository";
 
-import type {
-  CompleteJDAnalysisInput,
-  FailJDAnalysisInput,
-} from "./service";
 import {
   confirmedFactForAnalysisSchema,
   requirementCategorySchema,
@@ -133,52 +129,6 @@ export async function listConfirmedFactsForAnalysis(
     .filter((fact): fact is ConfirmedFactForAnalysis => fact !== null);
 }
 
-async function createOrGet(input: {
-  applicationId: string;
-  inputHash: string;
-  provider: string;
-  model: string;
-}): Promise<JDAnalysisRun> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc(
-    "create_or_get_application_analysis",
-    {
-      target_application_id: input.applicationId,
-      target_input_hash: input.inputHash,
-      target_provider: input.provider,
-      target_model: input.model,
-    },
-  );
-  if (error || !data) {
-    throw new JDAnalysisRepositoryError(stableError(error));
-  }
-  return toRun(data);
-}
-
-async function claim(runId: string): Promise<boolean> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("claim_application_analysis", {
-    target_run_id: runId,
-  });
-  if (error) throw new JDAnalysisRepositoryError(stableError(error));
-  return data;
-}
-
-async function getOwned(
-  userId: string,
-  runId: string,
-): Promise<JDAnalysisRun | null> {
-  const supabase = await createClient();
-  const { data, error } = await supabase
-    .from("application_analysis_runs")
-    .select("*")
-    .eq("user_id", userId)
-    .eq("id", runId)
-    .maybeSingle();
-  if (error) throw new JDAnalysisRepositoryError(stableError(error));
-  return data ? toRun(data) : null;
-}
-
 async function getLatest(
   userId: string,
   applicationId: string,
@@ -225,38 +175,6 @@ async function listRuns(userId: string): Promise<JDAnalysisRun[]> {
     .order("created_at", { ascending: false });
   if (error) throw new JDAnalysisRepositoryError(stableError(error));
   return (data ?? []).map(toRun);
-}
-
-async function complete(
-  input: CompleteJDAnalysisInput,
-): Promise<JDAnalysisRun> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("complete_application_analysis", {
-    target_run_id: input.runId,
-    accepted_requirements: input.requirements as Json,
-    jd_translation_zh: input.jdTranslationZh,
-    rejected_requirement_count: input.rejectedRequirementCount,
-    rejected_evidence_count: input.rejectedEvidenceCount,
-    ai_usage: input.aiUsage as Json,
-    estimated_cost: input.estimatedCost as Json,
-  });
-  if (error || !data) {
-    throw new JDAnalysisRepositoryError(stableError(error));
-  }
-  return toRun(data);
-}
-
-async function fail(input: FailJDAnalysisInput): Promise<JDAnalysisRun> {
-  const supabase = await createClient();
-  const { data, error } = await supabase.rpc("fail_application_analysis", {
-    target_run_id: input.runId,
-    target_error_code: input.errorCode,
-    target_error_message: input.errorMessage,
-  });
-  if (error || !data) {
-    throw new JDAnalysisRepositoryError(stableError(error));
-  }
-  return toRun(data);
 }
 
 async function listRequirements(
@@ -319,14 +237,12 @@ async function listRequirements(
   });
 }
 
+// Read-only access to analyses produced before the difference analysis replaced
+// this pipeline. Nothing writes to these tables any more; the rows survive so
+// existing users keep seeing them in a data export.
 export const jdAnalysisRepository = {
-  createOrGet,
-  claim,
-  getOwned,
   getLatest,
   getLatestSucceeded,
   listRuns,
-  complete,
-  fail,
   listRequirements,
 };

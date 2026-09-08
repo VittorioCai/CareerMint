@@ -1,84 +1,37 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import { ResumeWorkspace, getResumeWorkspaceMode, isCurrentGapRun, markItemsHistoricalUnlessCurrent, selectGapRunPair } from "./resume-workspace";
+import { ResumeWorkspace, getResumeWorkspaceMode } from "./resume-workspace";
 
 describe("resume workspace", () => {
-  it("keeps no-JD, profile-only, and comparison modes explicit", () => {
-    expect(getResumeWorkspaceMode({ analysisRunId: null, selectedAssetId: "asset" })).toBe("no-jd");
-    expect(getResumeWorkspaceMode({ analysisRunId: "jd", selectedAssetId: null })).toBe("profile-only");
-    expect(getResumeWorkspaceMode({ analysisRunId: "jd", selectedAssetId: "asset" })).toBe("comparison");
+  it("keeps the no-baseline and ready modes explicit", () => {
+    expect(getResumeWorkspaceMode({ selectedAssetId: null })).toBe("no-baseline");
+    expect(getResumeWorkspaceMode({ selectedAssetId: "asset" })).toBe("ready");
   });
 
-  it("renders the resume history heading and difference link without an analysis control", () => {
-    render(<ResumeWorkspace applicationId="app" mode="no-jd" baselineSelector={<div>baseline selector</div>} versions={[]} />);
-    expect(screen.getByRole("heading", { name: "简历与历史" })).toBeVisible();
-    expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute("href", "/applications/app?tab=difference&setup=1");
-    expect(screen.queryByRole("button", { name: /分析简历差距/ })).not.toBeInTheDocument();
+  it("asks for a baseline before pointing at the difference analysis", () => {
+    render(<ResumeWorkspace applicationId="app" mode="no-baseline" baselineSelector={<div>baseline selector</div>} />);
+
+    expect(screen.getByRole("heading", { name: "对照简历" })).toBeVisible();
     expect(screen.getByText("baseline selector")).toBeVisible();
+    expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute(
+      "href",
+      "/applications/app?tab=difference&setup=1",
+    );
   });
 
-  it("renders profile-only with its panel but no analysis control", () => {
-    render(
-      <ResumeWorkspace
-        applicationId="app"
-        mode="profile-only"
-        baselineSelector={<div>baseline selector</div>}
-        gapControl={<button type="button">分析简历差距</button>}
-        gapPanel={<section aria-label="profile panel">仅职业档案模式</section>}
-        versions={[]}
-      />,
-    );
-    expect(screen.getByRole("region", { name: "profile panel" })).toBeVisible();
-    expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
-  });
+  it("links straight to the difference analysis once a baseline is chosen", () => {
+    render(<ResumeWorkspace applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
 
-  it("keeps the legacy result read-only, links to the current analysis, and keeps history collapsed", () => {
-    render(
-      <ResumeWorkspace
-        applicationId="app"
-        mode="comparison"
-        baselineSelector={<div>baseline selector</div>}
-        gapControl={<button type="button">分析简历差距</button>}
-        gapPanel={<section aria-label="gap panel">简历差距结果</section>}
-        versions={[{ id: "v1", versionNumber: 2, template: "modern", itemCount: 3, createdAt: "2026-08-24T00:00:00.000Z" }]}
-      />,
-    );
-    expect(screen.queryByRole("button", { name: "分析简历差距" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "旧版简历差距（只读）" })).toBeVisible();
-    expect(screen.getByRole("link", { name: "前往差异分析" })).toHaveAttribute(
+    expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute(
       "href",
       "/applications/app?tab=difference",
     );
-    expect(screen.getByRole("region", { name: "gap panel" })).toBeVisible();
-    const history = screen.getByText(/历史版本/).closest("details");
-    expect(history).not.toHaveAttribute("open");
-    expect(screen.getByRole("link", { name: /查看版本/ })).toHaveAttribute("href", "/applications/app/resume/v1");
-    expect(screen.queryByText(/继续审核建议|新版本|三栏|改写简历|接受|拒绝/)).not.toBeInTheDocument();
   });
 
-  it("treats a succeeded run for an old baseline as stale", () => {
-    const run = { sourceAssetId: "old-asset", analysisRunId: "jd" };
-    expect(isCurrentGapRun(run, "new-asset", "jd")).toBe(false);
-    expect(isCurrentGapRun(run, "old-asset", "jd")).toBe(true);
-  });
+  it("no longer offers resume versions or a legacy gap snapshot", () => {
+    render(<ResumeWorkspace applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
 
-  it("marks generic old-baseline items historical even when the JD is unchanged", () => {
-    const items = markItemsHistoricalUnlessCurrent(
-      [{ id: "item", historical: false }],
-      { sourceAssetId: "old-asset", analysisRunId: "jd" },
-      "new-asset",
-      "jd",
-    );
-
-    expect(items).toEqual([{ id: "item", historical: true }]);
-  });
-
-  it.each([
-    ["B failed", { status: "failed" as const, id: "b" }, { status: "succeeded" as const, id: "b" }],
-    ["B succeeded", { status: "succeeded" as const, id: "b" }, { status: "succeeded" as const, id: "b" }],
-  ])("prefers exact A/J results when switching back from %s", (_label, latest, fallback) => {
-    const exact = { status: "succeeded" as const, id: "a" };
-    expect(selectGapRunPair(exact, null, latest, fallback)).toEqual({ latest: exact, fallback: null });
+    expect(screen.queryByText(/历史版本|旧版简历差距|查看版本|不可变快照/)).not.toBeInTheDocument();
   });
 });

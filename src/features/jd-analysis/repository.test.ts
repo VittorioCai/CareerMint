@@ -161,50 +161,6 @@ describe("JD analysis latest-run repository queries", () => {
     });
   });
 
-  it("persists the full and per-requirement translations in one completion RPC", async () => {
-    const translatedResult = {
-      ...row.result,
-      jdTranslationZh: "要求具备高级 SQL。",
-    };
-    const rpc = vi.fn().mockResolvedValue({
-      data: { ...row, result: translatedResult },
-      error: null,
-    });
-    mocks.createClient.mockResolvedValue({ rpc });
-    const { jdAnalysisRepository } = await import("./repository");
-
-    await jdAnalysisRepository.complete({
-      runId,
-      jdTranslationZh: "要求具备高级 SQL。",
-      requirements: [
-        {
-          category: "skill",
-          text: "Advanced SQL",
-          translationZh: "高级 SQL",
-          sourceExcerpt: "Advanced SQL experience is required.",
-          priority: "core",
-          matchStatus: "none",
-          matchReason: null,
-          matchedFactIds: [],
-        },
-      ],
-      rejectedRequirementCount: 0,
-      rejectedEvidenceCount: 0,
-      aiUsage: translatedResult.ai,
-      estimatedCost: null,
-    });
-
-    expect(rpc).toHaveBeenCalledWith(
-      "complete_application_analysis",
-      expect.objectContaining({
-        jd_translation_zh: "要求具备高级 SQL。",
-        accepted_requirements: [
-          expect.objectContaining({ translationZh: "高级 SQL" }),
-        ],
-      }),
-    );
-  });
-
   it("applies the deterministic id tie-break to the unfiltered latest query", async () => {
     const { chain } = queryFixture({ data: null, error: null });
     const { jdAnalysisRepository } = await import("./repository");

@@ -20,11 +20,6 @@ import {
   resolveApplicationDetailTab,
 } from "@/features/applications/detail-tabs";
 import { SetupProgress } from "@/features/applications/setup-progress";
-import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
-import type {
-  JDAnalysisRun,
-  JDRequirementRecord,
-} from "@/features/jd-analysis/schemas";
 import {
   addInterviewQuestionAction,
   addInterviewQuestionVariantAction,
@@ -62,10 +57,6 @@ import {
   resumeJDDifferenceRepository,
   type ResumeJDDifferenceRunView,
 } from "@/features/resume-jd-difference/repository";
-import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
-import type {
-  ResumeVersion,
-} from "@/features/resume-customization/schemas";
 import { requireUser } from "@/lib/auth/require-user";
 import { getServerEnv } from "@/lib/env/server";
 import { listAssets } from "@/features/source-assets/repository";
@@ -73,9 +64,7 @@ import {
   BaselineSelector,
   type ResumeAssetOption,
 } from "@/features/resume-gaps/baseline-selector";
-import { GapPanel } from "@/features/resume-gaps/gap-panel";
-import { getResumeWorkspaceMode, markItemsHistoricalUnlessCurrent, ResumeWorkspace, selectGapRunPair } from "@/features/resume-gaps/resume-workspace";
-import { resumeGapRepository } from "@/features/resume-gaps/repository";
+import { getResumeWorkspaceMode, ResumeWorkspace } from "@/features/resume-gaps/resume-workspace";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -181,23 +170,11 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
 
 function ResumePanel({
   application,
-  analysisRun,
-  requirements,
-  latestGapRun,
-  fallbackGapRun,
-  gapItems,
-  versions,
   selectedAsset,
   availableAssets,
   setupMode,
 }: {
   application: Application;
-  analysisRun: JDAnalysisRun | null;
-  requirements: JDRequirementRecord[];
-  latestGapRun: Awaited<ReturnType<typeof resumeGapRepository.getLatest>>;
-  fallbackGapRun: Awaited<ReturnType<typeof resumeGapRepository.getLatestSucceeded>>;
-  gapItems: Awaited<ReturnType<typeof resumeGapRepository.listItems>>;
-  versions: ResumeVersion[];
   selectedAsset: ResumeAssetOption | null;
   availableAssets: ResumeAssetOption[];
   setupMode: boolean;
@@ -205,7 +182,7 @@ function ResumePanel({
   return (
     <ResumeWorkspace
       applicationId={application.id}
-      mode={getResumeWorkspaceMode({ analysisRunId: analysisRun?.id ?? null, selectedAssetId: selectedAsset?.id ?? null })}
+      mode={getResumeWorkspaceMode({ selectedAssetId: selectedAsset?.id ?? null })}
       baselineSelector={<BaselineSelector
         applicationId={application.id}
         selectedAsset={selectedAsset}
@@ -213,66 +190,6 @@ function ResumePanel({
         setupMode={setupMode}
         setResumeSource={setApplicationResumeSourceAction.bind(null, {})}
       />}
-      gapPanel={analysisRun ? (
-          <GapPanel
-            key={`${selectedAsset?.id ?? "profile"}:${analysisRun.id}`}
-            applicationId={application.id}
-            baseline={selectedAsset}
-            requirements={requirements.map((requirement) => ({
-              id: requirement.id,
-              text: requirement.text,
-              translationZh: requirement.translationZh,
-              priority: requirement.priority,
-              sortOrder: requirement.sortOrder,
-              sourceExcerpt: requirement.sourceExcerpt,
-              matchStatus: requirement.matchStatus,
-              evidence: requirement.evidence.map((fact) => ({
-                id: fact.id,
-                title: fact.title,
-                description: fact.description,
-                sourceExcerpt: fact.sourceExcerpt,
-              })),
-            }))}
-            run={latestGapRun ? {
-              status: latestGapRun.status,
-              sourceFilename: latestGapRun.sourceFilename,
-              sourceAssetId: latestGapRun.sourceAssetId,
-              analysisRunId: latestGapRun.analysisRunId,
-            } : null}
-            fallbackRun={fallbackGapRun ? {
-              status: fallbackGapRun.status,
-              sourceFilename: fallbackGapRun.sourceFilename,
-              sourceAssetId: fallbackGapRun.sourceAssetId,
-              analysisRunId: fallbackGapRun.analysisRunId,
-            } : null}
-            items={gapItems.map((item) => ({
-              id: item.id,
-              requirementText: item.requirementText,
-              translationZh: item.translationZh,
-              priority: item.priority,
-              sortOrder: item.sortOrder,
-              jdSourceExcerpt: item.jdSourceExcerpt,
-              resumeCoverage: item.resumeCoverage,
-              verifiedResumeExcerpt: item.verifiedResumeExcerpt,
-              profileEvidence: item.profileEvidence.map((fact) => ({
-                id: fact.id,
-                title: fact.title,
-                description: fact.description,
-                sourceExcerpt: fact.sourceExcerpt,
-              })),
-              matchStatus: item.matchStatus,
-              historical: item.historical,
-            }))}
-            currentAnalysisRunId={analysisRun.id}
-          />
-      ) : null}
-      versions={versions.map((version) => ({
-        id: version.id,
-        versionNumber: version.versionNumber,
-        template: version.template,
-        itemCount: version.items.length,
-        createdAt: version.createdAt,
-      }))}
     />
   );
 }
@@ -367,9 +284,6 @@ export default async function ApplicationDetailPage({
     activeTab === "difference" || activeTab === "improvements";
   const [
     events,
-    resumeAnalysisRun,
-    gapData,
-    resumeVersions,
     resumeAssets,
     interviewQuestions,
     interviewFacts,
@@ -378,21 +292,6 @@ export default async function ApplicationDetailPage({
     differenceFacts,
   ] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
-    activeTab === "resume"
-      ? jdAnalysisRepository.getLatestSucceeded(user.id, id)
-      : Promise.resolve(null),
-    activeTab === "resume"
-      ? (async () => {
-          const latest = await resumeGapRepository.getLatest(user.id, id);
-          const fallback = await resumeGapRepository.getLatestSucceeded(user.id, id);
-          const displayRun = latest?.status === "succeeded" ? latest : fallback;
-          const items = displayRun ? await resumeGapRepository.listItems(user.id, displayRun.id) : [];
-          return { latest, fallback, items };
-        })()
-      : Promise.resolve({ latest: null, fallback: null, items: [] }),
-    activeTab === "resume"
-      ? resumeCustomizationRepository.listVersions(user.id, id)
-      : Promise.resolve([]),
     activeTab === "resume" || differenceWorkflow
       ? listAssets(user.id)
       : Promise.resolve([]),
@@ -429,33 +328,6 @@ export default async function ApplicationDetailPage({
         createdAt: selectedResumeAssetRecord.createdAt,
       }
     : null;
-  const resumeRequirementsForRun = activeTab === "resume" && resumeAnalysisRun
-    ? await jdAnalysisRepository.listRequirements(user.id, id, resumeAnalysisRun.id)
-    : [];
-  let currentGapData = gapData;
-  if (activeTab === "resume" && application.resumeSourceAssetId && resumeAnalysisRun) {
-    const exactLatest = await resumeGapRepository.getLatestForCombination(user.id, id, application.resumeSourceAssetId, resumeAnalysisRun.id);
-    const exactSucceeded = exactLatest?.status === "succeeded"
-      ? exactLatest
-      : await resumeGapRepository.getLatestForCombination(user.id, id, application.resumeSourceAssetId, resumeAnalysisRun.id, true);
-    const selectedGapRuns = selectGapRunPair(exactLatest, exactSucceeded, gapData.latest, gapData.fallback);
-    const itemRun = selectedGapRuns.latest?.status === "succeeded"
-      ? selectedGapRuns.latest
-      : selectedGapRuns.fallback?.status === "succeeded"
-        ? selectedGapRuns.fallback
-        : null;
-    const items = itemRun ? await resumeGapRepository.listItems(user.id, itemRun.id) : [];
-    currentGapData = {
-      ...selectedGapRuns,
-      items: markItemsHistoricalUnlessCurrent(
-        items,
-        itemRun,
-        application.resumeSourceAssetId,
-        resumeAnalysisRun.id,
-      ),
-    };
-  }
-
   let differenceView: ResumeJDDifferenceRunView = {
     current: null,
     previousSucceeded: null,
@@ -532,12 +404,6 @@ export default async function ApplicationDetailPage({
             {first(query.setup) === "1" ? <SetupProgress current="resume" /> : null}
             <ResumePanel
               application={application}
-              analysisRun={resumeAnalysisRun}
-              requirements={resumeRequirementsForRun}
-              latestGapRun={currentGapData.latest}
-              fallbackGapRun={currentGapData.fallback}
-              gapItems={currentGapData.items}
-              versions={resumeVersions}
               availableAssets={resumeAssets.map((asset) => ({
                 id: asset.id,
                 originalName: asset.originalName,

@@ -16,7 +16,6 @@ import {
   RESUME_GAP_RUN_EXPORT_SELECT,
   buildAccountExport,
 } from "@/features/privacy/export";
-import { resumeCustomizationRepository } from "@/features/resume-customization/repository";
 import { listAssets } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";
 import { getCurrentUser } from "@/lib/auth/require-user";
@@ -24,6 +23,49 @@ import { createClient } from "@/lib/supabase/server";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
+
+async function listResumeRuns(userId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resume_generation_runs")
+    .select("id, user_id, application_id")
+    .eq("user_id", userId)
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
+  if (error) throw new Error("resume-generation-export-read-failed");
+  return (data ?? []).map((run) => ({
+    id: run.id,
+    userId: run.user_id,
+    applicationId: run.application_id,
+  }));
+}
+
+async function listResumeSuggestions(userId: string, runId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resume_suggestions")
+    .select("application_id")
+    .eq("user_id", userId)
+    .eq("run_id", runId)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error("resume-generation-export-read-failed");
+  return (data ?? []).map((row) => ({ applicationId: row.application_id }));
+}
+
+async function listResumeVersions(userId: string, applicationId: string) {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("resume_versions")
+    .select("user_id, application_id")
+    .eq("user_id", userId)
+    .eq("application_id", applicationId)
+    .order("created_at", { ascending: false });
+  if (error) throw new Error("resume-generation-export-read-failed");
+  return (data ?? []).map((row) => ({
+    userId: row.user_id,
+    applicationId: row.application_id,
+  }));
+}
 
 async function listResumeGapRuns(userId: string) {
   const supabase = await createClient();
@@ -291,7 +333,7 @@ export async function GET() {
       listApplicationEvents: applicationRepository.listEvents,
       listAnalysisRuns: jdAnalysisRepository.listRuns,
       listRequirements: jdAnalysisRepository.listRequirements,
-      listResumeRuns: resumeCustomizationRepository.listRuns,
+      listResumeRuns,
       listResumeGapRuns,
       listResumeGapItems,
       listJDStructureRuns,
@@ -301,8 +343,8 @@ export async function GET() {
       listJDGapV3RequirementResults,
       listJDGapV3Assessments,
       listResumeJDDifferenceRuns,
-      listResumeSuggestions: resumeCustomizationRepository.listSuggestions,
-      listResumeVersions: resumeCustomizationRepository.listVersions,
+      listResumeSuggestions,
+      listResumeVersions,
       listInterviewQuestions: interviewPreparationRepository.list,
       listInterviewGenerationRuns: interviewQuestionGenerationRepository.listRuns,
       listInterviewGenerationCandidates:
