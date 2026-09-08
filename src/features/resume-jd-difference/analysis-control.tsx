@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
-import type { ResumeAssetOption } from "@/features/resume-gaps/baseline-selector";
+import type { ResumeAssetOption } from "@/features/resume-baseline/baseline-selector";
 import type {
   OcrProgress,
   ScannedPdfOcrOptions,

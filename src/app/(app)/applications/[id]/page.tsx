@@ -63,8 +63,8 @@ import { listAssets } from "@/features/source-assets/repository";
 import {
   BaselineSelector,
   type ResumeAssetOption,
-} from "@/features/resume-gaps/baseline-selector";
-import { getResumeWorkspaceMode, ResumeWorkspace } from "@/features/resume-gaps/resume-workspace";
+} from "@/features/resume-baseline/baseline-selector";
+import { getResumeWorkspaceMode, ResumeWorkspace } from "@/features/resume-baseline/resume-workspace";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
