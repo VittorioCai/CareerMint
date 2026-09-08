@@ -206,7 +206,7 @@ export function ResumeJDDifferencePanel({
     >
       <div className="dense-surface grid overflow-hidden sm:grid-cols-[220px_minmax(0,1fr)]">
         <div className="bg-[var(--cream)] px-5 py-4 text-xs font-black uppercase tracking-[0.14em]">
-          本次对照简历
+          {stale ? "上一次分析使用的简历" : "本次对照简历"}
         </div>
         <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-4">
           <div className="min-w-0">

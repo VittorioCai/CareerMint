@@ -2676,6 +2676,10 @@ export type Database = {
         Args: { target_application_id: string }
         Returns: boolean
       }
+      delete_owned_source_asset: {
+        Args: { target_asset_id: string }
+        Returns: boolean
+      }
       fail_application_analysis: {
         Args: {
           target_error_code: string
@@ -3291,3 +3295,4 @@ export const Constants = {
     },
   },
 } as const
+

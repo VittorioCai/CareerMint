@@ -11,17 +11,20 @@ vi.mock("next/navigation", () => ({
   useRouter: () => router,
 }));
 
-import { BaselineSelector, type ResumeAssetOption } from "./baseline-selector";
+import { BaselineSelector, type ResumeAssetRow } from "./baseline-selector";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const assetId = "22222222-2222-4222-8222-222222222222";
 const newerAssetId = "33333333-3333-4333-8333-333333333333";
-const assets: ResumeAssetOption[] = [
+const assets: ResumeAssetRow[] = [
   {
     id: newerAssetId,
     originalName: "newer-resume.pdf",
     contentType: "application/pdf",
     createdAt: "2026-08-24T10:00:00.000Z",
+    status: "ready",
+    applicationCount: 0,
+    confirmedFactCount: 0,
   },
   {
     id: assetId,
@@ -29,6 +32,9 @@ const assets: ResumeAssetOption[] = [
     contentType:
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     createdAt: "2026-08-23T10:00:00.000Z",
+    status: "ready",
+    applicationCount: 1,
+    confirmedFactCount: 2,
   },
 ];
 
@@ -334,4 +340,72 @@ describe("BaselineSelector", () => {
 
     expect(screen.getByText("Vittorio_Cai_CV.pdf")).toBeVisible();
   });
+
+  it("offers a per-file delete whose name stays unique across rows", () => {
+    renderSelector();
+
+    expect(
+      screen.getByRole("button", { name: "删除 newer-resume.pdf" }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "删除 older-resume.docx" }),
+    ).toBeVisible();
+  });
+
+  it("passes each file's own usage counts into its confirmation", async () => {
+    renderSelector();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "删除 older-resume.docx" }),
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "这份简历是 1 份投递的对照简历，也是 2 条已确认职业事实的来源。",
+    );
+  });
+
+  it("confirms a deleted file is gone and says the derived work survived", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+    );
+    renderSelector();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "删除 newer-resume.pdf" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "确认删除文件" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "已删除 newer-resume.pdf。已确认的职业事实和历史分析结果都还在。",
+      );
+    });
+    expect(router.refresh).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it("tells the user the baseline is now empty when they delete the selected file", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockResolvedValue({ ok: true, status: 204 }),
+    );
+    renderSelector({ selectedAsset: assets[1], setupMode: false });
+
+    // With a baseline chosen the picker is collapsed, so deleting the file in
+    // use goes through the same "更换简历" path as swapping it.
+    await userEvent.click(screen.getByRole("button", { name: "更换简历" }));
+    await userEvent.click(
+      screen.getByRole("button", { name: "删除 older-resume.docx" }),
+    );
+    await userEvent.click(screen.getByRole("button", { name: "确认删除文件" }));
+
+    await waitFor(() => {
+      expect(screen.getByRole("status")).toHaveTextContent(
+        "已删除 older-resume.docx。这份投递的对照简历已清空，请另选一份；已完成的差异分析结果仍可查看。",
+      );
+    });
+    vi.unstubAllGlobals();
+  });
+
 });

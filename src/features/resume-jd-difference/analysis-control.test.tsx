@@ -62,6 +62,22 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
     );
   });
 
+  it("points at the earlier result instead of implying nothing exists", () => {
+    renderControl({ asset: null, hasPreviousResult: true });
+
+    expect(
+      screen.getByText(
+        "上一次的分析结果仍显示在下方，选定新的对照简历后可以重新分析。",
+      ),
+    ).toBeVisible();
+  });
+
+  it("says nothing about an earlier result when there is none", () => {
+    renderControl({ asset: null, hasPreviousResult: false });
+
+    expect(screen.queryByText(/上一次的分析结果/u)).not.toBeInTheDocument();
+  });
+
   it("sends exactly one POST and refreshes after a successful result", async () => {
     const user = userEvent.setup();
     const { request, refresh } = renderControl();

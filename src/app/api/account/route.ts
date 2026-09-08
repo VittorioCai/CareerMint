@@ -4,7 +4,7 @@ import {
   AccountDeletionError,
   deleteOwnedAccount,
 } from "@/features/privacy/delete-account";
-import { listAssets } from "@/features/source-assets/repository";
+import { listOwnedStoragePaths } from "@/features/source-assets/repository";
 import { removeSources } from "@/features/source-assets/storage";
 import { getCurrentUser } from "@/lib/auth/require-user";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,7 +29,7 @@ export async function DELETE(request: Request) {
 
   try {
     await deleteOwnedAccount(user, {
-      listAssets,
+      listAssets: listOwnedStoragePaths,
       removeSources,
       async deleteAuthUser(userId) {
         const { error } = await createAdminClient().auth.admin.deleteUser(userId);

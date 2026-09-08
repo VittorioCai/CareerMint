@@ -61,6 +61,17 @@ function storageError(code?: string) {
   return "source-asset-storage-error";
 }
 
+// Delete has its own mapping: `P0002` is the RPC's own not-found signal, and
+// `23503` means some foreign key still restricts the row. Every reference we
+// know about is either ON DELETE SET NULL or cleared inside the RPC, so 23503
+// means a new restricting reference appeared — surface it rather than hide it
+// behind the generic storage code.
+function deleteError(code?: string) {
+  if (code === "P0002") return "source-asset-not-found";
+  if (code === "23503") return "source-asset-in-use";
+  return "source-asset-storage-error";
+}
+
 export async function createAsset(
   input: CreateAssetInput,
 ): Promise<SourceAsset> {
@@ -152,19 +163,52 @@ export async function setAssetStatus(
   return toSourceAsset(data);
 }
 
-export async function deleteAsset(
+// Account deletion needs every file the user owns, and `listAssets` hides
+// duplicates — right for a picker, wrong here: a duplicate's storage object is
+// just as much the user's data and must go with the account.
+export async function listOwnedStoragePaths(
   userId: string,
-  assetId: string,
-): Promise<void> {
+): Promise<Array<{ userId: string; storagePath: string }>> {
   const supabase = await createClient();
-  const { error, count } = await supabase
+  const { data, error } = await supabase
     .from("source_assets")
-    .delete({ count: "exact" })
-    .eq("user_id", userId)
-    .eq("id", assetId);
+    .select("user_id, storage_path")
+    .eq("user_id", userId);
 
   if (error) throw new SourceAssetRepositoryError(storageError(error.code));
-  if (count === 0) {
-    throw new SourceAssetRepositoryError("source-asset-not-found");
-  }
+  return (data ?? []).map((asset) => ({
+    userId: asset.user_id,
+    storagePath: asset.storage_path,
+  }));
+}
+
+// Storage objects belonging to duplicates outlive their rows, which the RPC
+// deletes. Collect them before deleting so the caller can remove them too.
+export async function listDuplicateStoragePaths(
+  userId: string,
+  assetId: string,
+): Promise<string[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("source_assets")
+    .select("storage_path")
+    .eq("user_id", userId)
+    .eq("duplicate_of_id", assetId);
+
+  if (error) throw new SourceAssetRepositoryError(storageError(error.code));
+  return (data ?? []).map((asset) => asset.storage_path);
+}
+
+// Goes through the RPC because `duplicate_of_id` is ON DELETE RESTRICT — a
+// plain delete fails on any asset that has duplicates, and the user has no way
+// to see or clear them.
+// Takes no userId: the RPC scopes to `auth.uid()` itself, so accepting one
+// would suggest a scope this function does not actually apply.
+export async function deleteAsset(assetId: string): Promise<void> {
+  const supabase = await createClient();
+  const { error } = await supabase.rpc("delete_owned_source_asset", {
+    target_asset_id: assetId,
+  });
+
+  if (error) throw new SourceAssetRepositoryError(deleteError(error.code));
 }

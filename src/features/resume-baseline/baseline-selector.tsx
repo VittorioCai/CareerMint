@@ -10,6 +10,9 @@ import {
 
 import type { ApplicationActionState } from "@/features/applications/actions";
 
+import type { SourceAssetStatus } from "./asset-usage";
+import { ResumeFileDeleteControl } from "./resume-file-delete-control";
+
 export type ResumeAssetOption = {
   id: string;
   originalName: string;
@@ -17,10 +20,19 @@ export type ResumeAssetOption = {
   createdAt: string;
 };
 
+// A row in the picker carries what the delete confirmation needs to state the
+// cost up front. The selected asset stays a plain option: it is rendered as a
+// summary, not a deletable row.
+export type ResumeAssetRow = ResumeAssetOption & {
+  status: SourceAssetStatus;
+  applicationCount: number;
+  confirmedFactCount: number;
+};
+
 export type BaselineSelectorProps = {
   applicationId: string;
   selectedAsset: ResumeAssetOption | null;
-  availableAssets: ResumeAssetOption[];
+  availableAssets: ResumeAssetRow[];
   setupMode: boolean;
   setResumeSource(
     formData: FormData,
@@ -76,6 +88,7 @@ export function BaselineSelector({
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [previewAsset, setPreviewAsset] = useState<ResumeAssetOption | null>(null);
+  const [deletedNotice, setDeletedNotice] = useState<string | null>(null);
   const serverStateKey = `${setupMode ? "setup" : "ready"}:${selectedAsset?.id ?? "none"}`;
   const [optionsState, setOptionsState] = useState({
     key: serverStateKey,
@@ -92,6 +105,17 @@ export function BaselineSelector({
       ? optionsState.open
       : setupMode || !selectedAsset;
   const selectedFile = fileState.key === serverStateKey ? fileState.file : null;
+
+  // The deleted row disappears on refresh, so the confirmation has to live
+  // above it — otherwise the only feedback is a row silently vanishing.
+  function handleDeleted(asset: ResumeAssetRow) {
+    setDeletedNotice(
+      asset.id === selectedAsset?.id
+        ? `已删除 ${asset.originalName}。这份投递的对照简历已清空，请另选一份；已完成的差异分析结果仍可查看。`
+        : `已删除 ${asset.originalName}。已确认的职业事实和历史分析结果都还在。`,
+    );
+    router.refresh();
+  }
 
   function setOptionsOpen(open: boolean) {
     setOptionsState({ key: serverStateKey, open });
@@ -305,6 +329,14 @@ export function BaselineSelector({
                       >
                         选择 {asset.originalName}
                       </button>
+                      <ResumeFileDeleteControl
+                        assetId={asset.id}
+                        originalName={asset.originalName}
+                        status={asset.status}
+                        applicationCount={asset.applicationCount}
+                        confirmedFactCount={asset.confirmedFactCount}
+                        onDeleted={() => handleDeleted(asset)}
+                      />
                     </span>
                   </article>
                 ))}
@@ -389,6 +421,11 @@ export function BaselineSelector({
         </button>
       ) : null}
 
+      {deletedNotice ? (
+        <p role="status" className="mt-4 text-sm font-bold leading-6">
+          {deletedNotice}
+        </p>
+      ) : null}
       {busy ? (
         <p className="mt-4 text-sm font-black" aria-live="polite">正在保存…</p>
       ) : null}

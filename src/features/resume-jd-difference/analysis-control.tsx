@@ -178,6 +178,11 @@ function AnalysisControlState({
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
               差异分析只比较当前 JD 与你选定的那一版简历，职业档案仅作为已确认补充。
             </p>
+            {hasPreviousResult ? (
+              <p className="mt-2 max-w-2xl text-sm font-bold leading-6">
+                上一次的分析结果仍显示在下方，选定新的对照简历后可以重新分析。
+              </p>
+            ) : null}
           </div>
           <Link
             href={`/applications/${applicationId}?tab=resume`}

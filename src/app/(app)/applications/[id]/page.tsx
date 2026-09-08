@@ -63,7 +63,10 @@ import { listAssets } from "@/features/source-assets/repository";
 import {
   BaselineSelector,
   type ResumeAssetOption,
+  type ResumeAssetRow,
 } from "@/features/resume-baseline/baseline-selector";
+import { summarizeAssetUsage } from "@/features/resume-baseline/asset-usage";
+import { careerFactRepository } from "@/features/career-profile/repository";
 import { getResumeWorkspaceMode, ResumeWorkspace } from "@/features/resume-baseline/resume-workspace";
 
 function first(value: string | string[] | undefined) {
@@ -176,7 +179,7 @@ function ResumePanel({
 }: {
   application: Application;
   selectedAsset: ResumeAssetOption | null;
-  availableAssets: ResumeAssetOption[];
+  availableAssets: ResumeAssetRow[];
   setupMode: boolean;
 }) {
   return (
@@ -290,6 +293,8 @@ export default async function ApplicationDetailPage({
     generationData,
     consentAt,
     differenceFacts,
+    assetUsageApplications,
+    assetUsageFacts,
   ] = await Promise.all([
     applicationRepository.listEvents(user.id, id),
     activeTab === "resume" || differenceWorkflow
@@ -315,7 +320,19 @@ export default async function ApplicationDetailPage({
     differenceWorkflow && application.resumeSourceAssetId
       ? listConfirmedFactsForAnalysis(user.id)
       : Promise.resolve([]),
+    // Only the resume tab shows the delete confirmation, and it has to state
+    // what the file is used for before the user commits.
+    activeTab === "resume"
+      ? applicationRepository.list(user.id)
+      : Promise.resolve([]),
+    activeTab === "resume"
+      ? careerFactRepository.list(user.id)
+      : Promise.resolve([]),
   ]);
+  const assetUsage = summarizeAssetUsage({
+    applications: assetUsageApplications,
+    facts: assetUsageFacts,
+  });
 
   const selectedResumeAssetRecord =
     resumeAssets.find((asset) => asset.id === application.resumeSourceAssetId) ??
@@ -333,23 +350,30 @@ export default async function ApplicationDetailPage({
     previousSucceeded: null,
     freshness: "missing",
   };
-  if (differenceWorkflow && selectedResumeAssetRecord) {
-    const env = getServerEnv();
-    const providerConfig =
-      env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production"
-        ? { provider: "fake", model: "fake-resume-jd-difference-v4" }
-        : { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
-    const prompt =
-      differencePromptVariants[env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT];
-    const { inputHash } = buildDifferenceFingerprints({
-      jdText: application.jdText,
-      sourceSha256: selectedResumeAssetRecord.sha256,
-      confirmedFacts: differenceFacts,
-      ...providerConfig,
-      promptVersion: prompt.version,
-      schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
-      policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
-    });
+  if (differenceWorkflow) {
+    let inputHash = "";
+    if (selectedResumeAssetRecord) {
+      const env = getServerEnv();
+      const providerConfig =
+        env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production"
+          ? { provider: "fake", model: "fake-resume-jd-difference-v4" }
+          : { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
+      const prompt =
+        differencePromptVariants[env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT];
+      ({ inputHash } = buildDifferenceFingerprints({
+        jdText: application.jdText,
+        sourceSha256: selectedResumeAssetRecord.sha256,
+        confirmedFacts: differenceFacts,
+        ...providerConfig,
+        promptVersion: prompt.version,
+        schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
+        policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
+      }));
+    }
+    // Without a baseline there is no hash to be current against, but the runs
+    // are still the user's work: `input_hash` is constrained to 64 hex chars,
+    // so "" matches nothing and the last success comes back marked stale
+    // rather than disappearing with the file it was run against.
     differenceView = await resumeJDDifferenceRepository.getView(
       user.id,
       application.id,
@@ -357,10 +381,11 @@ export default async function ApplicationDetailPage({
     );
   }
 
-  const displayedDifferenceRun =
-    first(query.result) === "previous"
-      ? differenceView.previousSucceeded
-      : differenceView.current;
+  const showingPreviousDifference =
+    first(query.result) === "previous" || !selectedResumeAssetRecord;
+  const displayedDifferenceRun = showingPreviousDifference
+    ? differenceView.previousSucceeded
+    : differenceView.current;
 
   return (
     <section className="min-w-0">
@@ -409,6 +434,10 @@ export default async function ApplicationDetailPage({
                 originalName: asset.originalName,
                 contentType: asset.contentType,
                 createdAt: asset.createdAt,
+                status: asset.status,
+                applicationCount: assetUsage.get(asset.id)?.applicationCount ?? 0,
+                confirmedFactCount:
+                  assetUsage.get(asset.id)?.confirmedFactCount ?? 0,
               }))}
               selectedAsset={selectedResumeAsset}
               setupMode={first(query.setup) === "1"}
@@ -443,7 +472,7 @@ export default async function ApplicationDetailPage({
               applicationId={application.id}
               run={displayedDifferenceRun}
               facts={differenceFacts}
-              stale={first(query.result) === "previous"}
+              stale={showingPreviousDifference}
             />
           </div>
         ) : null}

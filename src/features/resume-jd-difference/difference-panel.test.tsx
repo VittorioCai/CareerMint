@@ -301,6 +301,28 @@ describe("ResumeJDDifferencePanel", () => {
     expect(within(matched).getByText(/档案依据：跨部门业务复盘/u)).toBeVisible();
   });
 
+  it("does not call a stale run's file the current baseline", () => {
+    const { rerender } = render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+    expect(screen.getByText("本次对照简历")).toBeVisible();
+
+    rerender(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+        stale
+      />,
+    );
+    expect(screen.getByText("上一次分析使用的简历")).toBeVisible();
+    expect(screen.queryByText("本次对照简历")).not.toBeInTheDocument();
+  });
+
   it("offers a Markdown export for the displayed run and marks previous results", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
