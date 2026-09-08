@@ -797,7 +797,6 @@ export function createDeepSeekAIProvider(
             systemInstructions: interviewQuestionGenerationInstructions,
             userContent: [
               `<job_description>\n${input.jdText}\n</job_description>`,
-              `<job_requirements>\n${JSON.stringify(input.requirements)}\n</job_requirements>`,
               `<common_question_prompts>\n${JSON.stringify(input.commonPrompts)}\n</common_question_prompts>`,
             ].join("\n"),
             outputSchema: interviewQuestionGenerationOutputSchema,

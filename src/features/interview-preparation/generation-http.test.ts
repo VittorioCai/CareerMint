@@ -70,14 +70,12 @@ describe("interview question generation HTTP boundary", () => {
   it("hashes stable generation inputs and excludes unrelated question-bank data", () => {
     const base = buildInterviewQuestionGenerationInputHash({
       jdText: application.jdText,
-      requirements,
       commonPrompts: [" Tell me   about yourself? "],
       provider: "deepseek",
       model: "deepseek-v4-flash",
     });
     const reordered = buildInterviewQuestionGenerationInputHash({
       jdText: application.jdText,
-      requirements: [...requirements].reverse(),
       commonPrompts: ["tell me about yourself"],
       provider: "deepseek",
       model: "deepseek-v4-flash",
@@ -159,7 +157,6 @@ describe("interview question generation HTTP boundary", () => {
         userId,
         run,
         application,
-        requirements,
         commonPrompts: ["Tell me about yourself"],
         providerFactory: dependencies.providerFactory,
       }),

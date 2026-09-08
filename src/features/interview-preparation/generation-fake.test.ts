@@ -27,7 +27,6 @@ describe("interview generation fake provider", () => {
 
     const result = await provider.generateInterviewQuestions({
       jdText,
-      requirements: [],
       commonPrompts: [],
     });
 

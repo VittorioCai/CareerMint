@@ -769,7 +769,7 @@ describe("DeepSeek interview question generator", () => {
     expect(body.messages[1].content).toContain(
       `<job_description>\n${input.jdText}\n</job_description>`,
     );
-    expect(body.messages[1].content).toContain(input.requirements[0].id);
+    expect(body.messages[1].content).not.toContain("job_requirements");
     expect(body.messages[1].content).toContain("Why this role?");
     expect(body.messages[1].content).not.toContain("confirmed_career_facts");
     expect(body.messages[1].content).not.toContain("resume_document");

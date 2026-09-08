@@ -25,9 +25,7 @@ export function createFakeInterviewQuestionProvider(): Pick<
   return {
     async generateInterviewQuestions(input) {
       const sourceExcerpt = takeInterviewQuestionExcerpt(input.jdText);
-      const requirement = input.requirements[0];
-      const category =
-        requirement?.category === "industry" ? "industry" : "job_specific";
+        const category = "job_specific" as const;
       return {
         data: {
           questions: sourceExcerpt

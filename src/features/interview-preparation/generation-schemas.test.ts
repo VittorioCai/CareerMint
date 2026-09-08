@@ -8,15 +8,6 @@ import {
 
 const jdText =
   "Lead product discovery across international markets. Advanced SQL is required for funnel analysis.";
-const requirements = [
-  {
-    id: "11111111-1111-4111-8111-111111111111",
-    category: "skill",
-    text: "Advanced SQL",
-    sourceExcerpt: "Advanced SQL is required for funnel analysis.",
-    priority: "core",
-  },
-];
 
 function candidate(
   overrides: Partial<InterviewQuestionGenerationCandidate> = {},
@@ -93,7 +84,6 @@ describe("interview question generation schemas", () => {
   it("grounds excerpts with NFKC, case, and Unicode whitespace matching", () => {
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText,
-      requirements,
       commonPrompts: [],
       output: {
         questions: [
@@ -112,7 +102,6 @@ describe("interview question generation schemas", () => {
     const foldedJd = "Lead\u0085product\uFEFFdiscovery across markets.";
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText: foldedJd,
-      requirements,
       commonPrompts: [],
       output: {
         questions: [
@@ -127,7 +116,6 @@ describe("interview question generation schemas", () => {
   it("rejects invented excerpts and common canonical duplicates", () => {
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText,
-      requirements,
       commonPrompts: ["Why this role?"],
       output: {
         questions: [
@@ -153,7 +141,6 @@ describe("interview question generation schemas", () => {
     );
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText,
-      requirements,
       commonPrompts: [],
       output: { questions },
     });
@@ -166,7 +153,6 @@ describe("interview question generation schemas", () => {
     expect(() =>
       sanitizeInterviewQuestionGeneration({
         jdText,
-        requirements,
         commonPrompts: [],
         output: {
           questions: [candidate({ sourceExcerpt: "Invented evidence." })],
@@ -178,7 +164,6 @@ describe("interview question generation schemas", () => {
   it("rejects an empty canonical key while retaining valid candidates", () => {
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText,
-      requirements,
       commonPrompts: [],
       output: {
         questions: [candidate({ prompt: "????????" }), candidate()],
@@ -193,7 +178,6 @@ describe("interview question generation schemas", () => {
     expect(() =>
       sanitizeInterviewQuestionGeneration({
         jdText,
-        requirements,
         commonPrompts: [],
         output: { questions: [candidate({ prompt: "????????" })] },
       }),
@@ -204,7 +188,6 @@ describe("interview question generation schemas", () => {
     const expandedPrompt = "ﬃ".repeat(500);
     const sanitized = sanitizeInterviewQuestionGeneration({
       jdText,
-      requirements,
       commonPrompts: [],
       output: {
         questions: [candidate({ prompt: expandedPrompt }), candidate()],
@@ -219,7 +202,6 @@ describe("interview question generation schemas", () => {
     expect(() =>
       sanitizeInterviewQuestionGeneration({
         jdText,
-        requirements,
         commonPrompts: [],
         output: {
           questions: [candidate({ prompt: "ﬃ".repeat(500) })],

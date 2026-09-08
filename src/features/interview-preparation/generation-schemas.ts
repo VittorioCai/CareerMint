@@ -63,7 +63,6 @@ export type InterviewQuestionGenerationRequirement = {
 
 export type InterviewQuestionGenerationInput = {
   jdText: string;
-  requirements: InterviewQuestionGenerationRequirement[];
   commonPrompts: string[];
 };
 

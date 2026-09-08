@@ -4,7 +4,6 @@ import { z } from "zod";
 
 import type { AIProvider } from "@/features/extraction/provider";
 import type { Application } from "@/features/applications/schemas";
-import type { InterviewQuestionGenerationRequirement } from "./generation-schemas";
 import { normalizeQuestionPrompt } from "./schemas";
 import type {
   InterviewQuestionGenerationRun,
@@ -22,10 +21,6 @@ export type InterviewQuestionGenerationPostDependencies = {
     applicationId: string,
   ): Promise<Pick<Application, "id" | "userId" | "jdText"> | null>;
   getAIProcessingConsentAt(userId: string): Promise<string | null>;
-  listRequirements(
-    userId: string,
-    applicationId: string,
-  ): Promise<InterviewQuestionGenerationRequirement[]>;
   listCommonPrompts(userId: string): Promise<string[]>;
   createOrGetRun(input: {
     applicationId: string;
@@ -40,7 +35,6 @@ export type InterviewQuestionGenerationPostDependencies = {
     userId: string;
     run: InterviewQuestionGenerationRun;
     application: Pick<Application, "id" | "userId" | "jdText">;
-    requirements: InterviewQuestionGenerationRequirement[];
     commonPrompts: string[];
     providerFactory: () => Pick<AIProvider, "generateInterviewQuestions">;
   }): Promise<InterviewQuestionGenerationServiceResult>;
@@ -48,21 +42,11 @@ export type InterviewQuestionGenerationPostDependencies = {
 
 export function buildInterviewQuestionGenerationInputHash(input: {
   jdText: string;
-  requirements: InterviewQuestionGenerationRequirement[];
   commonPrompts: string[];
   provider: string;
   model: string;
   schemaVersion?: string;
 }) {
-  const requirements = [...input.requirements]
-    .sort((left, right) => left.id.localeCompare(right.id))
-    .map((requirement) => ({
-      id: requirement.id,
-      category: requirement.category,
-      text: requirement.text,
-      sourceExcerpt: requirement.sourceExcerpt,
-      priority: requirement.priority,
-    }));
   const commonPrompts = input.commonPrompts
     .map((prompt) => normalizeQuestionPrompt(prompt))
     .filter((prompt) => prompt.length > 0)
@@ -76,7 +60,6 @@ export function buildInterviewQuestionGenerationInputHash(input: {
         provider: input.provider,
         model: input.model,
         jdText: input.jdText,
-        requirements,
         commonPrompts,
       }),
     )
@@ -113,13 +96,9 @@ export function createInterviewQuestionGenerationPostHandler(
         );
       }
 
-      const [requirements, commonPrompts] = await Promise.all([
-        dependencies.listRequirements(user.id, application.id),
-        dependencies.listCommonPrompts(user.id),
-      ]);
+      const commonPrompts = await dependencies.listCommonPrompts(user.id);
       const inputHash = buildInterviewQuestionGenerationInputHash({
         jdText: application.jdText,
-        requirements,
         commonPrompts,
         ...dependencies.providerConfig,
       });
@@ -142,7 +121,6 @@ export function createInterviewQuestionGenerationPostHandler(
         userId: user.id,
         run,
         application,
-        requirements,
         commonPrompts,
         providerFactory: dependencies.providerFactory,
       });

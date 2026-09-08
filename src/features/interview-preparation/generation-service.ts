@@ -6,7 +6,6 @@ import { ZodError } from "zod";
 import {
   sanitizeInterviewQuestionGeneration,
   type InterviewQuestionGenerationCandidate,
-  type InterviewQuestionGenerationInput,
 } from "./generation-schemas";
 
 export type InterviewQuestionGenerationRunStatus =
@@ -81,9 +80,6 @@ export type FailInterviewQuestionGenerationInput = {
   errorMessage: string;
   requestId: string | null;
 };
-
-export type InterviewQuestionGenerationRequirements =
-  InterviewQuestionGenerationInput["requirements"];
 
 export type InterviewQuestionGenerationServiceDependencies = {
   runs: {
@@ -258,7 +254,6 @@ export function createInterviewQuestionGenerationService(
       userId: string;
       run: InterviewQuestionGenerationRun;
       application: { id: string; jdText: string };
-      requirements: InterviewQuestionGenerationRequirements;
       commonPrompts: string[];
     }): Promise<InterviewQuestionGenerationServiceResult> {
       if (input.run.status === "succeeded") {
@@ -300,7 +295,6 @@ export function createInterviewQuestionGenerationService(
         const provider = dependencies.providerFactory();
         const aiResult = await provider.generateInterviewQuestions({
           jdText: input.application.jdText,
-          requirements: input.requirements,
           commonPrompts: input.commonPrompts,
         });
         requestId = sanitizeInterviewQuestionGenerationRequestId(
@@ -308,7 +302,6 @@ export function createInterviewQuestionGenerationService(
         );
         const sanitized = sanitizeInterviewQuestionGeneration({
           jdText: input.application.jdText,
-          requirements: input.requirements,
           commonPrompts: input.commonPrompts,
           output: aiResult.data,
         });

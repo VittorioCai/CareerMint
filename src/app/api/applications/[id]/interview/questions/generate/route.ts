@@ -4,7 +4,6 @@ import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { applicationRepository } from "@/features/applications/repository";
 import type { AIProvider } from "@/features/extraction/provider";
 import { createDeepSeekAIProvider } from "@/features/extraction/deepseek-extractor";
-import { jdAnalysisRepository } from "@/features/jd-analysis/repository";
 import {
   interviewPreparationRepository,
 } from "@/features/interview-preparation/repository";
@@ -79,16 +78,6 @@ export const POST = createInterviewQuestionGenerationPostHandler({
   getCurrentUser,
   getApplication: applicationRepository.get,
   getAIProcessingConsentAt,
-  async listRequirements(userId, applicationId) {
-    const rows = await jdAnalysisRepository.listRequirements(userId, applicationId);
-    return rows.map((row) => ({
-      id: row.id,
-      category: row.category,
-      text: row.text,
-      sourceExcerpt: row.sourceExcerpt,
-      priority: row.priority,
-    }));
-  },
   async listCommonPrompts(userId) {
     const questions = await interviewPreparationRepository.list(userId);
     return questions
@@ -102,7 +91,6 @@ export const POST = createInterviewQuestionGenerationPostHandler({
     userId,
     run,
     application,
-    requirements,
     commonPrompts,
     providerFactory,
   }) {
@@ -116,7 +104,6 @@ export const POST = createInterviewQuestionGenerationPostHandler({
       userId,
       run,
       application,
-      requirements,
       commonPrompts,
     });
   },
