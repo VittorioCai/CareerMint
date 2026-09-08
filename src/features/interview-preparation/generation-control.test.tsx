@@ -96,6 +96,23 @@ describe("InterviewQuestionGenerationControl", () => {
     expect(screen.getByText("先预览，再决定")).toBeVisible();
   });
 
+  it("does not claim to use structured requirements it is no longer given", () => {
+    cleanup();
+    render(
+      <InterviewQuestionGenerationControl
+        applicationId={applicationId}
+        initialRun={null}
+        initialCandidates={[]}
+        acceptCandidates={acceptAction}
+        rejectCandidates={rejectAction}
+        request={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/结构化要求/u)).not.toBeInTheDocument();
+    expect(screen.getByText(/仅使用当前 JD 原文和通用题提示/u)).toBeVisible();
+  });
+
   it("posts on click, renders candidate evidence, and keeps review actions disabled without selection", async () => {
     const request = vi.fn().mockResolvedValue(
       Response.json({ runId, status: "succeeded", reused: false, errorCode: null }),

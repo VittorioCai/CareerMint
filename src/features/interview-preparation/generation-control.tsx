@@ -231,7 +231,7 @@ export function InterviewQuestionGenerationControl({
           <p className="text-xs font-black uppercase tracking-[0.12em]">AI 岗位增量题</p>
           <h2 className="heading-font mt-2 text-2xl font-black">先预览，再决定</h2>
           <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[var(--ink)]">
-            仅使用 JD、结构化要求和通用题提示。候选不会自动写入题库，最多生成 6 道；每道都只是基于 JD 的准备建议。
+            仅使用当前 JD 原文和通用题提示。候选不会自动写入题库，最多生成 6 道；每道都只是基于 JD 的准备建议。
           </p>
         </div>
         <button
