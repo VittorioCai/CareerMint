@@ -148,7 +148,7 @@ function ImprovementItem({
             {gateDirection?.direction ?? direction?.directionZh ?? issue.problemZh}
           </p>
           {unsupported ? (
-            <p className="mt-3 rounded-xl border-2 border-[var(--coral)] bg-[var(--paper)] px-4 py-3 text-sm font-semibold leading-6">
+            <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 text-sm font-semibold leading-6">
               当前材料没有可回查证据。如未实际做过，请不要加入简历。
             </p>
           ) : null}

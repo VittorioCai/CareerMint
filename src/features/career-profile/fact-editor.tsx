@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 
+import { Modal } from "@/components/modal";
+
 import { FactFields } from "./fact-fields";
 import {
   FactFormMappingError,
@@ -231,57 +233,54 @@ export function FactEditor({
         </p>
       ) : null}
 
-      {confirming ? (
-        <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[color:var(--ink)]/35 p-4">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label="确认职业事实"
-            className="soft-surface w-full max-w-xl p-5 sm:p-7"
-          >
-            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
-            <h2 className="heading-font mt-2 text-2xl font-bold">确认职业事实</h2>
-            <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
-              <p className="font-semibold">{data.title}</p>
-              <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{data.description}</p>
-            </div>
-            <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-bold leading-6">
-              <input
-                type="checkbox"
-                className="mt-1 size-4 accent-[var(--mint-strong)]"
-                checked={explicit}
-                onChange={(event) => setExplicit(event.target.checked)}
-              />
-              <span>我确认这条内容真实、准确，并同意用于后续求职材料</span>
-            </label>
-            <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button type="button" className="button-secondary min-h-10 px-4 text-sm font-semibold" onClick={() => setConfirming(false)}>
-                返回检查
-              </button>
-              <button
-                type="button"
-                className="button-primary min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
-                disabled={!explicit || busy}
-                onClick={() =>
-                  void run(
-                    () =>
-                      actions.confirm({
-                        factId: fact.id,
-                        explicitConfirmation: explicit,
-                      }),
-                    () => {
-                      setStatus("confirmed");
-                      setConfirming(false);
-                    },
-                  )
-                }
-              >
-                确认并保存
-              </button>
-            </div>
-          </section>
+      <Modal
+        open={confirming}
+        label="确认职业事实"
+        onClose={() => {
+          if (!busy) setConfirming(false);
+        }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
+        <h2 className="heading-font mt-2 text-2xl font-bold">确认职业事实</h2>
+        <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
+          <p className="font-semibold">{data.title}</p>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{data.description}</p>
         </div>
-      ) : null}
+        <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-bold leading-6">
+          <input
+            type="checkbox"
+            className="mt-1 size-4 accent-[var(--mint-strong)]"
+            checked={explicit}
+            onChange={(event) => setExplicit(event.target.checked)}
+          />
+          <span>我确认这条内容真实、准确，并同意用于后续求职材料</span>
+        </label>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <button type="button" className="button-secondary min-h-10 px-4 text-sm font-semibold" onClick={() => setConfirming(false)}>
+            返回检查
+          </button>
+          <button
+            type="button"
+            className="button-primary min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!explicit || busy}
+            onClick={() =>
+              void run(
+                () =>
+                  actions.confirm({
+                    factId: fact.id,
+                    explicitConfirmation: explicit,
+                  }),
+                () => {
+                  setStatus("confirmed");
+                  setConfirming(false);
+                },
+              )
+            }
+          >
+            确认并保存
+          </button>
+        </div>
+      </Modal>
     </article>
   );
 }

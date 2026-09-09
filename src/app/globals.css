@@ -44,7 +44,6 @@
   --mint: #bdebd7;
   --mint-strong: #2f8f63;
   --cream: #fff2a8;
-  --coral: #d2503f;
 
   /* The focus ring is ink, and it flips with the theme because --ink does.
      It replaces a pale blue that measured 1.24:1 against the canvas — a ring
@@ -111,7 +110,6 @@
     --mint: #2f8f63;
     --mint-strong: #86d3ab;
     --cream: #e3c377;
-    --coral: #e2695b;
     --error: #e2695b;
 
     --focus-halo: rgba(232, 236, 233, 0.18);
@@ -153,7 +151,6 @@
   --mint: #2f8f63;
   --mint-strong: #86d3ab;
   --cream: #e3c377;
-  --coral: #e2695b;
   --error: #e2695b;
 
   --focus-halo: rgba(232, 236, 233, 0.18);
@@ -657,6 +654,23 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 .motion-exit {
   opacity: 0;
   transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+/* A native <dialog> arrives with UA styles that predate every token here: a
+   2px inset border, a white background and `margin: auto` that only centres
+   horizontally. The backdrop is the one thing worth keeping — it is painted in
+   the top layer, so no stacking context in the app can get in front of it. */
+.modal-dialog {
+  margin: auto;
+  border: none;
+  max-width: none;
+  max-height: calc(100dvh - 2rem);
+  overflow-y: auto;
+  background: var(--paper);
+}
+
+.modal-dialog::backdrop {
+  background: rgb(0 0 0 / 0.45);
 }
 
 /* A live region is the "enter" category by definition: it exists to announce

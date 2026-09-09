@@ -478,7 +478,7 @@ function AnalysisControlState({
                     ? "扫描版 PDF 本机识别进度"
                     : "识别引擎下载进度"
                 }
-                className="mt-2 h-2 w-full accent-[var(--coral)]"
+                className="mt-2 h-2 w-full accent-[var(--ink)]"
                 max={
                   ocrProgress?.phase === "recognizing"
                     ? ocrProgress.totalPages

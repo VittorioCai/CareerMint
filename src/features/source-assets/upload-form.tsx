@@ -371,7 +371,7 @@ export function UploadForm({
                 : "正在分析，离开页面也不会丢失任务…"}
           </p>
           <progress
-            className="mt-2 h-2 w-full accent-[var(--coral)]"
+            className="mt-2 h-2 w-full accent-[var(--ink)]"
             max={ocrProgress?.phase === "recognizing" ? ocrProgress.totalPages : 1}
             value={ocrProgress?.phase === "recognizing" ? ocrProgress.page : 0}
           />

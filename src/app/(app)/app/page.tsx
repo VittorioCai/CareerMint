@@ -55,7 +55,7 @@ export default async function DashboardPage() {
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           任务已经安全保存。你可以离开此页继续浏览，稍后回来查看结果。
         </p>
-        <progress className="mt-6 h-2 w-full max-w-xl accent-[var(--coral)]" />
+        <progress className="mt-6 h-2 w-full max-w-xl accent-[var(--ink)]" />
         <Link href="/applications" className="button-secondary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
           先看看我的投递
         </Link>
