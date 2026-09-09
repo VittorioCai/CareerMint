@@ -405,11 +405,8 @@ export default async function ApplicationDetailPage({
           >
             {application.roleTitle}
           </h1>
-          <p className="mt-2 text-lg font-black text-[var(--ink-muted)]">{application.companyName}</p>
+          <p className="mt-1.5 text-base font-semibold text-[var(--ink-muted)]">{application.companyName}</p>
         </div>
-        <Link href="/applications/new" className="button-secondary hidden min-h-11 items-center justify-center px-4 text-sm font-black md:inline-flex">
-          ＋ 新建申请
-        </Link>
       </div>
 
       <nav className="mt-7 flex flex-wrap gap-2 border-b border-[var(--line)] pb-3" aria-label="申请详情">

@@ -394,10 +394,22 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
   background-image:
     linear-gradient(to right, var(--canvas) 40%, rgba(255, 250, 242, 0)),
     linear-gradient(to left, var(--canvas) 40%, rgba(255, 250, 242, 0)),
-    radial-gradient(farthest-side at 0 50%, rgba(41, 55, 51, 0.16), rgba(41, 55, 51, 0)),
-    radial-gradient(farthest-side at 100% 50%, rgba(41, 55, 51, 0.16), rgba(41, 55, 51, 0));
+    radial-gradient(farthest-side at 0 50%, rgba(41, 55, 51, 0.26), rgba(41, 55, 51, 0)),
+    radial-gradient(farthest-side at 100% 50%, rgba(41, 55, 51, 0.26), rgba(41, 55, 51, 0));
   background-position: 0 0, 100% 0, 0 0, 100% 0;
   background-repeat: no-repeat;
-  background-size: 48px 100%, 48px 100%, 20px 100%, 20px 100%;
+  background-size: 56px 100%, 56px 100%, 28px 100%, 28px 100%;
   background-attachment: local, local, scroll, scroll;
+}
+
+/* Horizontal panning reads as a deliberate move rather than a slip: columns
+   settle on their own left edge, and the fade at each end is strong enough to
+   say there is more out there. */
+.snap-columns {
+  scroll-snap-type: x proximity;
+  scroll-padding-left: 4px;
+}
+
+.snap-columns > * > * {
+  scroll-snap-align: start;
 }

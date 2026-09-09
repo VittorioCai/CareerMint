@@ -87,7 +87,7 @@ export function AppShell({ children, email }: AppShellProps) {
           ))}
         </nav>
 
-        <div className="mt-auto border-t border-[var(--line)] px-3 pb-1 pt-3.5">
+        <div className="mt-auto shrink-0 border-t border-[var(--line)] px-3 pb-3 pt-3.5">
           <p className="text-[11.5px] font-semibold">资料安全原则</p>
           <p className="mt-1 text-[11.5px] font-normal leading-[1.55] text-[var(--ink-muted)]">AI 写入前会先让你确认，不会静默改档案。</p>
         </div>

@@ -19,9 +19,19 @@ export default async function ProfilePage() {
             每条内容都保留来源和确认状态。只有你明确确认过的事实，才能被确定性写入求职材料。
           </p>
         </div>
-        <div className={`w-fit rounded-full border border-[var(--ink)] px-3 py-1.5 text-xs font-black ${pending ? "bg-[var(--cream)]" : "bg-[var(--mint)]"}`}>
-          {pending ? `${pending} 条待处理` : "全部已核对"}
-        </div>
+        {/* Nothing to check is not the same as everything checked — the chip
+            only claims a clean profile when there is a profile. */}
+        {facts.length ? (
+          <div
+            className={`w-fit rounded-full border px-3 py-1.5 text-xs font-semibold ${
+              pending
+                ? "border-[#e0b93a] bg-[#fffbe4]"
+                : "border-[var(--mint-strong)] bg-[#eef8f2]"
+            }`}
+          >
+            {pending ? `${pending} 条待处理` : "全部已核对"}
+          </div>
+        ) : null}
       </div>
       <FactList facts={facts} />
     </section>

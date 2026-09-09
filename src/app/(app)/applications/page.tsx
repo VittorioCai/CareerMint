@@ -57,12 +57,6 @@ export default async function ApplicationsPage({
             共 {applications.length} 份真实记录，当前筛选显示 {visibleApplications.length} 份。
           </p>
         </div>
-        <Link
-          href="/applications/new"
-          className="button-primary inline-flex min-h-12 items-center justify-center px-5 text-sm font-black"
-        >
-          ＋ 新建申请
-        </Link>
       </div>
 
       <div className="dense-surface mt-7 p-4">
@@ -89,31 +83,40 @@ export default async function ApplicationsPage({
             </select>
           </label>
           <div className="flex items-end gap-2">
-            <button type="submit" className="button-secondary min-h-12 px-4 text-sm font-black">
+            <button
+              type="submit"
+              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--ink)] bg-white px-4 text-sm font-semibold"
+            >
               筛选
             </button>
-            <Link href={`/applications?view=${filter.view}`} className="inline-flex min-h-12 items-center px-2 text-xs font-black underline underline-offset-4">
+            <Link
+              href={`/applications?view=${filter.view}`}
+              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line)] bg-white px-4 text-sm font-medium text-[var(--ink-muted)]"
+            >
               清除
             </Link>
           </div>
         </form>
       </div>
 
-      <div className="mt-5 flex items-center gap-2" aria-label="投递视图">
-        <Link
-          href={viewHref("board", filter.q, filter.stage)}
-          aria-current={filter.view === "board" ? "page" : undefined}
-          className={`rounded-xl border px-4 py-2 text-sm font-black ${filter.view === "board" ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]" : "border-[var(--line)] bg-white"}`}
-        >
-          看板
-        </Link>
-        <Link
-          href={viewHref("table", filter.q, filter.stage)}
-          aria-current={filter.view === "table" ? "page" : undefined}
-          className={`rounded-xl border px-4 py-2 text-sm font-black ${filter.view === "table" ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]" : "border-[var(--line)] bg-white"}`}
-        >
-          表格
-        </Link>
+      <div
+        className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-white p-1"
+        aria-label="投递视图"
+      >
+        {(["board", "table"] as const).map((view) => (
+          <Link
+            key={view}
+            href={viewHref(view, filter.q, filter.stage)}
+            aria-current={filter.view === view ? "page" : undefined}
+            className={`rounded-lg px-3.5 py-1.5 text-sm transition-[background-color,color] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${
+              filter.view === view
+                ? "bg-[var(--cream)] font-semibold"
+                : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"
+            }`}
+          >
+            {view === "board" ? "看板" : "表格"}
+          </Link>
+        ))}
       </div>
 
       <div className="mt-5">

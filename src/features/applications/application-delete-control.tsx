@@ -50,9 +50,11 @@ export function ApplicationDeleteControl({
           setError(null);
           setExpanded(true);
         }}
+        // Destructive, but not the most prominent thing on a card about a job
+        // you are applying for. It stays muted until you reach for it.
         className={compact
-          ? "text-xs font-black text-[#a83c34] underline underline-offset-4"
-          : "button-secondary min-h-10 px-4 text-sm font-black text-[#a83c34]"}
+          ? "text-xs font-medium text-[var(--ink-soft)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[#a83c34] hover:decoration-current focus-visible:text-[#a83c34]"
+          : "press inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[#d89a94] hover:text-[#a83c34]"}
       >
         删除记录
       </button>

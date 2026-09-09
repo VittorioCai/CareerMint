@@ -185,7 +185,7 @@ export function ApplicationList({
   }
 
   return (
-    <div className="scroll-x-affordance overflow-x-auto pb-4">
+    <div className="scroll-x-affordance snap-columns overflow-x-auto pb-4">
       <div className="grid min-w-[1780px] grid-cols-7 gap-4">
         {APPLICATION_STAGES.map((stage) => {
           const grouped = applications.filter(

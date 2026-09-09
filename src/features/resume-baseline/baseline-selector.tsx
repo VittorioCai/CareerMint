@@ -379,7 +379,7 @@ export function BaselineSelector({
             </p>
             <button
               type="button"
-              className="button-secondary mt-3 min-h-10 px-4 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+              className="press button-primary mt-3 inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-bold disabled:cursor-wait disabled:opacity-60"
               disabled={busy}
               onClick={() => void upload(selectedFile ?? undefined)}
             >
@@ -413,7 +413,7 @@ export function BaselineSelector({
       {setupMode ? (
         <button
           type="button"
-          className="button-primary mt-5 min-h-11 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+          className="press mt-5 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] bg-white px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)] disabled:cursor-wait disabled:opacity-60"
           onClick={() => void finishSelection(null)}
           disabled={busy}
         >
