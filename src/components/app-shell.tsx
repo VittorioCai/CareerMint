@@ -70,7 +70,7 @@ export function AppShell({ children, email }: AppShellProps) {
     <div className="min-h-screen bg-[var(--canvas)] md:grid md:grid-cols-[244px_minmax(0,1fr)]">
       <aside className="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col border-r-2 border-[var(--ink)] bg-[var(--mint)] p-4 md:flex" aria-label="主导航">
         <Link href="/app" className="group flex items-center gap-3 px-2 py-2" aria-label="求职搭子首页">
-          <span className="logo-mark flex size-10 rotate-[-3deg] items-center justify-center bg-[var(--cream)] text-lg font-black transition-transform group-hover:rotate-0">J</span>
+          <span aria-hidden="true" className="logo-mark size-10" />
           <div>
             <span className="heading-font block text-lg font-black leading-none">求职搭子</span>
             <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--ink-muted)]">Job desk</span>
@@ -97,7 +97,7 @@ export function AppShell({ children, email }: AppShellProps) {
         <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[color:var(--canvas)]/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/app" className="flex shrink-0 items-center gap-2 md:hidden" aria-label="求职搭子首页">
-              <span className="logo-mark flex size-9 items-center justify-center bg-[var(--cream)] text-sm font-black">J</span>
+              <span aria-hidden="true" className="logo-mark size-9" />
               <span className="heading-font hidden text-base font-black sm:inline">求职搭子</span>
             </Link>
 

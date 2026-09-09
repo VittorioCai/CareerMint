@@ -33,7 +33,7 @@ export default function Home() {
     <main className="landing-shell min-h-screen overflow-hidden">
       <nav className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-5 py-5 sm:px-8 lg:px-10" aria-label="公开导航">
         <Link href="/" className="group flex items-center gap-3" aria-label="求职搭子首页">
-          <span className="logo-mark sticker-border flex size-10 rotate-[-3deg] items-center justify-center bg-[var(--cream)] text-lg font-black transition-transform group-hover:rotate-0">J</span>
+          <span aria-hidden="true" className="logo-mark size-10" />
           <span className="heading-font text-xl font-black tracking-[-0.03em]">求职搭子</span>
           <span className="hidden rounded-full border border-[color:var(--ink-soft)] bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] sm:inline">Beta</span>
         </Link>

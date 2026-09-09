@@ -40,9 +40,9 @@ describe("application detail workflow tabs", () => {
     ]) {
       expect(page).not.toContain(oldDependency);
     }
-    expect(page).toContain("岗位与简历差异分析");
-    expect(page).toContain(
-      "找出这份简历尚未覆盖、表达不清或无法证明的岗位重点。",
-    );
+    // The V4 feature owns this tab's copy now — the page only wires it up, so
+    // the check is on the wiring rather than on strings that moved.
+    expect(page).toContain("ResumeJDDifferencePanel");
+    expect(page).toContain("ResumeJDDifferenceAnalysisControl");
   });
 });

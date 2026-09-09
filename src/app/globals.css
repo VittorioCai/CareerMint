@@ -72,10 +72,41 @@ button {
   background-size: 18px 18px;
 }
 
-.logo-mark,
 .sticker-border {
   border: 2px solid var(--ink);
   border-radius: 16px;
+}
+
+/* Two people at one desk. The cream disc carries a small ink shadow so the
+   pair reads as one in front of the other rather than two circles touching.
+   Everything is proportional so the mark holds at any box size. */
+.logo-mark {
+  position: relative;
+  flex: none;
+  border-radius: 35%;
+  background: var(--ink);
+  box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--ink) 85%, transparent);
+}
+
+.logo-mark::before,
+.logo-mark::after {
+  content: "";
+  position: absolute;
+  top: 30%;
+  width: 40%;
+  height: 40%;
+  border-radius: 999px;
+}
+
+.logo-mark::before {
+  left: 20%;
+  background: var(--mint);
+}
+
+.logo-mark::after {
+  right: 20%;
+  background: var(--cream);
+  box-shadow: -2.5px 0 0 var(--ink);
 }
 
 .sticker-shadow {

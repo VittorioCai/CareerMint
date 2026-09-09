@@ -182,7 +182,9 @@ test("runs one grounded analysis and reuses the same run for improvements", asyn
     );
 
     await page.goto(`${application.detailUrl}?tab=jd`);
-    await expect(page.getByRole("heading", { name: "岗位与简历差异分析" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "逐条差异 · 按严重度排序" }),
+    ).toBeVisible();
   } finally {
     await admin.auth.admin.deleteUser(userId);
   }

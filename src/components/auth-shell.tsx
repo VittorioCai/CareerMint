@@ -24,7 +24,7 @@ export function AuthShell({
     <main className="grid min-h-screen bg-[var(--canvas)] lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
       <section className="flex min-h-screen flex-col px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
         <Link href="/" className="group flex w-fit items-center gap-3" aria-label="返回求职搭子首页">
-          <span className="logo-mark flex size-10 rotate-[-3deg] items-center justify-center bg-[var(--cream)] text-lg font-black transition-transform group-hover:rotate-0">J</span>
+          <span aria-hidden="true" className="logo-mark size-10" />
           <span className="heading-font text-xl font-black tracking-[-0.03em]">求职搭子</span>
         </Link>
 

@@ -128,7 +128,7 @@ test("keeps resume selection, preview, workflow navigation, and deletion coheren
     await uploadBaseline(page, application.applicationId);
 
     await expect(
-      page.getByRole("heading", { name: "岗位与简历差异分析" }),
+      page.getByRole("heading", { name: "对照：resume-en.pdf" }),
     ).toBeVisible();
     await expect(
       page.getByRole("button", { name: "开始差异分析", exact: true }),
@@ -159,7 +159,7 @@ test("keeps resume selection, preview, workflow navigation, and deletion coheren
 
     await page.goto(`${application.detailUrl}?tab=jd`);
     await expect(
-      page.getByRole("heading", { name: "岗位与简历差异分析" }),
+      page.getByRole("heading", { name: "对照：resume-en.pdf" }),
     ).toBeVisible();
 
     await page.goto(`${application.detailUrl}?tab=improvements`);

@@ -398,7 +398,11 @@ export default async function ApplicationDetailPage({
             <span className="status-chip bg-[var(--cream)]">{APPLICATION_STAGE_LABELS[application.stage]}</span>
             {application.location ? <span className="text-xs font-bold text-[var(--ink-muted)]">{application.location}</span> : null}
           </div>
-          <h1 className="heading-font mt-3 break-words text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+          <h1
+            className={`heading-font mt-3 break-words font-black tracking-[-0.04em] ${
+              differenceWorkflow ? "text-2xl sm:text-3xl" : "text-4xl sm:text-5xl"
+            }`}
+          >
             {application.roleTitle}
           </h1>
           <p className="mt-2 text-lg font-black text-[var(--ink-muted)]">{application.companyName}</p>
@@ -414,7 +418,7 @@ export default async function ApplicationDetailPage({
             key={tab.id}
             href={`/applications/${application.id}?tab=${tab.id}`}
             aria-current={activeTab === tab.id ? "page" : undefined}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm font-black ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]" : "border border-[var(--line)] bg-white"}`}
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--cream)] font-black shadow-[2px_2px_0_var(--ink)]" : "font-semibold text-[var(--ink-muted)]"}`}
           >
             {tab.label}
           </Link>
@@ -445,19 +449,7 @@ export default async function ApplicationDetailPage({
           </div>
         ) : null}
         {activeTab === "difference" ? (
-          <div className="space-y-7">
-            {first(query.setup) === "1" ? <SetupProgress current="gap" /> : null}
-            <header>
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-                Resume × job description
-              </p>
-              <h2 className="heading-font mt-1 text-3xl font-black sm:text-4xl">
-                岗位与简历差异分析
-              </h2>
-              <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-                找出这份简历尚未覆盖、表达不清或无法证明的岗位重点。
-              </p>
-            </header>
+          <div className="max-w-[1040px] space-y-7">
             <ResumeJDDifferencePanel
               applicationId={application.id}
               run={displayedDifferenceRun}

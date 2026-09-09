@@ -31,7 +31,7 @@ export default async function OnboardingPage() {
       <div className="mx-auto w-full max-w-5xl min-w-0">
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <span className="logo-mark flex size-10 items-center justify-center bg-[var(--cream)] text-lg font-black">J</span>
+            <span aria-hidden="true" className="logo-mark size-10" />
             <span className="heading-font text-lg font-black">求职搭子</span>
           </Link>
           <span className="rounded-full border border-[var(--ink)] bg-white px-3 py-1 text-xs font-black">私密建档</span>
