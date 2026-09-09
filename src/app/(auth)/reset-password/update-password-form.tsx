@@ -24,7 +24,7 @@ export function UpdatePasswordForm() {
         <label className="form-label" htmlFor="confirmPassword">再次输入新密码</label>
         <input className="form-input" id="confirmPassword" name="confirmPassword" type="password" minLength={8} maxLength={128} autoComplete="new-password" required />
       </div>
-      <button className="button-primary min-h-12 w-full px-5 font-black disabled:cursor-wait disabled:opacity-60" type="submit" disabled={pending}>
+      <button className="button-primary min-h-12 w-full px-5 font-semibold disabled:cursor-wait disabled:opacity-60" type="submit" disabled={pending}>
         {pending ? "正在更新…" : "更新密码并进入工作台"}
       </button>
     </form>

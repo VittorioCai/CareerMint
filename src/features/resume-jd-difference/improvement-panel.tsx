@@ -138,17 +138,17 @@ function ImprovementItem({
     >
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
             对应差异
           </p>
-          <p className="mt-2 text-base font-black leading-7">
+          <p className="mt-2 text-base font-semibold leading-7">
             {issue.jdTranslationZh}
           </p>
           <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm font-bold leading-6">
             {gateDirection?.direction ?? direction?.directionZh ?? issue.problemZh}
           </p>
           {unsupported ? (
-            <p className="mt-3 rounded-xl border-2 border-[var(--coral)] bg-[var(--paper)] px-4 py-3 text-sm font-black leading-6">
+            <p className="mt-3 rounded-xl border-2 border-[var(--coral)] bg-[var(--paper)] px-4 py-3 text-sm font-semibold leading-6">
               当前材料没有可回查证据。如未实际做过，请不要加入简历。
             </p>
           ) : null}
@@ -156,13 +156,13 @@ function ImprovementItem({
 
         <dl className="grid content-start gap-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
           <div>
-            <dt className="text-xs font-black text-[var(--ink-muted)]">目标位置</dt>
-            <dd className="mt-1 text-sm font-black leading-6">
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">目标位置</dt>
+            <dd className="mt-1 text-sm font-semibold leading-6">
               {gateDirection?.target ?? targetCopy(direction)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-black text-[var(--ink-muted)]">完善重点</dt>
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">完善重点</dt>
             <dd className="mt-1 text-sm font-bold leading-6">
               {gateDirection?.focus ??
                 (direction?.focusAreas.length
@@ -172,14 +172,14 @@ function ImprovementItem({
           </div>
           {terms.length ? (
             <div>
-              <dt className="text-xs font-black text-[var(--ink-muted)]">
+              <dt className="text-xs font-semibold text-[var(--ink-muted)]">
                 岗位原词 / 同义表达
               </dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {terms.map((term) => (
                   <span
                     key={term}
-                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-minor)] px-3 py-1 text-xs font-black"
+                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-minor)] px-3 py-1 text-xs font-semibold"
                     lang="und"
                   >
                     {term}
@@ -190,13 +190,13 @@ function ImprovementItem({
           ) : null}
           {citedFacts.length ? (
             <div>
-              <dt className="text-xs font-black text-[var(--ink-muted)]">档案依据</dt>
+              <dt className="text-xs font-semibold text-[var(--ink-muted)]">档案依据</dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {citedFacts.map((fact) => (
                   <span
                     key={fact.id}
                     data-testid={`improvement-fact-${fact.id}`}
-                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1 text-xs font-black"
+                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1 text-xs font-semibold"
                     title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
                   >
                     {fact.title}
@@ -206,7 +206,7 @@ function ImprovementItem({
             </div>
           ) : null}
           <div>
-            <dt className="text-xs font-black text-[var(--ink-muted)]">真实性</dt>
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">真实性</dt>
             <dd className="mt-1 text-sm font-bold leading-6">
               {gateDirection?.authenticity ??
                 authenticityCopy[direction?.authenticity ?? issue.authenticity]}
@@ -227,14 +227,14 @@ function Prerequisite({
 }) {
   return (
     <section className="dense-surface px-5 py-8 sm:px-6">
-      <h2 className="heading-font text-2xl font-black">
+      <h2 className="heading-font text-2xl font-bold">
         {stale ? "材料已变化，请重新分析" : "请先完成差异分析"}
       </h2>
       <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
         完善方向只会基于当前 JD、所选简历和可回查事实生成。
       </p>
       <Link
-        className="mt-5 inline-flex rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-black"
+        className="button-secondary mt-5 inline-flex px-4 py-2 text-sm font-semibold"
         href={`/applications/${applicationId}?tab=difference`}
       >
         前往差异分析
@@ -279,11 +279,11 @@ export function ResumeJDImprovementPanel({
       aria-labelledby="improvement-panel-title"
       data-run-id={run.id}
     >
-      <header className="sticker-border bg-[var(--sev-matched)] p-5 sm:p-6">
-        <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+      <header className="soft-surface p-5 sm:p-6">
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           Grounded guidance
         </p>
-        <h2 id="improvement-panel-title" className="heading-font mt-1 text-2xl font-black sm:text-3xl">
+        <h2 id="improvement-panel-title" className="heading-font mt-1 text-2xl font-bold sm:text-3xl">
           完善建议
         </h2>
         <p className="mt-3 max-w-4xl text-sm font-bold leading-7">
@@ -297,7 +297,7 @@ export function ResumeJDImprovementPanel({
         return (
           <section key={group} aria-labelledby={`improvement-group-${group}`}>
             <div className="mb-3">
-              <h2 id={`improvement-group-${group}`} className="heading-font text-2xl font-black">
+              <h2 id={`improvement-group-${group}`} className="heading-font text-2xl font-bold">
                 {group}
               </h2>
               <p className="mt-1 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
@@ -318,18 +318,18 @@ export function ResumeJDImprovementPanel({
         );
       })}
 
-      <section className="sticker-border grid gap-4 bg-[var(--surface-muted)] p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
+      <section className="soft-surface grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
             Optional next step
           </p>
-          <h2 className="heading-font mt-1 text-xl font-black">下一步：准备面试</h2>
+          <h2 className="heading-font mt-1 text-xl font-semibold">下一步：准备面试</h2>
           <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
             完善建议是独立参考。你可以继续核对简历，也可以进入面试准备。
           </p>
         </div>
         <Link
-          className="inline-flex justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] px-4 py-3 text-sm font-black"
+          className="button-secondary press inline-flex justify-center px-4 py-3 text-sm font-semibold"
           href={`/applications/${applicationId}?tab=interview`}
         >
           进入面试准备

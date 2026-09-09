@@ -95,7 +95,7 @@ export default async function InterviewPage({
               <p className="type-eyebrow text-[var(--ink-muted)]">
                 {label}
               </p>
-              <p className="heading-font mt-1 text-3xl font-black">{value}</p>
+              <p className="heading-font mt-1 text-3xl font-bold">{value}</p>
             </div>
           ))}
         </div>
@@ -108,8 +108,8 @@ export default async function InterviewPage({
             addQuestion={addInterviewQuestionAction.bind(null, {})}
           />
           <form method="get" className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
-            <h2 className="heading-font text-lg font-black">筛选题库</h2>
-            <label className="mt-3 block text-sm font-black">
+            <h2 className="heading-font text-lg font-semibold">筛选题库</h2>
+            <label className="mt-3 block text-sm font-semibold">
               搜索问题
               <input
                 name="q"
@@ -118,7 +118,7 @@ export default async function InterviewPage({
                 placeholder="关键词或问法变体"
               />
             </label>
-            <label className="mt-3 block text-sm font-black">
+            <label className="mt-3 block text-sm font-semibold">
               分类
               <select
                 name="category"
@@ -131,7 +131,7 @@ export default async function InterviewPage({
                 ))}
               </select>
             </label>
-            <label className="mt-3 block text-sm font-black">
+            <label className="mt-3 block text-sm font-semibold">
               状态
               <select
                 name="status"
@@ -144,7 +144,7 @@ export default async function InterviewPage({
                 ))}
               </select>
             </label>
-            <button type="submit" className="button-secondary mt-4 min-h-10 px-4 text-xs font-black">
+            <button type="submit" className="button-secondary mt-4 min-h-10 px-4 text-xs font-semibold">
               应用筛选
             </button>
           </form>
@@ -156,10 +156,10 @@ export default async function InterviewPage({
               <section key={group.category}>
                 <div className="flex items-end justify-between gap-3">
                   <div>
-                    <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+                    <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
                       {group.category === "common" ? "Reusable in every job" : "Incremental preparation"}
                     </p>
-                    <h2 className="heading-font mt-1 text-2xl font-black">
+                    <h2 className="heading-font mt-1 text-2xl font-bold">
                       {INTERVIEW_CATEGORY_LABELS[group.category]}
                     </h2>
                   </div>
@@ -181,7 +181,7 @@ export default async function InterviewPage({
           )}
           {visibleQuestions.length === 0 ? (
             <article className="rounded-2xl border border-dashed border-[var(--ink-soft)] bg-[var(--paper)] p-8 text-center">
-              <p className="text-sm font-black">没有符合条件的问题</p>
+              <p className="text-sm font-semibold">没有符合条件的问题</p>
               <p className="mt-2 text-xs font-semibold text-[var(--ink-muted)]">
                 调整筛选，或在左侧加入一道新问题。
               </p>

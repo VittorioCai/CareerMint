@@ -89,10 +89,10 @@ export function ManualFactForm({
   return (
     <form className="soft-surface mt-4 grid gap-4 p-5 sm:grid-cols-2" noValidate onSubmit={submit}>
       <div className="sm:col-span-2">
-        <h2 className="heading-font text-xl font-black">新增职业事实</h2>
+        <h2 className="heading-font text-xl font-semibold">新增职业事实</h2>
         <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">手动事实也从“待确认”开始。</p>
       </div>
-      <label className="block text-sm font-black">
+      <label className="block text-sm font-semibold">
         类型
         <select
           name="factType"
@@ -129,10 +129,10 @@ export function ManualFactForm({
       />
       {error ? <p role="alert" data-error-code={errorCode ?? undefined} className="text-sm font-bold text-[var(--error)] sm:col-span-2">{error}</p> : null}
       <div className="flex flex-wrap gap-2 sm:col-span-2">
-        <button type="submit" className="button-primary min-h-10 px-4 text-sm font-black" disabled={busy}>{busy ? "保存中…" : "保存为待确认"}</button>
+        <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>{busy ? "保存中…" : "保存为待确认"}</button>
         <button
           type="button"
-          className="button-secondary min-h-10 px-4 text-sm font-black"
+          className="button-secondary min-h-10 px-4 text-sm font-semibold"
           onClick={() => {
             setOpen(false);
             setError(null);

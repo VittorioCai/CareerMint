@@ -25,12 +25,12 @@ export function AuthShell({
       <section className="flex min-h-screen flex-col px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
         <Link href="/" className="group flex w-fit items-center gap-3" aria-label="返回求职搭子首页">
           <span aria-hidden="true" className="logo-mark size-10" />
-          <span className="heading-font text-xl font-black tracking-[-0.03em]">求职搭子</span>
+          <span className="heading-font text-xl font-semibold">求职搭子</span>
         </Link>
 
         <div className="mx-auto my-auto w-full max-w-[480px] py-12">
-          <p className="mb-3 text-xs font-black uppercase tracking-[0.16em] text-[var(--ink-muted)]">{eyebrow}</p>
-          <h1 className="heading-font text-4xl font-black leading-tight tracking-[-0.04em] sm:text-5xl">{title}</h1>
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">{eyebrow}</p>
+          <h1 className="type-title heading-font">{title}</h1>
           <p className="mt-4 max-w-md text-base font-medium leading-7 text-[var(--ink-muted)]">{description}</p>
           <div className="mt-8">{children}</div>
         </div>
@@ -38,18 +38,16 @@ export function AuthShell({
         <p className="text-xs font-semibold text-[var(--ink-muted)]">© 2026 求职搭子 · 先确认事实，再交给 AI</p>
       </section>
 
-      <aside className="relative hidden overflow-hidden border-l-2 border-[var(--ink)] bg-[var(--sev-matched)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">
-        <div aria-hidden="true" className="absolute -right-12 -top-12 size-48 rotate-12 rounded-[42px] border-2 border-[var(--ink)] bg-[var(--sev-minor)]" />
-        <div aria-hidden="true" className="absolute -bottom-16 -left-12 size-44 rounded-full border-2 border-[var(--ink)] bg-[var(--surface-muted)]" />
+      <aside className="relative hidden overflow-hidden border-l border-[var(--line)] bg-[var(--surface-muted)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">
         <div className="relative mx-auto w-full max-w-lg">
-          <div className="mb-8 inline-flex rotate-2 rounded-xl bg-[var(--sev-critical)] px-4 py-2 text-sm font-semibold text-[var(--sev-critical-ink)]">你的海外求职工作台 ↗</div>
-          <h2 className="heading-font max-w-md text-4xl font-black leading-[1.08] tracking-[-0.04em]">一份可信档案，复用到每次申请。</h2>
-          <div className="mt-9 border-y-2 border-[var(--ink)]">
+          <div className="mb-8 inline-flex rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold">你的海外求职工作台 ↗</div>
+          <h2 className="type-title heading-font max-w-md">一份可信档案，复用到每次申请。</h2>
+          <div className="mt-9 border-y border-[var(--line)]">
             {principles.map(([index, heading, detail]) => (
-              <div key={index} className="grid grid-cols-[48px_1fr] border-b border-[color:var(--ink-soft)] py-5 last:border-b-0">
-                <span className="heading-font text-sm font-black text-[var(--ink-muted)]">{index}</span>
+              <div key={index} className="grid grid-cols-[48px_1fr] border-b border-[var(--line)] py-5 last:border-b-0">
+                <span className="heading-font text-sm font-semibold text-[var(--ink-muted)]">{index}</span>
                 <div>
-                  <p className="heading-font text-lg font-black">{heading}</p>
+                  <p className="heading-font text-lg font-semibold">{heading}</p>
                   <p className="mt-1 text-sm font-medium text-[var(--ink-muted)]">{detail}</p>
                 </div>
               </div>

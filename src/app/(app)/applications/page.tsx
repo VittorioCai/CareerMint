@@ -47,7 +47,7 @@ export default async function ApplicationsPage({
     <section className="min-w-0">
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">
             申请工作台
           </p>
           <h1 className="heading-font mt-2 type-page-title">
@@ -63,7 +63,7 @@ export default async function ApplicationsPage({
         className="reveal group mt-7"
         open={Boolean(filter.q || filter.stage) || applications.length > 8}
       >
-        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mist-blue)] [&::-webkit-details-marker]:hidden">
+        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
           筛选与搜索
           {filter.q || filter.stage ? (
             <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-semibold text-[var(--ink)]">
@@ -79,7 +79,7 @@ export default async function ApplicationsPage({
         </summary>
         <form method="get" className="soft-surface mt-3 grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_220px_auto]">
           <input type="hidden" name="view" value={filter.view} />
-          <label className="text-xs font-black text-[var(--ink-muted)]">
+          <label className="text-xs font-semibold text-[var(--ink-muted)]">
             搜索公司、职位、地点或来源
             <input
               name="q"
@@ -88,7 +88,7 @@ export default async function ApplicationsPage({
               placeholder="例如 Acme、Product、Berlin"
             />
           </label>
-          <label className="text-xs font-black text-[var(--ink-muted)]">
+          <label className="text-xs font-semibold text-[var(--ink-muted)]">
             阶段
             <select name="stage" defaultValue={filter.stage ?? ""} className="form-input mt-1.5">
               <option value="">全部阶段</option>

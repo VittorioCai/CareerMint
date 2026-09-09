@@ -169,10 +169,10 @@ function AnalysisControlState({
       <section className="dense-surface overflow-hidden" aria-labelledby="difference-control-title">
         <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
           <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
               Resume baseline
             </p>
-            <h2 id="difference-control-title" className="heading-font mt-1 text-2xl font-black">
+            <h2 id="difference-control-title" className="heading-font mt-1 text-2xl font-bold">
               先确定这次要对照的简历
             </h2>
             <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
@@ -186,7 +186,7 @@ function AnalysisControlState({
           </div>
           <Link
             href={`/applications/${applicationId}?tab=resume`}
-            className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm font-black"
+            className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm font-semibold"
           >
             先选择对照简历
           </Link>
@@ -364,7 +364,7 @@ function AnalysisControlState({
                   {busy ? "◌" : "→"} {statusCopy}
                 </span>
               </div>
-              <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-black">
+              <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-bold">
                 对照：{asset.originalName}
               </h2>
               <p className="mt-2 max-w-3xl text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
@@ -378,7 +378,7 @@ function AnalysisControlState({
             </p>
           ) : null}
           {visibleError ? (
-            <p role="alert" className="mt-3 text-sm font-black text-[var(--error)]">
+            <p role="alert" className="mt-3 text-sm font-semibold text-[var(--error)]">
               {visibleError}
             </p>
           ) : null}
@@ -386,7 +386,7 @@ function AnalysisControlState({
             <div className="mt-3">
               <button
                 type="button"
-                className="button-secondary min-h-11 px-4 text-sm font-black"
+                className="button-secondary min-h-11 px-4 text-sm font-semibold"
                 onClick={() => void runOcr()}
                 disabled={busy}
               >
@@ -403,7 +403,7 @@ function AnalysisControlState({
               <div className="mt-3">
                 <label
                   htmlFor="difference-pasted-resume"
-                  className="text-xs font-black uppercase tracking-[0.12em]"
+                  className="text-xs font-semibold uppercase tracking-[0.12em]"
                 >
                   简历文字
                 </label>
@@ -413,17 +413,17 @@ function AnalysisControlState({
                   value={pastedText}
                   onChange={(event) => setPastedText(event.target.value)}
                   placeholder="把简历内容粘贴到这里。不会上传原文件，只发送这段文字。"
-                  className="mt-2 w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] p-3 text-sm font-semibold leading-6"
+                  className="form-input mt-2 leading-6"
                 />
                 {pasteError ? (
-                  <p role="alert" className="mt-2 text-sm font-black text-[var(--error)]">
+                  <p role="alert" className="mt-2 text-sm font-semibold text-[var(--error)]">
                     {pasteError}
                   </p>
                 ) : null}
                 <div className="mt-2 flex flex-wrap gap-2">
                   <button
                     type="button"
-                    className="button-primary min-h-11 px-4 text-sm font-black disabled:opacity-60"
+                    className="button-primary min-h-11 px-4 text-sm font-semibold disabled:opacity-60"
                     disabled={busy}
                     onClick={() => {
                       const text = pastedText.trim();
@@ -447,7 +447,7 @@ function AnalysisControlState({
                   </button>
                   <button
                     type="button"
-                    className="button-secondary min-h-11 px-4 text-sm font-black"
+                    className="button-secondary min-h-11 px-4 text-sm font-semibold"
                     onClick={() => setPasteOpen(false)}
                   >
                     取消
@@ -457,7 +457,7 @@ function AnalysisControlState({
             ) : (
               <button
                 type="button"
-                className="button-secondary mt-3 min-h-11 px-4 text-sm font-black"
+                className="button-secondary mt-3 min-h-11 px-4 text-sm font-semibold"
                 onClick={() => setPasteOpen(true)}
                 disabled={busy}
               >
@@ -467,7 +467,7 @@ function AnalysisControlState({
           ) : null}
           {ocrActive ? (
             <div className="mt-3" aria-live="polite">
-              <p className="text-sm font-black">
+              <p className="text-sm font-semibold">
                 {ocrProgress?.phase === "recognizing"
                   ? `正在本机识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
                   : "正在下载识别引擎（首次约 30 MB，之后会缓存）…"}
@@ -490,7 +490,7 @@ function AnalysisControlState({
               />
               <button
                 type="button"
-                className="button-secondary mt-2 min-h-10 px-4 text-xs font-black"
+                className="button-secondary mt-2 min-h-10 px-4 text-xs font-semibold"
                 onClick={cancelOcr}
               >
                 取消本机识别
@@ -500,7 +500,7 @@ function AnalysisControlState({
           {hasPreviousResult && (busy || status === "failed") ? (
             <Link
               href={`/applications/${applicationId}?tab=difference&result=previous`}
-              className="mt-3 inline-block text-sm font-black underline decoration-2 underline-offset-4"
+              className="mt-3 inline-block text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4"
             >
               查看上次结果
             </Link>

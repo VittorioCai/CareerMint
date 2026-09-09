@@ -45,7 +45,7 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
     >
       {facts.length ? (
       <aside className="soft-surface h-fit p-4 xl:sticky xl:top-24">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">档案分类</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">档案分类</p>
         <ul className="mt-3 divide-y divide-[var(--line)]">
           {Object.entries(labels).map(([type, label]) => (
             <li key={type} className="flex items-center justify-between gap-3 py-2.5 text-sm font-medium">
@@ -67,14 +67,14 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
         {facts.length ? <ManualFactForm createFact={createFactAction} /> : null}
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
-            <p className="heading-font text-lg font-extrabold">还没有职业事实</p>
+            <p className="heading-font text-lg font-semibold">还没有职业事实</p>
             <p className="mx-auto mt-2 max-w-[42ch] text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
               上传一份简历，系统会提取出可确认的经历；也可以先手动写下第一条。分类会在有内容之后出现。
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
               <Link
                 href="/app"
-                className="press inline-flex min-h-11 items-center rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-5 text-sm font-bold"
+                className="button-secondary press inline-flex min-h-11 items-center px-5 text-sm font-semibold"
               >
                 去上传简历
               </Link>
@@ -90,8 +90,8 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
               return (
                 <section key={type} id={`facts-${type}`} className="scroll-mt-24">
                   <div className="flex items-center justify-between gap-3 rounded-t-2xl border border-b-0 border-[var(--line)] bg-[var(--canvas)] px-4 py-3">
-                    <h2 className="heading-font text-lg font-black">{label}</h2>
-                    <span className="text-xs font-black text-[var(--ink-muted)]">{groupedFacts.length} 条</span>
+                    <h2 className="heading-font text-lg font-semibold">{label}</h2>
+                    <span className="text-xs font-semibold text-[var(--ink-muted)]">{groupedFacts.length} 条</span>
                   </div>
                   {groupedFacts.length > 0 ? (
                     <div className="overflow-hidden rounded-b-2xl border border-[var(--line)]">

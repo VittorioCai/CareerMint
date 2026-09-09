@@ -20,7 +20,7 @@ export function AppShell({ children, email }: AppShellProps) {
         <Link href="/app" className="group flex items-center gap-3 px-2 py-2" aria-label="求职搭子首页">
           <span aria-hidden="true" className="logo-mark size-10" />
           <div>
-            <span className="heading-font block text-base font-extrabold leading-none tracking-[-0.02em]">求职搭子</span>
+            <span className="heading-font block text-base font-semibold leading-none">求职搭子</span>
             <span className="mt-1 block type-eyebrow text-[var(--ink-muted)]">Job desk</span>
           </div>
         </Link>
@@ -46,7 +46,7 @@ export function AppShell({ children, email }: AppShellProps) {
           <div className="flex items-center gap-3">
             <Link href="/app" className="flex shrink-0 items-center gap-2 md:hidden" aria-label="求职搭子首页">
               <span aria-hidden="true" className="logo-mark size-9" />
-              <span className="heading-font hidden text-base font-black sm:inline">求职搭子</span>
+              <span className="heading-font hidden text-base font-semibold sm:inline">求职搭子</span>
             </Link>
 
             {/* Search, notifications and an AI entry point all sat here saying
@@ -57,7 +57,7 @@ export function AppShell({ children, email }: AppShellProps) {
 
               <details className="group relative">
                 <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
-                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-semibold">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
                   <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
@@ -80,7 +80,7 @@ export function AppShell({ children, email }: AppShellProps) {
             <Link
               href="/applications/new"
               aria-label="移动端新建申请"
-              className="flex shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-3 py-2.5 text-sm font-black"
+              className="button-secondary flex shrink-0 items-center justify-center px-3 py-2.5 text-sm font-semibold"
             >
               ＋ 新建申请
             </Link>

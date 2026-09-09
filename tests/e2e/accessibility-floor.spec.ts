@@ -386,6 +386,18 @@ test("every focusable control shows a focus ring that is not clipped", async ({
         const focused = await page.evaluate(() => {
           const element = document.activeElement;
           if (!element || element === document.body) return null;
+          const canvas = document.createElement("canvas");
+          canvas.width = 1;
+          canvas.height = 1;
+          const ctx = canvas.getContext("2d", { willReadFrequently: true })!;
+          function toSrgb(color: string): [number, number, number] {
+            ctx.clearRect(0, 0, 1, 1);
+            ctx.fillStyle = "#000";
+            ctx.fillStyle = color;
+            ctx.fillRect(0, 0, 1, 1);
+            const [r, g, b] = ctx.getImageData(0, 0, 1, 1).data;
+            return [r, g, b];
+          }
           const style = getComputedStyle(element);
           const box = element.getBoundingClientRect();
           return {
@@ -396,7 +408,29 @@ test("every focusable control shows a focus ring that is not clipped", async ({
               "",
             outlineWidth: Number.parseFloat(style.outlineWidth) || 0,
             outlineStyle: style.outlineStyle,
+            outlineColor: toSrgb(style.outlineColor),
             boxShadow: style.boxShadow,
+            // What the ring is drawn against: the nearest ancestor that
+            // actually paints something. `outline-offset` puts the ring
+            // outside the element, so its own background is the wrong half of
+            // the pair. Both halves come back as sRGB bytes — a canvas is the
+            // only thing that reliably converts oklab, lab and display-p3,
+            // which this app's translucent header uses.
+            ground: toSrgb(
+              (() => {
+                let node: Element | null = element.parentElement;
+                while (node) {
+                  const bg = getComputedStyle(node).backgroundColor;
+                  if (!/^(transparent|rgba\(0, 0, 0, 0\))$/u.test(bg)) {
+                    const alpha = bg.match(/\/\s*([\d.]+)\s*\)/u)?.[1]
+                      ?? bg.match(/rgba\([^)]*,\s*([\d.]+)\s*\)/u)?.[1];
+                    if (!alpha || Number(alpha) > 0.9) return bg;
+                  }
+                  node = node.parentElement;
+                }
+                return getComputedStyle(document.body).backgroundColor;
+              })(),
+            ),
             width: box.width,
             height: box.height,
           };
@@ -408,13 +442,30 @@ test("every focusable control shows a focus ring that is not clipped", async ({
         visited.add(key);
         if (focused.width < 2 || focused.height < 2) continue;
 
-        const hasRing =
-          (focused.outlineStyle !== "none" && focused.outlineWidth >= 1) ||
-          (focused.boxShadow !== "none" && focused.boxShadow.includes("rgb"));
-        if (!hasRing) {
+        const outlined =
+          focused.outlineStyle !== "none" && focused.outlineWidth >= 2;
+        const shadowed =
+          focused.boxShadow !== "none" && focused.boxShadow.includes("rgb");
+        if (!outlined && !shadowed) {
           failures.push(
             `${route}  no focus ring  <${focused.tag}> “${focused.name}”`,
           );
+          continue;
+        }
+
+        // WCAG 2.2 focus appearance: the indicator needs 3:1 against what it
+        // sits on. Presence alone is not the test — the ring this replaced was
+        // present on every control and measured 1.24:1 against the canvas.
+        if (outlined) {
+          const ratio = contrast(
+            luminance(...focused.outlineColor),
+            luminance(...focused.ground),
+          );
+          if (ratio + 0.01 < 3) {
+            failures.push(
+              `${route}  focus ring ${ratio.toFixed(2)}:1 < 3  <${focused.tag}> “${focused.name}”`,
+            );
+          }
         }
       }
     }

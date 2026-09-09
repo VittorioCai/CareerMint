@@ -51,7 +51,7 @@ export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
       />
 
       {callbackError === "email-link-used" ? (
-        <Link href="/login" className="button-secondary block min-h-12 px-5 text-center font-black">
+        <Link href="/login" className="button-secondary block min-h-12 px-5 text-center font-semibold">
           返回登录
         </Link>
       ) : null}
@@ -72,7 +72,7 @@ export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
       <div>
         <div className="mb-2 flex items-center justify-between gap-3">
           <label className="form-label mb-0" htmlFor="password">密码</label>
-          <Link href="/forgot-password" className="text-sm font-bold underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4 hover:text-[var(--ink-muted)]">忘记密码？</Link>
+          <Link href="/forgot-password" className="text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink-muted)]">忘记密码？</Link>
         </div>
         <input
           className="form-input"
@@ -88,10 +88,10 @@ export function AuthForm({ callbackError }: { callbackError?: CallbackError }) {
       </div>
 
       <div className="grid gap-3 pt-1 sm:grid-cols-2">
-        <button className="button-primary min-h-12 px-5 font-black disabled:cursor-wait disabled:opacity-60" type="submit" formAction={loginAction} disabled={pending}>
+        <button className="button-primary min-h-12 px-5 font-semibold disabled:cursor-wait disabled:opacity-60" type="submit" formAction={loginAction} disabled={pending}>
           {loginPending ? "正在登录…" : "登录"}
         </button>
-        <button className="button-secondary min-h-12 px-5 font-black disabled:cursor-wait disabled:opacity-60" type="submit" formAction={signupAction} disabled={pending}>
+        <button className="button-secondary min-h-12 px-5 font-semibold disabled:cursor-wait disabled:opacity-60" type="submit" formAction={signupAction} disabled={pending}>
           {signupPending ? "正在创建…" : "注册新账户"}
         </button>
       </div>

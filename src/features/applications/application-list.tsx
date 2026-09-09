@@ -71,10 +71,10 @@ function ApplicationCard({
         href={`/applications/${application.id}`}
         className="block p-4 focus-visible:outline-offset-[-3px]"
       >
-        <span className="text-xs font-black text-[var(--ink-muted)]">
+        <span className="text-xs font-semibold text-[var(--ink-muted)]">
           {application.companyName}
         </span>
-        <h3 className="mt-1 break-words text-sm font-black leading-5">
+        <h3 className="mt-1 break-words text-sm font-semibold leading-5">
           {application.roleTitle}
         </h3>
         <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
@@ -102,13 +102,13 @@ function EmptyApplications() {
   return (
     <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
       <span className="status-chip bg-[var(--paper)]">从一个真实岗位开始</span>
-      <h2 className="heading-font mt-4 text-2xl font-black">还没有投递记录</h2>
+      <h2 className="heading-font mt-4 text-2xl font-bold">还没有投递记录</h2>
       <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
         粘贴一份正在考虑的 JD，系统会先为它建立独立工作区。没有示例数据，也不会替你自动投递。
       </p>
       <Link
         href="/applications/new"
-        className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-black"
+        className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold"
       >
         新建第一份申请
       </Link>
@@ -131,7 +131,7 @@ export function ApplicationList({
     return (
       <div className="scroll-x-affordance overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
         <table className="w-full min-w-[820px] border-collapse text-left text-sm">
-          <thead className="bg-[var(--canvas)] text-xs font-black text-[var(--ink-muted)]">
+          <thead className="bg-[var(--canvas)] text-xs font-semibold text-[var(--ink-muted)]">
             <tr>
               {[
                 "公司与职位",
@@ -151,7 +151,7 @@ export function ApplicationList({
             {applications.map((application) => (
               <tr key={application.id} className="border-b border-[var(--line)] last:border-0 hover:bg-[var(--canvas)]">
                 <td className="px-4 py-4">
-                  <Link href={`/applications/${application.id}`} className="font-black underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">
+                  <Link href={`/applications/${application.id}`} className="font-semibold underline decoration-[var(--ink-soft)] underline-offset-4">
                     {application.companyName} · {application.roleTitle}
                   </Link>
                 </td>
@@ -197,8 +197,8 @@ export function ApplicationList({
               className="min-w-0"
             >
               <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-2">
-                <h2 className="text-sm font-black">{APPLICATION_STAGE_LABELS[stage]}</h2>
-                <span className="text-xs font-black tabular-nums text-[var(--ink-muted)]">
+                <h2 className="text-sm font-semibold">{APPLICATION_STAGE_LABELS[stage]}</h2>
+                <span className="text-xs font-semibold tabular-nums text-[var(--ink-muted)]">
                   {grouped.length}
                 </span>
               </div>

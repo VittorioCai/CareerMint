@@ -107,15 +107,15 @@ function Overview({ application }: { application: Application }) {
               <dt className="shrink-0 type-eyebrow text-[var(--ink-muted)]">
                 {label}
               </dt>
-              <dd className="min-w-0 break-words text-right text-sm font-black">
+              <dd className="min-w-0 break-words text-right text-sm font-semibold">
                 {value}
               </dd>
             </div>
           ))}
         </dl>
-        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] p-5">
-        <p className="text-xs font-black uppercase tracking-[0.12em]">更新进度</p>
-        <h2 className="heading-font mt-2 text-xl font-black">发生了什么？记下来</h2>
+        <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-5">
+        <p className="text-xs font-semibold uppercase tracking-[0.12em]">更新进度</p>
+        <h2 className="heading-font mt-2 text-xl font-semibold">发生了什么？记下来</h2>
         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
           每次更新都会保留发生日期和阶段事件，不会静默覆盖历史。
         </p>
@@ -129,7 +129,7 @@ function Overview({ application }: { application: Application }) {
         </aside>
       </div>
       <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
           删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
         </p>
@@ -152,11 +152,11 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
     <ol className="space-y-3">
       {events.map((event) => (
         <li key={event.id} className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:grid-cols-[150px_minmax(0,1fr)]">
-          <time className="text-xs font-black text-[var(--ink-muted)]" dateTime={event.occurredAt}>
+          <time className="text-xs font-semibold text-[var(--ink-muted)]" dateTime={event.occurredAt}>
             {formatDate(event.occurredAt)}
           </time>
           <div>
-            <p className="text-sm font-black">
+            <p className="text-sm font-semibold">
               {event.fromStage
                 ? `${APPLICATION_STAGE_LABELS[event.fromStage]} → ${APPLICATION_STAGE_LABELS[event.toStage]}`
                 : `建立申请 · ${APPLICATION_STAGE_LABELS[event.toStage]}`}
@@ -217,15 +217,15 @@ function InterviewPanel({
   ).length;
   return (
     <div className="space-y-6">
-      <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
+      <article className="soft-surface p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
           <span className="status-chip bg-[var(--paper)]">可能问题，不是雇主承诺</span>
-          <h2 className="heading-font mt-3 text-2xl font-black">岗位面试准备</h2>
+          <h2 className="heading-font mt-3 text-2xl font-bold">岗位面试准备</h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
             已自动包含 {commonCount} 道通用题；岗位增量题不会复制通用问题，准备记录会回写全局题库。
           </p>
         </div>
-        <Link href="/interview" className="button-secondary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-black sm:mt-0">
+        <Link href="/interview" className="button-secondary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-semibold sm:mt-0">
           打开完整题库 →
         </Link>
       </article>
@@ -248,8 +248,8 @@ function InterviewPanel({
         <section>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
-              <h2 className="heading-font mt-1 text-2xl font-black">本岗位准备清单</h2>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
+              <h2 className="heading-font mt-1 text-2xl font-bold">本岗位准备清单</h2>
             </div>
             <span className="status-chip bg-[var(--paper)]">{questions.length} 道</span>
           </div>
@@ -389,7 +389,7 @@ export default async function ApplicationDetailPage({
 
   return (
     <section className="min-w-0">
-      <Link href="/applications" className="text-xs font-black underline underline-offset-4">
+      <Link href="/applications" className="text-xs font-semibold underline underline-offset-4">
         ← 返回我的投递
       </Link>
       <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
@@ -399,7 +399,7 @@ export default async function ApplicationDetailPage({
             {application.location ? <span className="text-xs font-bold text-[var(--ink-muted)]">{application.location}</span> : null}
           </div>
           <h1
-            className={`heading-font mt-3 break-words font-extrabold tracking-[-0.02em] ${
+            className={`heading-font mt-3 break-words font-semibold ${
               differenceWorkflow ? "text-xl sm:text-2xl" : "type-page-title"
             }`}
           >

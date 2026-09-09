@@ -225,18 +225,18 @@ export function InterviewQuestionGenerationControl({
   const initialFailure = run?.status === "failed" ? safeFailure(run.errorCode) : null;
 
   return (
-    <section className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-critical)] p-4 sm:p-5">
+    <section className="soft-surface p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em]">AI 岗位增量题</p>
-          <h2 className="heading-font mt-2 text-2xl font-black">先预览，再决定</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]">AI 岗位增量题</p>
+          <h2 className="heading-font mt-2 text-2xl font-bold">先预览，再决定</h2>
           <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[var(--ink)]">
             仅使用当前 JD 原文和通用题提示。候选不会自动写入题库，最多生成 6 道；每道都只是基于 JD 的准备建议。
           </p>
         </div>
         <button
           type="button"
-          className="button-primary min-h-11 shrink-0 px-5 text-sm font-black disabled:cursor-not-allowed disabled:opacity-60"
+          className="button-primary min-h-11 shrink-0 px-5 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-60"
           disabled={busy !== null || consentRequired}
           onClick={() => void generate()}
         >
@@ -253,7 +253,7 @@ export function InterviewQuestionGenerationControl({
         </p>
       ) : null}
 
-      {cost ? <p className="mt-3 text-xs font-black text-[var(--ink)]">{cost}</p> : null}
+      {cost ? <p className="mt-3 text-xs font-semibold text-[var(--ink)]">{cost}</p> : null}
       <div aria-live="polite" className="mt-3">
         {success ? <p role="status" className="text-sm font-bold text-[var(--ink)]">{success}</p> : null}
         {error || initialFailure ? (
@@ -284,12 +284,12 @@ export function InterviewQuestionGenerationControl({
                       <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">可能会问</span>
                       <span className="status-chip bg-[var(--paper)]">{candidateStatusLabels[candidate.status]}</span>
                     </div>
-                    <h3 className="heading-font mt-3 text-lg font-black leading-7">{candidate.prompt}</h3>
+                    <h3 className="heading-font mt-3 text-lg font-semibold leading-7">{candidate.prompt}</h3>
                     <p className="mt-3 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                      <span className="font-black text-[var(--ink)]">JD 依据：</span>“{candidate.sourceExcerpt}”
+                      <span className="font-semibold text-[var(--ink)]">JD 依据：</span>“{candidate.sourceExcerpt}”
                     </p>
                     <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                      <span className="font-black text-[var(--ink)]">为什么相关：</span>{candidate.relevanceReason}
+                      <span className="font-semibold text-[var(--ink)]">为什么相关：</span>{candidate.relevanceReason}
                     </p>
                   </div>
                 </div>
@@ -299,7 +299,7 @@ export function InterviewQuestionGenerationControl({
           <div className="flex flex-wrap gap-2 pt-1">
             <button
               type="button"
-              className="button-primary min-h-10 px-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="button-primary min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               disabled={selected.size === 0 || busy !== null}
               onClick={() => void acceptSelected()}
             >
@@ -307,7 +307,7 @@ export function InterviewQuestionGenerationControl({
             </button>
             <button
               type="button"
-              className="button-secondary min-h-10 px-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50"
+              className="button-secondary min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
               disabled={selected.size === 0 || busy !== null}
               onClick={() => void rejectSelected()}
             >

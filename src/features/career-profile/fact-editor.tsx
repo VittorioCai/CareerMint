@@ -74,7 +74,7 @@ export function FactEditor({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <span className={`status-chip ${chipClass}`}>{statusCopy[status]}</span>
-          <h3 className="heading-font mt-3 break-words text-lg font-black">
+          <h3 className="heading-font mt-3 break-words text-lg font-semibold">
             {data.title}
           </h3>
           {data.organization ? (
@@ -86,14 +86,14 @@ export function FactEditor({
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="button-secondary min-h-10 px-3 text-xs font-black"
+            className="button-secondary min-h-10 px-3 text-xs font-semibold"
             onClick={() => setEditing((value) => !value)}
           >
             编辑事实
           </button>
           <button
             type="button"
-            className="min-h-10 rounded-xl border border-[var(--line)] px-3 text-xs font-black text-[var(--error)]"
+            className="min-h-10 rounded-xl border border-[var(--line)] px-3 text-xs font-semibold text-[var(--error)]"
             disabled={busy}
             onClick={() =>
               void run(() => actions.remove({ factId: fact.id }))
@@ -117,7 +117,7 @@ export function FactEditor({
           {data.skills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {data.skills.map((skill) => (
-                <span key={skill} className="rounded-full bg-[var(--sev-minor)] px-2.5 py-1 text-xs font-black">
+                <span key={skill} className="rounded-full bg-[var(--sev-minor)] px-2.5 py-1 text-xs font-semibold">
                   {skill}
                 </span>
               ))}
@@ -125,7 +125,7 @@ export function FactEditor({
           ) : null}
           {fact.sourceExcerpt ? (
             <details className="reveal rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
-              <summary className="cursor-pointer text-xs font-black">查看原始证据</summary>
+              <summary className="cursor-pointer text-xs font-semibold">查看原始证据</summary>
               <p className="mt-2 whitespace-pre-wrap break-words text-xs font-medium leading-5 text-[var(--ink-muted)]">
                 {fact.sourceExcerpt}
               </p>
@@ -178,12 +178,12 @@ export function FactEditor({
             }}
           />
           <div className="flex flex-wrap gap-2 sm:col-span-2">
-            <button type="submit" className="button-primary min-h-10 px-4 text-sm font-black" disabled={busy}>
+            <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>
               {busy ? "保存中…" : "保存修改"}
             </button>
             <button
               type="button"
-              className="button-secondary min-h-10 px-4 text-sm font-black"
+              className="button-secondary min-h-10 px-4 text-sm font-semibold"
               onClick={() => {
                 setFormValues(factDataToFormValues(fact.factType, data));
                 setFieldErrors({});
@@ -200,7 +200,7 @@ export function FactEditor({
         <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--line)] pt-4">
           <button
             type="button"
-            className="button-primary min-h-10 px-4 text-sm font-black"
+            className="button-primary min-h-10 px-4 text-sm font-semibold"
             disabled={busy}
             onClick={() => {
               setExplicit(false);
@@ -211,7 +211,7 @@ export function FactEditor({
           </button>
           <button
             type="button"
-            className="button-secondary min-h-10 px-4 text-sm font-black"
+            className="button-secondary min-h-10 px-4 text-sm font-semibold"
             disabled={busy}
             onClick={() =>
               void run(
@@ -237,12 +237,12 @@ export function FactEditor({
             role="dialog"
             aria-modal="true"
             aria-label="确认职业事实"
-            className="sticker-border w-full max-w-xl bg-[var(--paper)] p-5 sm:p-7"
+            className="soft-surface w-full max-w-xl p-5 sm:p-7"
           >
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
-            <h2 className="heading-font mt-2 text-2xl font-black">确认职业事实</h2>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
+            <h2 className="heading-font mt-2 text-2xl font-bold">确认职业事实</h2>
             <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
-              <p className="font-black">{data.title}</p>
+              <p className="font-semibold">{data.title}</p>
               <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{data.description}</p>
             </div>
             <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-bold leading-6">
@@ -255,12 +255,12 @@ export function FactEditor({
               <span>我确认这条内容真实、准确，并同意用于后续求职材料</span>
             </label>
             <div className="mt-6 flex flex-wrap justify-end gap-2">
-              <button type="button" className="button-secondary min-h-10 px-4 text-sm font-black" onClick={() => setConfirming(false)}>
+              <button type="button" className="button-secondary min-h-10 px-4 text-sm font-semibold" onClick={() => setConfirming(false)}>
                 返回检查
               </button>
               <button
                 type="button"
-                className="button-primary min-h-10 px-4 text-sm font-black disabled:cursor-not-allowed disabled:opacity-50"
+                className="button-primary min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-50"
                 disabled={!explicit || busy}
                 onClick={() =>
                   void run(

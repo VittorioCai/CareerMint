@@ -72,7 +72,7 @@ function IssueDetails({
         aria-hidden="true"
         className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[row.severity]}`}
       />
-      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)] group-open:bg-[var(--canvas)]">
+      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--focus-ring)] group-open:bg-[var(--canvas)]">
         <span
           aria-hidden="true"
           data-testid="row-badge"
@@ -120,7 +120,7 @@ function IssueDetails({
       <div className="mb-2.5 ml-[46px] mr-2 rounded-xl bg-[var(--canvas)] px-5 py-4">
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5">
           <div>
-            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               岗位原文
             </dt>
             <dd
@@ -131,7 +131,7 @@ function IssueDetails({
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               简历现状
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
@@ -143,7 +143,7 @@ function IssueDetails({
           </div>
           {row.problemZh ? (
             <div>
-              <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                 问题点
               </dt>
               <dd className="mt-2 text-sm font-medium leading-[1.65]">
@@ -152,7 +152,7 @@ function IssueDetails({
             </div>
           ) : null}
           <div>
-            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               判断依据
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
@@ -161,7 +161,7 @@ function IssueDetails({
           </div>
           {citedFacts.length ? (
             <div>
-              <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+              <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                 档案依据
               </dt>
               <dd className="mt-2 flex flex-wrap gap-2">
@@ -355,7 +355,7 @@ export function ResumeJDDifferencePanel({
         </p>
         <h2
           id="resume-jd-difference-title"
-          className="heading-font mt-2.5 max-w-[34ch] text-xl font-extrabold leading-[1.4] tracking-[-0.02em] sm:text-2xl"
+          className="heading-font mt-2.5 max-w-[34ch] text-xl font-semibold leading-[1.4] sm:text-2xl"
         >
           {safeCopy(result.overallDifference.summaryZh)}
         </h2>
@@ -376,7 +376,7 @@ export function ResumeJDDifferencePanel({
                   aria-hidden="true"
                   // Outside the ramp on purpose: a glyph centred in a 14px
                   // badge, not a size anyone reads.
-                  className={`grid size-3.5 place-items-center rounded-full text-[9px] font-black leading-none ${
+                  className={`grid size-3.5 place-items-center rounded-full text-[9px] font-semibold leading-none ${
                     entry.severity === "gate"
                       ? "bg-[var(--sev-gate)] text-[var(--sev-gate-ink)]"
                       : "bg-[var(--sev-matched)] text-[var(--sev-matched-ink)]"
@@ -434,7 +434,7 @@ export function ResumeJDDifferencePanel({
         <div className="flex flex-wrap items-baseline justify-between gap-3">
           <h2
             id="specific-differences-title"
-            className="heading-font text-xl font-black tracking-[-0.02em] sm:text-2xl"
+            className="heading-font text-xl font-semibold sm:text-2xl"
           >
             {nothingToFix ? "岗位要求 · 全部已对上" : "逐条差异 · 按严重度排序"}
           </h2>
@@ -459,7 +459,7 @@ export function ResumeJDDifferencePanel({
 
       <section className="soft-surface grid gap-5 px-6 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-7">
         <div>
-          <h2 className="heading-font text-lg font-black">
+          <h2 className="heading-font text-lg font-semibold">
             {nothingToFix ? "下一步：准备面试" : "下一步：查看完善建议"}
           </h2>
           <p className="mt-1.5 max-w-[62ch] text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">

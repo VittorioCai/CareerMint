@@ -114,7 +114,7 @@ export function FactFields({
     };
     return (
       <div key={field.name} className={field.wide ? "sm:col-span-2" : ""}>
-        <label htmlFor={id} className="block text-sm font-black">
+        <label htmlFor={id} className="block text-sm font-semibold">
           {field.label}
         </label>
         {field.kind === "textarea" ? (
@@ -123,7 +123,7 @@ export function FactFields({
           <input {...inputProps} />
         )}
         {error ? (
-          <p id={errorId} className="mt-1 text-xs font-black text-[var(--error)]">
+          <p id={errorId} className="mt-1 text-xs font-semibold text-[var(--error)]">
             {error}
           </p>
         ) : null}

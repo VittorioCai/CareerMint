@@ -116,7 +116,7 @@ export function ApplicationDraftForm({
   return (
     <form onSubmit={submit} className="min-w-0">
       <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           公司
           <input
             name="companyName"
@@ -130,7 +130,7 @@ export function ApplicationDraftForm({
           />
         </label>
 
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           职位
           <input
             name="roleTitle"
@@ -143,7 +143,7 @@ export function ApplicationDraftForm({
           />
         </label>
 
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           地点
           <input
             name="location"
@@ -155,7 +155,7 @@ export function ApplicationDraftForm({
           />
         </label>
 
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           办公方式
           <select
             name="workplaceMode"
@@ -173,7 +173,7 @@ export function ApplicationDraftForm({
           </select>
         </label>
 
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           来源
           <input
             name="source"
@@ -185,7 +185,7 @@ export function ApplicationDraftForm({
           />
         </label>
 
-        <label className="block text-sm font-black">
+        <label className="block text-sm font-semibold">
           岗位链接
           <input
             name="jobUrl"
@@ -201,7 +201,7 @@ export function ApplicationDraftForm({
 
       <div className="mt-5">
         <span className="flex flex-wrap items-center justify-between gap-2">
-          <label htmlFor="application-jd-text" className="text-sm font-black">
+          <label htmlFor="application-jd-text" className="text-sm font-semibold">
             JD 原文
           </label>
           <span className="text-xs font-semibold text-[var(--ink-muted)]">
@@ -230,7 +230,7 @@ export function ApplicationDraftForm({
         </div>
         <button
           type="submit"
-          className="button-primary min-h-12 shrink-0 px-6 text-sm font-black"
+          className="button-primary min-h-12 shrink-0 px-6 text-sm font-semibold"
           disabled={busy}
         >
           {busy ? "正在建立…" : "建立申请工作区"}

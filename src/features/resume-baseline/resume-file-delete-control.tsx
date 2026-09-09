@@ -72,7 +72,7 @@ export function ResumeFileDeleteControl({
           setError(null);
           setExpanded(true);
         }}
-        className="button-secondary min-h-9 px-3 text-xs font-black text-[var(--danger)]"
+        className="button-secondary min-h-9 px-3 text-xs font-semibold text-[var(--danger)]"
       >
         删除 {originalName}
       </button>
@@ -84,7 +84,7 @@ export function ResumeFileDeleteControl({
       role="alert"
       className="w-full rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] p-3 text-left"
     >
-      <p className="text-xs font-black text-[var(--ink)]">
+      <p className="text-xs font-semibold text-[var(--ink)]">
         确定删除 {originalName}？
       </p>
       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
@@ -94,7 +94,7 @@ export function ResumeFileDeleteControl({
         {usageCopy(applicationCount, confirmedFactCount)}
       </p>
       {status === "extracting" ? (
-        <p className="mt-1 text-xs font-black leading-5 text-[var(--danger)]">
+        <p className="mt-1 text-xs font-semibold leading-5 text-[var(--danger)]">
           这个文件正在提取中，删除后本次提取会失败，已提取的内容不会保存。
         </p>
       ) : null}
@@ -102,7 +102,7 @@ export function ResumeFileDeleteControl({
         原文件不能恢复，需要时请重新上传。
       </p>
       {error ? (
-        <p className="mt-2 text-xs font-black text-[var(--danger)]">{error}</p>
+        <p className="mt-2 text-xs font-semibold text-[var(--danger)]">{error}</p>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <button

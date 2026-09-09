@@ -23,7 +23,7 @@ export function ResumeWorkspace({
   return (
     <div className="space-y-6">
       <header>
-        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-black">对照简历</h2>
+        <h2 id="resume-gap-page-title" className="heading-font text-3xl font-bold">对照简历</h2>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">选定本次投递用来比对的简历。差异分析在“差异分析”页面进行。</p>
       </header>
       {baselineSelector}
@@ -35,7 +35,7 @@ export function ResumeWorkspace({
         </p>
         <Link
           href={`/applications/${applicationId}?tab=difference${mode === "no-baseline" ? "&setup=1" : ""}`}
-          className="mt-4 inline-flex min-h-11 items-center text-sm font-black underline underline-offset-4"
+          className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
         >
           前往差异分析 →
         </Link>

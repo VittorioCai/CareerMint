@@ -24,10 +24,10 @@ export function ResetRequestForm() {
         <label className="form-label" htmlFor="email">账户邮箱</label>
         <input className="form-input" id="email" name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
       </div>
-      <button className="button-primary min-h-12 w-full px-5 font-black disabled:cursor-wait disabled:opacity-60" type="submit" disabled={pending}>
+      <button className="button-primary min-h-12 w-full px-5 font-semibold disabled:cursor-wait disabled:opacity-60" type="submit" disabled={pending}>
         {pending ? "正在发送…" : "发送重设链接"}
       </button>
-      <Link href="/login" className="block text-center text-sm font-bold underline decoration-[var(--mist-blue)] decoration-2 underline-offset-4">返回登录</Link>
+      <Link href="/login" className="block text-center text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4">返回登录</Link>
     </form>
   );
 }

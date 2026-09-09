@@ -220,10 +220,10 @@ export function BaselineSelector({
     >
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
             Resume baseline
           </p>
-          <h2 id="baseline-selector-title" className="heading-font mt-1 text-2xl font-black">
+          <h2 id="baseline-selector-title" className="heading-font mt-1 text-2xl font-bold">
             {title}
           </h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
@@ -239,14 +239,14 @@ export function BaselineSelector({
         <div className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
-              <p className="break-words text-sm font-black">{selectedAsset.originalName}</p>
+              <p className="break-words text-sm font-semibold">{selectedAsset.originalName}</p>
               <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
                 上传于 {formatDate(selectedAsset.createdAt)}
               </p>
             </div>
             <button
               type="button"
-              className="button-secondary min-h-9 px-3 text-xs font-black"
+              className="button-secondary min-h-9 px-3 text-xs font-semibold"
               aria-label={`预览 ${selectedAsset.originalName}`}
               onClick={(event) => openPreview(selectedAsset, event)}
             >
@@ -258,19 +258,19 @@ export function BaselineSelector({
 
       {previewAsset ? (
         <section
-          className="mt-5 overflow-hidden rounded-2xl border-2 border-[var(--ink)] bg-[var(--paper)]"
+          className="soft-surface mt-5 overflow-hidden"
           aria-label={`简历预览：${previewAsset.originalName}`}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--sev-minor)] px-4 py-3">
             <div className="min-w-0">
-              <p className="break-words text-sm font-black">{previewAsset.originalName}</p>
+              <p className="break-words text-sm font-semibold">{previewAsset.originalName}</p>
               <p className="mt-0.5 text-xs font-semibold text-[var(--ink-muted)]">
                 私有预览，不会调用 AI 或 OCR
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
               <a
-                className="button-secondary inline-flex min-h-9 items-center px-3 text-xs font-black"
+                className="button-secondary inline-flex min-h-9 items-center px-3 text-xs font-semibold"
                 href={`/api/source-assets/${previewAsset.id}/download`}
                 target="_blank"
                 rel="noreferrer"
@@ -279,7 +279,7 @@ export function BaselineSelector({
               </a>
               <button
                 type="button"
-                className="button-secondary min-h-9 px-3 text-xs font-black"
+                className="button-secondary min-h-9 px-3 text-xs font-semibold"
                 onClick={closePreview}
               >
                 关闭预览
@@ -298,7 +298,7 @@ export function BaselineSelector({
       {showOptions ? (
         <div className="mt-5 space-y-5">
           <fieldset>
-            <legend className="text-sm font-black">选择已有简历</legend>
+            <legend className="text-sm font-semibold">选择已有简历</legend>
             {availableAssets.length ? (
               <div className="mt-3 grid gap-2">
                 {availableAssets.map((asset) => (
@@ -307,7 +307,7 @@ export function BaselineSelector({
                     className="flex min-h-14 w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-left transition hover:border-[var(--ink)] sm:flex-row sm:items-center"
                   >
                     <span className="min-w-0">
-                      <span className="block break-words text-sm font-black">{asset.originalName}</span>
+                      <span className="block break-words text-sm font-semibold">{asset.originalName}</span>
                       <span className="mt-1 block text-xs font-semibold text-[var(--ink-muted)]">
                         上传于 {formatDate(asset.createdAt)}
                       </span>
@@ -315,7 +315,7 @@ export function BaselineSelector({
                     <span className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
                       <button
                         type="button"
-                        className="button-secondary min-h-9 px-3 text-xs font-black"
+                        className="button-secondary min-h-9 px-3 text-xs font-semibold"
                         onClick={(event) => openPreview(asset, event)}
                         disabled={busy}
                       >
@@ -323,7 +323,7 @@ export function BaselineSelector({
                       </button>
                       <button
                         type="button"
-                        className="button-secondary min-h-9 px-3 text-xs font-black"
+                        className="button-secondary min-h-9 px-3 text-xs font-semibold"
                         onClick={() => void finishSelection(asset.id)}
                         disabled={busy}
                       >
@@ -347,7 +347,7 @@ export function BaselineSelector({
           </fieldset>
 
           <div className="border-t border-[var(--line)] pt-5">
-            <label htmlFor={`baseline-upload-${applicationId}`} className="text-sm font-black">
+            <label htmlFor={`baseline-upload-${applicationId}`} className="text-sm font-semibold">
               上传新的 PDF 或 DOCX 简历
             </label>
             <div className="form-input mt-2 flex max-w-full items-center gap-3">
@@ -364,7 +364,7 @@ export function BaselineSelector({
               />
               <label
                 htmlFor={`baseline-upload-${applicationId}`}
-                className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
+                className="shrink-0 button-secondary cursor-pointer px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
               >
                 选择文件
               </label>
@@ -393,7 +393,7 @@ export function BaselineSelector({
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
-            className="button-secondary min-h-10 px-4 text-sm font-black"
+            className="button-secondary min-h-10 px-4 text-sm font-semibold"
             onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
@@ -401,7 +401,7 @@ export function BaselineSelector({
           </button>
           <button
             type="button"
-            className="button-secondary min-h-10 px-4 text-sm font-black"
+            className="button-secondary min-h-10 px-4 text-sm font-semibold"
             onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
@@ -427,7 +427,7 @@ export function BaselineSelector({
         </p>
       ) : null}
       {busy ? (
-        <p className="mt-4 text-sm font-black" aria-live="polite">正在保存…</p>
+        <p className="mt-4 text-sm font-semibold" aria-live="polite">正在保存…</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">

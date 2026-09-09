@@ -86,18 +86,18 @@ export function NewInterviewQuestionForm({
   return (
     <form
       onSubmit={submit}
-      className="self-start rounded-2xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] p-5"
+      className="self-start rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.12em]">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]">
             Add one question
           </p>
-          <h2 className="heading-font mt-1 text-xl font-black">手动加入题库</h2>
+          <h2 className="heading-font mt-1 text-xl font-semibold">手动加入题库</h2>
         </div>
         <span className="status-chip bg-[var(--paper)]">零 AI 费用</span>
       </div>
-      <label className="mt-4 block text-sm font-black">
+      <label className="mt-4 block text-sm font-semibold">
         核心问题
         <textarea
           className="form-input mt-2 min-h-24 resize-y"
@@ -110,7 +110,7 @@ export function NewInterviewQuestionForm({
         />
       </label>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
-        <label className="text-sm font-black">
+        <label className="text-sm font-semibold">
           分类
           <select
             className="form-input mt-2"
@@ -129,7 +129,7 @@ export function NewInterviewQuestionForm({
         {fixedApplicationId ? (
           <input type="hidden" value={fixedApplicationId} readOnly />
         ) : (
-          <label className="text-sm font-black">
+          <label className="text-sm font-semibold">
             关联岗位
             <select
               className="form-input mt-2"
@@ -149,7 +149,7 @@ export function NewInterviewQuestionForm({
       </div>
       <button
         type="submit"
-        className="button-primary mt-4 min-h-11 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+        className="button-primary mt-4 min-h-11 px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
         disabled={busy}
       >
         {busy ? "正在加入…" : "加入题库"}
@@ -296,7 +296,7 @@ export function QuestionPreparationCard({
           {sourceLabels[question.source]}
         </span>
       </div>
-      <h3 className="heading-font mt-3 text-xl font-black leading-7">
+      <h3 className="heading-font mt-3 text-xl font-semibold leading-7">
         {question.prompt}
       </h3>
       {applicationLink?.relevanceReason ? (
@@ -306,7 +306,7 @@ export function QuestionPreparationCard({
       ) : null}
       {applicationLink?.sourceExcerpt ? (
         <p className="mt-2 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-          <span className="font-black text-[var(--ink)]">JD 依据：</span>
+          <span className="font-semibold text-[var(--ink)]">JD 依据：</span>
           “{applicationLink.sourceExcerpt}”
         </p>
       ) : null}
@@ -330,9 +330,9 @@ export function QuestionPreparationCard({
       ) : null}
 
       <details className="reveal mt-4 rounded-xl bg-[var(--canvas)] p-3">
-        <summary className="cursor-pointer text-sm font-black">准备回答</summary>
+        <summary className="cursor-pointer text-sm font-semibold">准备回答</summary>
         <form onSubmit={savePreparation} className="mt-4 space-y-4">
-          <label className="block text-sm font-black">
+          <label className="block text-sm font-semibold">
             准备状态
             <select
               className="form-input mt-2"
@@ -348,7 +348,7 @@ export function QuestionPreparationCard({
               ))}
             </select>
           </label>
-          <label className="block text-sm font-black">
+          <label className="block text-sm font-semibold">
             回答提纲
             <textarea
               className="form-input mt-2 min-h-32 resize-y"
@@ -358,7 +358,7 @@ export function QuestionPreparationCard({
               maxLength={10_000}
             />
           </label>
-          <label className="block text-sm font-black">
+          <label className="block text-sm font-semibold">
             练习笔记
             <textarea
               className="form-input mt-2 min-h-24 resize-y"
@@ -369,7 +369,7 @@ export function QuestionPreparationCard({
             />
           </label>
           <fieldset>
-            <legend className="text-sm font-black">关联已确认事实 / STAR</legend>
+            <legend className="text-sm font-semibold">关联已确认事实 / STAR</legend>
             {sortedFacts.length ? (
               <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--paper)] p-3">
                 {sortedFacts.map((fact) => (
@@ -391,7 +391,7 @@ export function QuestionPreparationCard({
                       }}
                     />
                     <span>
-                      <span className="font-black">{fact.title}</span>
+                      <span className="font-semibold">{fact.title}</span>
                       <span className="mt-0.5 block text-[var(--ink-muted)]">
                         {fact.description}
                       </span>
@@ -407,7 +407,7 @@ export function QuestionPreparationCard({
           </fieldset>
           <button
             type="submit"
-            className="button-primary min-h-10 px-4 text-xs font-black disabled:cursor-wait disabled:opacity-60"
+            className="button-primary min-h-10 px-4 text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
             disabled={busy !== null}
           >
             {busy === "preparation" ? "正在保存…" : "保存准备记录"}
@@ -418,7 +418,7 @@ export function QuestionPreparationCard({
           onSubmit={saveVariant}
           className="mt-5 border-t border-[var(--line)] pt-4"
         >
-          <label className="block text-sm font-black">
+          <label className="block text-sm font-semibold">
             新增问法变体
             <input
               className="form-input mt-2"
@@ -432,7 +432,7 @@ export function QuestionPreparationCard({
           </label>
           <button
             type="submit"
-            className="button-secondary mt-3 min-h-10 px-4 text-xs font-black disabled:cursor-wait disabled:opacity-60"
+            className="button-secondary mt-3 min-h-10 px-4 text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
             disabled={busy !== null}
           >
             {busy === "variant" ? "正在保存…" : "保存为变体"}

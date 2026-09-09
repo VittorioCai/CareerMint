@@ -7,7 +7,7 @@ export default function NewApplicationPage() {
     <section className="min-w-0">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_300px] lg:items-end">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">
+          <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">
             新建申请 · Step 1
           </p>
           <h1 className="heading-font mt-2 type-page-title">
@@ -17,8 +17,8 @@ export default function NewApplicationPage() {
             保存公司、职位和完整 JD，建立独立申请工作区。当前版本不会自动抓取招聘网站，也不会在输入时调用 AI。
           </p>
         </div>
-        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] p-4">
-          <p className="text-xs font-black uppercase tracking-[0.12em]">数据边界</p>
+        <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]">数据边界</p>
           <p className="mt-2 text-sm font-bold leading-6">
             JD 原文只保存在你的私有工作区，不写入普通应用日志。
           </p>

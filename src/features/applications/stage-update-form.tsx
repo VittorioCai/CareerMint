@@ -77,7 +77,7 @@ export function StageUpdateForm({
 
   return (
     <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
-      <label className="text-sm font-black">
+      <label className="text-sm font-semibold">
         新阶段
         <select
           className="form-input mt-2"
@@ -91,7 +91,7 @@ export function StageUpdateForm({
           ))}
         </select>
       </label>
-      <label className="text-sm font-black">
+      <label className="text-sm font-semibold">
         发生日期
         <input
           type="date"
@@ -102,7 +102,7 @@ export function StageUpdateForm({
           required
         />
       </label>
-      <label className="text-sm font-black sm:col-span-2">
+      <label className="text-sm font-semibold sm:col-span-2">
         备注（可选）
         <textarea
           className="form-input mt-2 min-h-24 resize-y"
@@ -115,7 +115,7 @@ export function StageUpdateForm({
       <div className="sm:col-span-2">
         <button
           type="submit"
-          className="button-primary min-h-11 px-5 text-sm font-black"
+          className="button-primary min-h-11 px-5 text-sm font-semibold"
           disabled={busy}
         >
           {busy ? "正在更新…" : "确认更新阶段"}

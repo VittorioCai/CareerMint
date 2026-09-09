@@ -77,18 +77,18 @@ export function OnboardingForm({
         {steps.map((item) => (
           <li
             key={item.number}
-            className={`rounded-2xl border-2 border-[var(--ink)] p-4 ${
+            className={`rounded-2xl border p-4 ${
               step === item.number
-                ? "bg-[var(--surface-muted)]"
+                ? "border-[var(--line)] bg-[var(--paper)] shadow-[var(--elevation-1)]"
                 : step > item.number
-                  ? "bg-[var(--sev-matched)]"
-                  : "bg-[var(--paper)]"
+                  ? "border-transparent bg-[var(--sev-matched)]"
+                  : "border-transparent bg-[var(--surface-muted)]"
             }`}
           >
-            <span className="text-xs font-black text-[var(--ink-muted)]">
+            <span className="text-xs font-semibold text-[var(--ink-muted)]">
               STEP {item.number}
             </span>
-            <h2 className="heading-font mt-1 text-lg font-black">{item.label}</h2>
+            <h2 className="heading-font mt-1 text-lg font-semibold">{item.label}</h2>
           </li>
         ))}
       </ol>
@@ -97,40 +97,40 @@ export function OnboardingForm({
         {step === 1 ? (
           <form className="grid min-w-0 gap-5 sm:grid-cols-2" onSubmit={saveGoals}>
             <div className="sm:col-span-2">
-              <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">01 · 先确定方向</p>
-              <h3 className="heading-font mt-2 text-2xl font-black">让后续建议围绕你的真实目标</h3>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">01 · 先确定方向</p>
+              <h3 className="heading-font mt-2 text-2xl font-bold">让后续建议围绕你的真实目标</h3>
             </div>
-            <label className="block text-sm font-black">
+            <label className="block text-sm font-semibold">
               姓名
               <input className="form-input mt-2" value={preferences.displayName} onChange={(event) => setPreferences((current) => ({ ...current, displayName: event.target.value }))} required />
             </label>
-            <label className="block text-sm font-black">
+            <label className="block text-sm font-semibold">
               目标岗位
               <input className="form-input mt-2" value={preferences.targetRole} onChange={(event) => setPreferences((current) => ({ ...current, targetRole: event.target.value }))} placeholder="例如 Product Analyst" required />
             </label>
-            <label className="block text-sm font-black sm:col-span-2">
+            <label className="block text-sm font-semibold sm:col-span-2">
               目标国家
               <input className="form-input mt-2" value={countries} onChange={(event) => setCountries(event.target.value)} placeholder="Germany, Netherlands（可留空）" />
             </label>
-            <label className="block text-sm font-black">
+            <label className="block text-sm font-semibold">
               求职语言
               <select className="form-input mt-2" value={preferences.jobSearchLanguage} onChange={() => undefined}>
                 <option value="en">English</option>
               </select>
             </label>
-            <label className="block text-sm font-black">
+            <label className="block text-sm font-semibold">
               界面语言
               <select className="form-input mt-2" value={preferences.interfaceLocale} onChange={(event) => setPreferences((current) => ({ ...current, interfaceLocale: event.target.value as "zh-CN" | "en" }))}>
                 <option value="zh-CN">简体中文</option>
                 <option value="en">English</option>
               </select>
             </label>
-            <label className="block text-sm font-black sm:col-span-2">
+            <label className="block text-sm font-semibold sm:col-span-2">
               时区（IANA）
               <input className="form-input mt-2" value={preferences.timezone} onChange={(event) => setPreferences((current) => ({ ...current, timezone: event.target.value }))} placeholder="Europe/Berlin" required />
             </label>
             <div className="sm:col-span-2">
-              <button type="submit" className="button-primary min-h-11 px-5 text-sm font-black" disabled={busy}>
+              <button type="submit" className="button-primary min-h-11 px-5 text-sm font-semibold" disabled={busy}>
                 {busy ? "保存中…" : "保存求职目标"}
               </button>
             </div>
@@ -139,8 +139,8 @@ export function OnboardingForm({
 
         {step === 2 ? (
           <section className="min-w-0">
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">02 · 从已有材料开始</p>
-            <h3 className="heading-font mt-2 text-2xl font-black">上传简历，减少重复填写</h3>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">02 · 从已有材料开始</p>
+            <h3 className="heading-font mt-2 text-2xl font-bold">上传简历，减少重复填写</h3>
             <label className="mt-5 flex cursor-pointer items-start gap-3 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4 text-sm font-bold leading-6">
               <input
                 type="checkbox"
@@ -160,7 +160,7 @@ export function OnboardingForm({
                 </span>
               </span>
             </label>
-            <Link href="/settings/privacy" className="mt-2 inline-flex text-xs font-black underline underline-offset-4">
+            <Link href="/settings/privacy" className="mt-2 inline-flex text-xs font-semibold underline underline-offset-4">
               查看 AI 与数据说明
             </Link>
             <div className="mt-5 min-w-0">
@@ -170,11 +170,11 @@ export function OnboardingForm({
               />
             </div>
             <div className="mt-5 flex flex-wrap gap-3">
-              <button type="button" className="button-primary min-h-11 px-5 text-sm font-black" onClick={() => setStep(3)}>
+              <button type="button" className="button-primary min-h-11 px-5 text-sm font-semibold" onClick={() => setStep(3)}>
                 {uploaded ? "继续核对事实" : "暂时跳过"}
               </button>
               {uploaded ? (
-                <button type="button" className="button-secondary min-h-11 px-5 text-sm font-black" onClick={() => setStep(3)}>
+                <button type="button" className="button-secondary min-h-11 px-5 text-sm font-semibold" onClick={() => setStep(3)}>
                   稍后核对
                 </button>
               ) : null}
@@ -184,13 +184,13 @@ export function OnboardingForm({
 
         {step === 3 ? (
           <section>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">03 · 你拥有最后决定权</p>
-            <h3 className="heading-font mt-2 text-2xl font-black">AI 结果仍然是未确认草稿</h3>
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">03 · 你拥有最后决定权</p>
+            <h3 className="heading-font mt-2 text-2xl font-bold">AI 结果仍然是未确认草稿</h3>
             <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
               系统不会因为你完成引导就自动确认任何经历、数字或技能。请在职业档案中逐条核对。
             </p>
             {factCount > 0 || uploaded ? (
-              <Link href="/profile" className="button-secondary mt-5 inline-flex min-h-11 items-center px-5 text-sm font-black">
+              <Link href="/profile" className="button-secondary mt-5 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
                 前往核对职业档案
               </Link>
             ) : (
@@ -199,7 +199,7 @@ export function OnboardingForm({
               </p>
             )}
             <div className="mt-6 border-t border-[var(--line)] pt-5">
-              <button type="button" className="button-primary min-h-12 px-6 text-sm font-black" disabled={busy} onClick={() => void finish()}>
+              <button type="button" className="button-primary min-h-12 px-6 text-sm font-semibold" disabled={busy} onClick={() => void finish()}>
                 {busy ? "正在进入…" : "进入工作台"}
               </button>
             </div>

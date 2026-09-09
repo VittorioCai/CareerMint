@@ -32,12 +32,12 @@ export default async function OnboardingPage() {
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
             <span aria-hidden="true" className="logo-mark size-10" />
-            <span className="heading-font text-lg font-black">求职搭子</span>
+            <span className="heading-font text-lg font-semibold">求职搭子</span>
           </Link>
-          <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-black">私密建档</span>
+          <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold">私密建档</span>
         </header>
         <section className="mt-9">
-          <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--ink-muted)]">Career profile setup</p>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Career profile setup</p>
           <h1 className="heading-font mt-2 max-w-3xl type-page-title">先把真实经历整理清楚</h1>
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
             大约 5 分钟。上传和 AI 分析都可以跳过，最后由你明确决定何时进入工作台。

@@ -20,12 +20,12 @@ export function SetupProgress({ current }: { current: SetupProgressStep }) {
             <li
               key={step.id}
               aria-current={active ? "step" : undefined}
-              className={`rounded-xl border px-3 py-3 text-xs font-black ${
+              className={`rounded-xl border px-3 py-3 text-xs font-semibold ${
                 active
-                  ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)]"
+                  ? "border-[var(--line)] bg-[var(--paper)] shadow-[var(--elevation-1)]"
                   : completed
-                    ? "border-[var(--ink-soft)] bg-[var(--sev-matched)]"
-                    : "border-[var(--line)] bg-[var(--paper)] text-[var(--ink-muted)]"
+                    ? "border-transparent bg-[var(--sev-matched)] text-[var(--sev-matched-ink)]"
+                    : "border-transparent bg-[var(--surface-muted)] text-[var(--ink-muted)]"
               }`}
             >
               <span className="mr-1.5" aria-hidden="true">

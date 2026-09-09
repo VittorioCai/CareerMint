@@ -333,7 +333,7 @@ export function UploadForm({
           />
           <label
             htmlFor="resume-source"
-            className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
+            className="shrink-0 button-secondary cursor-pointer px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
           >
             选择文件
           </label>
@@ -350,7 +350,7 @@ export function UploadForm({
 
       {asset ? (
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3 text-sm">
-          <p className="break-words font-black">{asset.originalName} 已安全保存</p>
+          <p className="break-words font-semibold">{asset.originalName} 已安全保存</p>
           <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">
             重试分析不会再次上传，也不会创建重复任务。
           </p>
@@ -359,7 +359,7 @@ export function UploadForm({
 
       {busy ? (
         <div className="mt-4" aria-live="polite">
-          <p className="text-sm font-black">
+          <p className="text-sm font-semibold">
             {phase === "uploading"
               ? "正在安全上传…"
               : phase === "ocr"
@@ -378,7 +378,7 @@ export function UploadForm({
           {phase === "ocr" ? (
             <button
               type="button"
-              className="button-secondary mt-3 min-h-10 px-4 text-sm font-black"
+              className="button-secondary mt-3 min-h-10 px-4 text-sm font-semibold"
               onClick={cancelOcr}
             >
               取消本地识别
@@ -388,7 +388,7 @@ export function UploadForm({
       ) : null}
 
       {phase === "succeeded" ? (
-        <p className="mt-4 rounded-xl border border-[var(--ink)] bg-[var(--sev-matched)] p-3 text-sm font-black" role="status">
+        <p className="mt-4 rounded-xl border border-[var(--ink)] bg-[var(--sev-matched)] p-3 text-sm font-semibold" role="status">
           <span aria-hidden="true">✓ </span>
           <span>简历分析完成</span>
         </p>
@@ -403,7 +403,7 @@ export function UploadForm({
       {!asset ? (
         <button
           type="submit"
-          className="button-primary mt-5 min-h-11 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+          className="button-primary mt-5 min-h-11 px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
           disabled={busy}
         >
           {phase === "uploading" ? "正在上传…" : "上传并开始建档"}
@@ -411,7 +411,7 @@ export function UploadForm({
       ) : phase === "failed" || phase === "consent" ? (
         <button
           type="button"
-          className="button-primary mt-5 min-h-11 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-60"
+          className="button-primary mt-5 min-h-11 px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
           disabled={busy}
           onClick={() => void extract(asset)}
         >
