@@ -102,7 +102,7 @@ function IssueDetails({
               three lines of grey English above the Chinese judgement it is
               supposed to support; the full text is in the panel below. */}
           <span
-            className="mt-1.5 line-clamp-2 block max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
+            className="mt-1.5 line-clamp-2 max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
             lang="und"
           >
             “{row.jdOriginal}”
@@ -332,6 +332,7 @@ export function ResumeJDDifferencePanel({
 
   const rows = buildRows(result);
   const counts = tally(rows);
+  const nothingToFix = rows.length > 0 && rows.every((row) => row.severity === "matched");
 
   return (
     <section
@@ -431,10 +432,12 @@ export function ResumeJDDifferencePanel({
             id="specific-differences-title"
             className="heading-font text-xl font-black tracking-[-0.02em] sm:text-2xl"
           >
-            逐条差异 · 按严重度排序
+            {nothingToFix ? "岗位要求 · 全部已对上" : "逐条差异 · 按严重度排序"}
           </h2>
           <span className="text-[13px] font-medium text-[var(--ink-muted)]">
-            点任意一行展开依据 · 珊瑚色行是改简历前必须先看的
+            {nothingToFix
+              ? "点任意一行看简历里对应的原文"
+              : "点任意一行展开依据 · 珊瑚色行是改简历前必须先看的"}
           </span>
         </div>
 
@@ -452,16 +455,20 @@ export function ResumeJDDifferencePanel({
 
       <section className="soft-surface grid gap-5 px-6 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-7">
         <div>
-          <h2 className="heading-font text-lg font-black">下一步：查看完善建议</h2>
+          <h2 className="heading-font text-lg font-black">
+            {nothingToFix ? "下一步：准备面试" : "下一步：查看完善建议"}
+          </h2>
           <p className="mt-1.5 max-w-[62ch] text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
-            建议只告诉你该核对哪段经历、补足哪些真实信息，不会代写简历。
+            {nothingToFix
+              ? "这份简历没有需要补的地方，可以直接开始准备这个岗位可能问到的问题。"
+              : "建议只告诉你该核对哪段经历、补足哪些真实信息，不会代写简历。"}
           </p>
         </div>
         <Link
-          href={`/applications/${applicationId}?tab=improvements`}
+          href={`/applications/${applicationId}?tab=${nothingToFix ? "interview" : "improvements"}`}
           className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-[15px] font-extrabold"
         >
-          查看完善建议 →
+          {nothingToFix ? "进入面试准备 →" : "查看完善建议 →"}
         </Link>
       </section>
     </section>

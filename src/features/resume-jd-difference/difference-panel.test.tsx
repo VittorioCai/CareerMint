@@ -484,6 +484,34 @@ describe("ResumeJDDifferencePanel", () => {
     }
   });
 
+  it("does not tell a resume that covers everything to go fix things", () => {
+    const covered = succeededRun();
+    covered.result = {
+      ...result,
+      overallDifference: {
+        summaryZh: "这份简历已经覆盖了这个岗位提出的每一项要求。",
+        topIssueIds: [],
+      },
+      issues: [],
+    };
+
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={covered}
+        facts={facts}
+      />,
+    );
+
+    expect(screen.getByText("岗位要求 · 全部已对上")).toBeVisible();
+    expect(screen.queryByText("逐条差异 · 按严重度排序")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /进入面试准备/u })).toHaveAttribute(
+      "href",
+      `/applications/${applicationId}?tab=interview`,
+    );
+    expect(screen.queryByText(/查看完善建议/u)).not.toBeInTheDocument();
+  });
+
   it("does not call a stale run's file the current baseline", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
