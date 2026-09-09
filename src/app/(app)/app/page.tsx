@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   let primaryState;
   if (assets.length === 0) {
     primaryState = (
-      <article className="sticker-border sticker-shadow bg-white p-5 sm:p-7">
+      <article className="soft-surface bg-white p-5 sm:p-7">
         <span className="status-chip status-yellow">第一步</span>
         <h2 className="heading-font mt-4 text-2xl font-black">上传一份已有简历</h2>
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     );
   } else if (activeJob || assets.some((asset) => asset.status === "extracting")) {
     primaryState = (
-      <article className="sticker-border sticker-shadow bg-white p-6 sm:p-8">
+      <article className="soft-surface bg-white p-6 sm:p-8">
         <span className="status-chip status-blue">处理中</span>
         <h2 className="heading-font mt-4 text-2xl font-black">正在整理你的职业事实</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
     );
   } else if (pendingFacts.length > 0) {
     primaryState = (
-      <article className="sticker-border sticker-shadow bg-white p-6 sm:p-8">
+      <article className="soft-surface bg-white p-6 sm:p-8">
         <span className="status-chip bg-[var(--coral)] text-white">需要你判断</span>
         <h2 className="heading-font mt-4 text-2xl font-black">继续核对职业档案</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
     );
   } else {
     primaryState = (
-      <article className="sticker-border sticker-shadow bg-[var(--mint)] p-6 sm:p-8">
+      <article className="soft-surface bg-[var(--mint)] p-6 sm:p-8">
         <span className="status-chip bg-white">✓ 已完成核对</span>
         <h2 className="heading-font mt-4 text-3xl font-black">职业档案已就绪</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -96,7 +96,7 @@ export default async function DashboardPage() {
     <section className="min-w-0">
       <div>
         <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">今天的工作台</p>
-        <h1 className="heading-font mt-2 break-words text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+        <h1 className="heading-font mt-2 break-words text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
           {profile.displayName ? `${profile.displayName}，继续推进` : "继续推进你的求职"}
         </h1>
         <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">

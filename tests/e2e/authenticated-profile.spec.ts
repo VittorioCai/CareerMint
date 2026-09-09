@@ -187,7 +187,9 @@ test("complete private career-profile foundation flow", async ({
   const ctaColor = await page
     .locator("aside a[href='/applications/new']")
     .evaluate((element) => getComputedStyle(element).backgroundColor);
-  expect(sidebarColor).toBe("rgb(189, 235, 215)");
+  // Chrome recedes to the page's own ground; the colour budget is spent on
+  // the one action inside it, not on the panel that holds the navigation.
+  expect(sidebarColor).toBe("rgb(255, 250, 242)");
   expect(ctaColor).toBe("rgb(255, 242, 168)");
 
   await page.goto("/applications");

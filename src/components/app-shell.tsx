@@ -44,10 +44,10 @@ function DisabledControl({
         type="button"
         aria-disabled="true"
         aria-describedby={`${label}-tooltip`}
-        className={`flex min-h-10 items-center justify-center gap-2 rounded-xl border border-[var(--line)] px-3 text-sm font-extrabold ${
+        className={`press flex min-h-10 items-center justify-center gap-2 rounded-[10px] border px-3 text-sm ${
           coral
-            ? "border-2 border-[var(--ink)] bg-[var(--coral)] text-white shadow-[2px_2px_0_var(--ink)]"
-            : "bg-white text-[var(--ink-muted)]"
+            ? "border-[var(--ink)] bg-white font-semibold text-[var(--ink)]"
+            : "border-[var(--line)] bg-white font-medium text-[var(--ink-muted)]"
         }`}
       >
         {children}
@@ -68,28 +68,28 @@ export function AppShell({ children, email }: AppShellProps) {
 
   return (
     <div className="min-h-screen bg-[var(--canvas)] md:grid md:grid-cols-[244px_minmax(0,1fr)]">
-      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col border-r-2 border-[var(--ink)] bg-[var(--mint)] p-4 md:flex" aria-label="主导航">
+      <aside className="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col border-r border-[var(--line)] bg-[var(--canvas)] p-4 md:flex" aria-label="主导航">
         <Link href="/app" className="group flex items-center gap-3 px-2 py-2" aria-label="求职搭子首页">
           <span aria-hidden="true" className="logo-mark size-10" />
           <div>
-            <span className="heading-font block text-lg font-black leading-none">求职搭子</span>
-            <span className="mt-1 block text-[10px] font-extrabold uppercase tracking-[0.15em] text-[var(--ink-muted)]">Job desk</span>
+            <span className="heading-font block text-base font-extrabold leading-none tracking-[-0.02em]">求职搭子</span>
+            <span className="mt-1 block text-[9.5px] font-semibold uppercase tracking-[0.15em] text-[var(--ink-soft)]">Job desk</span>
           </div>
         </Link>
 
-        <Link href="/applications/new" className="mt-6 flex min-h-12 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-4 text-sm font-black shadow-[3px_3px_0_var(--ink)] transition-transform hover:-translate-y-0.5">
+        <Link href="/applications/new" className="press mt-6 flex min-h-11 items-center justify-center rounded-[10px] border border-[var(--ink)] bg-[var(--cream)] px-4 text-sm font-bold hover:shadow-[0_6px_14px_-10px_var(--ink)]">
           ＋ 新建申请
         </Link>
 
-        <nav className="mt-6 space-y-2">
+        <nav className="mt-6 space-y-0.5">
           {appNavigation.map((item) => (
             <NavLink key={item.href} {...item} />
           ))}
         </nav>
 
-        <div className="mt-auto rounded-xl border border-[color:var(--ink-soft)] bg-white/55 p-3">
-          <p className="text-xs font-black">资料安全原则</p>
-          <p className="mt-1 text-xs font-medium leading-5 text-[var(--ink-muted)]">AI 写入前会先让你确认，不会静默改档案。</p>
+        <div className="mt-auto border-t border-[var(--line)] px-3 pb-1 pt-3.5">
+          <p className="text-[11.5px] font-semibold">资料安全原则</p>
+          <p className="mt-1 text-[11.5px] font-normal leading-[1.55] text-[var(--ink-muted)]">AI 写入前会先让你确认，不会静默改档案。</p>
         </div>
       </aside>
 
@@ -116,15 +116,15 @@ export function AppShell({ children, email }: AppShellProps) {
                 <span className="sr-only">通知</span>
               </DisabledControl>
               <DisabledControl label="AI助手" coral>
-                <span className="text-xs font-black">AI</span>
-                <span className="hidden sm:inline">助手</span>
+                <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--mint-strong)]" />
+                <span>AI 助手</span>
               </DisabledControl>
 
               <details className="group relative">
-                <summary className="flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-xl border border-[var(--line)] bg-white px-2.5 [&::-webkit-details-marker]:hidden">
+                <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-2.5 [&::-webkit-details-marker]:hidden">
                   <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--mist-blue)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
-                  <span className="hidden max-w-36 truncate text-xs font-bold lg:inline">{displayEmail}</span>
-                  <span aria-hidden="true" className="text-xs transition-transform group-open:rotate-180">⌄</span>
+                  <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
+                  <span aria-hidden="true" className="text-xs text-[var(--ink-soft)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
                 <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2 shadow-[4px_4px_0_var(--ink)]">
                   <div className="border-b border-[var(--line)] px-3 py-2.5">

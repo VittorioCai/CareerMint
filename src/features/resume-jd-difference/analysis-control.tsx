@@ -350,10 +350,13 @@ function AnalysisControlState({
 
   return (
     <div
-      className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
+      className="flex flex-wrap items-center justify-end gap-4"
       aria-busy={busy}
     >
-        <div className="min-w-0">
+        {/* Empty when a finished run needs nothing explained, and then it
+            collapses so the two buttons sit together instead of being pushed
+            apart by a reserved column. */}
+        <div className="min-w-0 flex-1 empty:hidden">
           {resultOnScreen ? null : (
             <>
               <div className="flex flex-wrap items-center gap-2">
@@ -505,7 +508,7 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="button-primary inline-flex min-h-11 min-w-36 items-center justify-center rounded-full px-5 text-sm font-extrabold disabled:cursor-wait disabled:opacity-65"
+          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 text-[13px] font-bold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >

@@ -35,12 +35,12 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
     <Link
       href={href}
       aria-current={selected ? "page" : undefined}
-      className={`flex shrink-0 items-center gap-3 border-2 border-transparent font-extrabold transition-[background-color,box-shadow,transform] ${
-        compact ? "rounded-xl px-3 py-2.5 text-sm" : "rounded-xl px-3.5 py-3 text-sm"
+      className={`flex shrink-0 items-center gap-3 rounded-lg transition-[background-color,box-shadow,color] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${
+        compact ? "px-3 py-2.5 text-sm" : "px-3 py-2.5 text-sm"
       } ${
         selected
-          ? "border-[var(--ink)] bg-white shadow-[3px_3px_0_var(--ink)]"
-          : "hover:border-[color:var(--ink-soft)] hover:bg-white/45"
+          ? "bg-white font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
+          : "font-medium text-[var(--ink-muted)] hover:bg-white/60 hover:text-[var(--ink)]"
       }`}
     >
       <NavigationIcon href={href} />

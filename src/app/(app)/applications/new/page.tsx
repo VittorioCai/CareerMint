@@ -10,7 +10,7 @@ export default function NewApplicationPage() {
           <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">
             新建申请 · Step 1
           </p>
-          <h1 className="heading-font mt-2 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+          <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
             先把岗位稳稳收进来
           </h1>
           <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">

@@ -100,7 +100,7 @@ function ApplicationCard({
 
 function EmptyApplications() {
   return (
-    <article className="sticker-border sticker-shadow bg-[var(--mint)] p-6 sm:p-8">
+    <article className="soft-surface bg-[var(--mint)] p-6 sm:p-8">
       <span className="status-chip bg-white">从一个真实岗位开始</span>
       <h2 className="heading-font mt-4 text-2xl font-black">还没有投递记录</h2>
       <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">

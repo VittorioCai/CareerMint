@@ -73,7 +73,7 @@ export default async function InterviewPage({
             <p className="text-xs font-black uppercase tracking-[0.14em]">
               Interview preparation
             </p>
-            <h1 className="heading-font mt-2 text-4xl font-black tracking-[-0.04em] sm:text-5xl">
+            <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
               面试题库
             </h1>
             <p className="mt-3 text-sm font-semibold leading-6 text-[var(--ink-muted)]">

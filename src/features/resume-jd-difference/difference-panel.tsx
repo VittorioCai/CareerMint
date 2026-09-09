@@ -67,7 +67,7 @@ function IssueDetails({
   citedFacts: ConfirmedFactForAnalysis[];
 }) {
   return (
-    <details className="group" data-testid={`difference-issue-${row.id}`}>
+    <details className="reveal group" data-testid={`difference-issue-${row.id}`}>
       <span
         aria-hidden="true"
         className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[row.severity]}`}
@@ -326,62 +326,67 @@ export function ResumeJDDifferencePanel({
       data-run-id={run.id}
     >
       {/* The page's one sticker. It carries the conclusion, not decoration. */}
-      <section className="sticker-border bg-[var(--cream)] px-6 py-7 shadow-[8px_8px_0_var(--ink)] sm:px-8">
-        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
-          <div className="min-w-0">
-            <p className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1">
-                <span aria-hidden="true" className="size-[7px] rounded-full bg-[var(--mint-strong)]" />
-                <span className="font-bold text-[var(--ink)]">
-                  {stale ? "结果已过期" : "分析已完成"}
-                </span>
-              </span>
-              <span lang="und">对照 {run.sourceFilename}</span>
-            </p>
-            <h2
-              id="resume-jd-difference-title"
-              className="heading-font mt-3.5 max-w-[30ch] text-2xl font-black leading-[1.3] tracking-[-0.03em] sm:text-3xl"
-            >
-              {safeCopy(result.overallDifference.summaryZh)}
-            </h2>
-          </div>
-          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
-            <a
-              className="inline-flex min-h-11 items-center rounded-full border-2 border-[var(--ink)] bg-[var(--paper)] px-4 text-[13px] font-bold transition hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_var(--ink)]"
-              href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
-              download
-            >
-              导出 Markdown
-            </a>
-          </div>
-        </div>
+      <section className="sticker-border bg-[var(--cream)] px-6 py-5 shadow-[6px_6px_0_var(--ink)] sm:px-7">
+        <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-normal text-[var(--ink-muted)]">
+          <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)]">
+            <span
+              aria-hidden="true"
+              className={`size-1.5 rounded-full ${stale ? "bg-[var(--coral)]" : "bg-[var(--mint-strong)]"}`}
+            />
+            {stale ? "结果已过期" : "分析已完成"}
+          </span>
+          <span aria-hidden="true" className="text-[var(--ink-soft)]">·</span>
+          <span lang="und">{run.sourceFilename}</span>
+        </p>
+        <h2
+          id="resume-jd-difference-title"
+          className="heading-font mt-2.5 max-w-[34ch] text-xl font-extrabold leading-[1.4] tracking-[-0.02em] sm:text-[23px]"
+        >
+          {safeCopy(result.overallDifference.summaryZh)}
+        </h2>
 
+        {/* Counts as a line of marks, using the same badge language the rows
+            below use, so the reader learns it once. */}
         <div
           data-testid="severity-tally"
-          className="mt-6 flex flex-wrap gap-2 border-t-2 border-dashed border-[color-mix(in_srgb,var(--ink)_22%,transparent)] pt-5"
+          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[color-mix(in_srgb,var(--ink)_20%,transparent)] pt-3.5"
         >
           {counts.map((entry) => (
             <span
               key={entry.severity}
-              className="inline-flex items-center gap-2 rounded-full bg-[var(--paper)] py-2 pl-3 pr-3.5"
+              className="inline-flex items-center gap-2 text-[13px] font-normal text-[var(--ink-muted)]"
             >
-              <span
-                aria-hidden="true"
-                className={`severity-band size-2.5 rounded-full ${severityBandClass[entry.severity]}`}
-              />
-              <span className="heading-font text-[17px] font-black leading-none">
-                {entry.count}
-              </span>
-              <span className="text-[13px] font-semibold">{entry.label}</span>
+              {entry.severity === "gate" || entry.severity === "matched" ? (
+                <span
+                  aria-hidden="true"
+                  className={`grid size-3.5 place-items-center rounded-full text-[9px] font-black leading-none ${
+                    entry.severity === "gate" ? "bg-[var(--coral)]" : "bg-[var(--mint)]"
+                  }`}
+                >
+                  {entry.severity === "gate" ? "!" : "✓"}
+                </span>
+              ) : (
+                <span
+                  aria-hidden="true"
+                  className={`severity-dot size-2.5 ${severityBandClass[entry.severity]}`}
+                />
+              )}
+              <span className="font-bold text-[var(--ink)]">{entry.count}</span>
+              <span>{entry.label}</span>
             </span>
           ))}
         </div>
 
-        {control ? (
-          <div className="mt-5 border-t border-[color-mix(in_srgb,var(--ink)_14%,transparent)] pt-5">
-            {control}
-          </div>
-        ) : null}
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[color-mix(in_srgb,var(--ink)_14%,transparent)] pt-4">
+          <a
+            className="press inline-flex min-h-10 items-center rounded-full border border-[var(--ink)] px-4 text-[13px] font-semibold hover:bg-[var(--paper)]"
+            href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
+            download
+          >
+            导出 Markdown
+          </a>
+          {control}
+        </div>
       </section>
 
       {/* What the job is actually asking for — a sentence, not three cells. */}
