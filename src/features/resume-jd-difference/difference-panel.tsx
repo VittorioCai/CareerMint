@@ -335,7 +335,7 @@ export function ResumeJDDifferencePanel({
             />
             {stale ? "结果已过期" : "分析已完成"}
           </span>
-          <span aria-hidden="true" className="text-[var(--ink-soft)]">·</span>
+          <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
           <span lang="und">{run.sourceFilename}</span>
         </p>
         <h2

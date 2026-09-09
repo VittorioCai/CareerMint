@@ -138,7 +138,7 @@ export default async function DashboardPage() {
               >
                 <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
                 <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
-                <p className="mt-1 text-[10px] font-semibold text-[var(--ink-soft)]">{note}</p>
+                <p className="mt-1 text-[10px] font-semibold text-[var(--ink-muted)]">{note}</p>
               </article>
             ))}
           </div>

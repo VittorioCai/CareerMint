@@ -35,7 +35,7 @@ export function AuthShell({
           <div className="mt-8">{children}</div>
         </div>
 
-        <p className="text-xs font-semibold text-[var(--ink-soft)]">© 2026 求职搭子 · 先确认事实，再交给 AI</p>
+        <p className="text-xs font-semibold text-[var(--ink-muted)]">© 2026 求职搭子 · 先确认事实，再交给 AI</p>
       </section>
 
       <aside className="relative hidden overflow-hidden border-l-2 border-[var(--ink)] bg-[var(--mint)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">

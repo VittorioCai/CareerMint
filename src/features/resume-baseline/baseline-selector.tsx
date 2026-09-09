@@ -369,7 +369,7 @@ export function BaselineSelector({
                 选择文件
               </label>
               <span
-                className={`min-w-0 truncate text-sm ${selectedFile ? "font-bold" : "font-medium text-[var(--ink-soft)]"}`}
+                className={`min-w-0 truncate text-sm ${selectedFile ? "font-bold" : "font-medium text-[var(--ink-muted)]"}`}
               >
                 {selectedFile?.name ?? "尚未选择文件"}
               </span>

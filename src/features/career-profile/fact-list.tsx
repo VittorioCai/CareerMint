@@ -52,7 +52,7 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
               <a href={`#facts-${type}`} className="underline-offset-4 hover:underline">{label}</a>
               <span
                 className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  counts[type] ? "bg-[var(--canvas)]" : "text-[var(--ink-soft)]"
+                  counts[type] ? "bg-[var(--canvas)]" : "text-[var(--ink-muted)]"
                 }`}
               >
                 {counts[type] ?? 0}
@@ -64,19 +64,22 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
       ) : null}
 
       <div className="min-w-0">
-        <ManualFactForm createFact={createFactAction} />
+        {facts.length ? <ManualFactForm createFact={createFactAction} /> : null}
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
             <p className="heading-font text-lg font-extrabold">还没有职业事实</p>
             <p className="mx-auto mt-2 max-w-[42ch] text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
               上传一份简历，系统会提取出可确认的经历；也可以先手动写下第一条。分类会在有内容之后出现。
             </p>
-            <Link
-              href="/app"
-              className="press mt-5 inline-flex min-h-11 items-center rounded-[10px] border-2 border-[var(--ink)] bg-[var(--cream)] px-5 text-sm font-bold shadow-[3px_3px_0_var(--ink)]"
-            >
-              去上传简历
-            </Link>
+            <div className="mt-6 flex flex-col items-center gap-3">
+              <Link
+                href="/app"
+                className="press inline-flex min-h-11 items-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-5 text-sm font-bold shadow-[3px_3px_0_var(--ink)]"
+              >
+                去上传简历
+              </Link>
+              <ManualFactForm createFact={createFactAction} trigger="link" />
+            </div>
           </div>
         ) : (
           <div className="mt-4 space-y-5">

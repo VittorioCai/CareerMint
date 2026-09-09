@@ -53,7 +53,9 @@ export function ApplicationDeleteControl({
         // Destructive, but not the most prominent thing on a card about a job
         // you are applying for. It stays muted until you reach for it.
         className={compact
-          ? "text-xs font-medium text-[var(--ink-soft)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[#a83c34] hover:decoration-current focus-visible:text-[#a83c34]"
+          // --ink-soft on white is 2.71:1, below the 4.5:1 floor. Muted is
+          // 5.94:1 and still reads as secondary next to the role title.
+          ? "text-xs font-medium text-[var(--ink-muted)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[#a83c34] hover:decoration-current focus-visible:text-[#a83c34]"
           : "press inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[#d89a94] hover:text-[#a83c34]"}
       >
         删除记录

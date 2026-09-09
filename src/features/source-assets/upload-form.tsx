@@ -338,7 +338,7 @@ export function UploadForm({
             选择文件
           </label>
           <span
-            className={`min-w-0 truncate text-sm ${chosenName ? "font-bold" : "font-medium text-[var(--ink-soft)]"}`}
+            className={`min-w-0 truncate text-sm ${chosenName ? "font-bold" : "font-medium text-[var(--ink-muted)]"}`}
           >
             {chosenName ?? "尚未选择文件"}
           </span>

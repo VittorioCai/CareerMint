@@ -81,7 +81,7 @@ function ApplicationCard({
           {application.location ? <span>{application.location}</span> : null}
           <span>· {WORKPLACE_MODE_LABELS[application.workplaceMode]}</span>
         </div>
-        <p className="mt-3 border-t border-[var(--line)] pt-2 text-[10px] font-bold text-[var(--ink-soft)]">
+        <p className="mt-3 border-t border-[var(--line)] pt-2 text-[10px] font-bold text-[var(--ink-muted)]">
           更新于 {formatDate(application.updatedAt)}
         </p>
       </Link>

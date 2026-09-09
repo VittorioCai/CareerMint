@@ -11,58 +11,6 @@ type AppShellProps = {
   email?: string;
 };
 
-function SearchIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-      <circle cx="8.7" cy="8.7" r="5" />
-      <path d="m12.5 12.5 3.5 3.5" />
-    </svg>
-  );
-}
-
-function BellIcon() {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M5.5 8.2a4.5 4.5 0 0 1 9 0c0 4 1.5 4.6 1.5 4.6H4s1.5-.6 1.5-4.6Z" />
-      <path d="M8 15.4h4" />
-    </svg>
-  );
-}
-
-function DisabledControl({
-  label,
-  children,
-  coral = false,
-}: {
-  label: string;
-  children: ReactNode;
-  coral?: boolean;
-}) {
-  return (
-    <span className="group relative inline-flex">
-      <button
-        type="button"
-        aria-disabled="true"
-        aria-describedby={`${label}-tooltip`}
-        className={`press flex min-h-10 items-center justify-center gap-2 rounded-[10px] border px-3 text-sm ${
-          coral
-            ? "border-[var(--ink)] bg-white font-semibold text-[var(--ink)]"
-            : "border-[var(--line)] bg-white font-medium text-[var(--ink-muted)]"
-        }`}
-      >
-        {children}
-      </button>
-      <span
-        role="tooltip"
-        id={`${label}-tooltip`}
-        className="pointer-events-none absolute right-0 top-[calc(100%+8px)] z-30 hidden w-max rounded-lg bg-[var(--ink)] px-2.5 py-1.5 text-xs font-bold text-white shadow-lg group-focus-within:block group-hover:block"
-      >
-        即将开放
-      </span>
-    </span>
-  );
-}
-
 export function AppShell({ children, email }: AppShellProps) {
   const displayEmail = email ?? "已验证账户";
 
@@ -73,7 +21,7 @@ export function AppShell({ children, email }: AppShellProps) {
           <span aria-hidden="true" className="logo-mark size-10" />
           <div>
             <span className="heading-font block text-base font-extrabold leading-none tracking-[-0.02em]">求职搭子</span>
-            <span className="mt-1 block text-[9.5px] font-semibold uppercase tracking-[0.15em] text-[var(--ink-soft)]">Job desk</span>
+            <span className="mt-1 block text-[9.5px] font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">Job desk</span>
           </div>
         </Link>
 
@@ -101,30 +49,17 @@ export function AppShell({ children, email }: AppShellProps) {
               <span className="heading-font hidden text-base font-black sm:inline">求职搭子</span>
             </Link>
 
-            <DisabledControl label="全局搜索">
-              <SearchIcon />
-              <span className="hidden min-w-32 text-left font-medium lg:inline">搜索职位、事实、题目</span>
-              <kbd className="hidden rounded border border-[var(--line)] bg-[var(--canvas)] px-1.5 py-0.5 text-[10px] font-bold xl:inline">⌘K</kbd>
-            </DisabledControl>
-
+            {/* Search, notifications and an AI entry point all sat here saying
+                "即将开放". Three controls that do nothing, in the strip the eye
+                reaches first on every screen — an empty placeholder costs more
+                trust than an absent feature. */}
             <div className="ml-auto flex items-center gap-2">
-              <DisabledControl label="通知">
-                <span className="relative">
-                  <BellIcon />
-                  <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full border border-white bg-[var(--coral)]" />
-                </span>
-                <span className="sr-only">通知</span>
-              </DisabledControl>
-              <DisabledControl label="AI助手" coral>
-                <span aria-hidden="true" className="size-1.5 rounded-full bg-[var(--mint-strong)]" />
-                <span>AI 助手</span>
-              </DisabledControl>
 
               <details className="group relative">
                 <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-2.5 [&::-webkit-details-marker]:hidden">
                   <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--mist-blue)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
-                  <span aria-hidden="true" className="text-xs text-[var(--ink-soft)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
+                  <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
                 <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2 shadow-[4px_4px_0_var(--ink)]">
                   <div className="border-b border-[var(--line)] px-3 py-2.5">

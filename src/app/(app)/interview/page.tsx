@@ -67,16 +67,19 @@ export default async function InterviewPage({
 
   return (
     <section className="min-w-0">
-      <div className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-5 shadow-[4px_4px_0_var(--ink)] sm:p-7">
+      {/* Was a mist-blue banner with a 2px border and a hard shadow — the last
+          page still carrying the old vocabulary. Its body copy also failed
+          contrast at 4.31:1 on that fill. */}
+      <div>
         <div className="flex flex-wrap items-start justify-between gap-5">
           <div className="max-w-3xl">
-            <p className="text-xs font-black uppercase tracking-[0.14em]">
-              Interview preparation
+            <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
+              面试准备
             </p>
             <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
               面试题库
             </h1>
-            <p className="mt-3 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+            <p className="mt-3 text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
               通用题只准备一次，每个岗位都会自动包含；职能、行业和岗位题作为增量加入。所有 AI 题都只表示“可能会问”。
             </p>
           </div>

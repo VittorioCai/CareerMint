@@ -16,8 +16,15 @@ type ActionResult = Promise<{ ok: true } | { ok: false; error: string }>;
 
 export function ManualFactForm({
   createFact,
+  trigger = "button",
 }: {
   createFact(input: CareerFactInput): ActionResult;
+  /**
+   * On an empty profile the card below already offers the primary path, so the
+   * manual route becomes a text link inside it rather than a second cream
+   * button competing with it.
+   */
+  trigger?: "button" | "link";
 }) {
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -60,15 +67,27 @@ export function ManualFactForm({
   }
 
   if (!open) {
-    return (
-      <button type="button" className="button-primary min-h-11 px-5 text-sm font-black" onClick={() => setOpen(true)}>
+    return trigger === "link" ? (
+      <button
+        type="button"
+        className="text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:decoration-[var(--ink)]"
+        onClick={() => setOpen(true)}
+      >
+        手动写下第一条
+      </button>
+    ) : (
+      <button
+        type="button"
+        className="press button-primary inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-bold"
+        onClick={() => setOpen(true)}
+      >
         ＋ 手动添加事实
       </button>
     );
   }
 
   return (
-    <form className="dense-surface mt-4 grid gap-4 p-5 sm:grid-cols-2" noValidate onSubmit={submit}>
+    <form className="soft-surface mt-4 grid gap-4 p-5 sm:grid-cols-2" noValidate onSubmit={submit}>
       <div className="sm:col-span-2">
         <h2 className="heading-font text-xl font-black">新增职业事实</h2>
         <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">手动事实也从“待确认”开始。</p>
