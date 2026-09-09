@@ -268,7 +268,12 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
   test.setTimeout(300_000);
   // Dark is a separate palette, not a filter over this one, so it has to be
   // measured separately. "It looks fine" is not a check.
-  await page.emulateMedia({ colorScheme: theme });
+  //
+  // Reduced motion is not about accessibility here — it is about determinism.
+  // Enter animations start at opacity 0, and a screenshot taken mid-animation
+  // samples a background that no user ever reads against. Collapsing the
+  // durations measures the settled page, which is the one being scored.
+  await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
   const { admin, account } = clients();
   const { email, userId } = await createUser(admin);
 
@@ -307,9 +312,15 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
       `/applications/${applicationId}?tab=overview`,
       `/applications/${applicationId}?tab=resume`,
       `/applications/${applicationId}?tab=difference`,
+      // A fixture account one minute old only has empty states, and an empty
+      // state passes contrast by having almost no content. /dev/states renders
+      // the crowded, overlong and every-severity variants that actually
+      // exercise the palette.
+      "/dev/states",
     ];
 
     const failures: string[] = [];
+    let scored = 0;
 
     for (const route of routes) {
       await page.goto(route);
@@ -322,6 +333,7 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
       for (const node of nodes) {
         const ratio = contrastFor(png, node);
         if (ratio === null) continue;
+        scored += 1;
 
         const floor = floorFor(node);
         if (ratio + 0.01 < floor) {
@@ -333,6 +345,11 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
     }
 
     expect(failures, `\n${failures.join("\n")}\n`).toEqual([]);
+    // A contrast floor that measures nothing passes every time, and a broken
+    // walk (login failing, a route 404ing) scores near zero rather than
+    // failing outright. This is a smoke floor well under the real count, not a
+    // coverage target — it should not need touching when copy changes.
+    expect(scored, "the route walk collected almost no text").toBeGreaterThan(300);
   } finally {
     await admin.auth.admin.deleteUser(userId);
   }

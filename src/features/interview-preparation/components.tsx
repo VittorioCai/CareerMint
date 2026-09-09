@@ -329,7 +329,7 @@ export function QuestionPreparationCard({
         </ul>
       ) : null}
 
-      <details className="mt-4 rounded-xl bg-[var(--canvas)] p-3">
+      <details className="reveal mt-4 rounded-xl bg-[var(--canvas)] p-3">
         <summary className="cursor-pointer text-sm font-black">准备回答</summary>
         <form onSubmit={savePreparation} className="mt-4 space-y-4">
           <label className="block text-sm font-black">

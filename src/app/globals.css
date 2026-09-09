@@ -155,7 +155,7 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 * {
@@ -164,13 +164,17 @@
 
 html {
   scroll-behavior: smooth;
+  /* Reserve the scrollbar on every route. Without this a short page (login)
+     and a tall one (an application) centre their content 15px apart, and
+     navigating between them shifts every line of text sideways. */
+  scrollbar-gutter: stable;
 }
 
 body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font-family: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   text-rendering: optimizeLegibility;
 }
 
@@ -197,7 +201,7 @@ button {
 }
 
 .heading-font {
-  font-family: "Nunito Sans Variable", "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-nunito-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 }
 
 .landing-shell {
@@ -554,6 +558,65 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
   }
 }
 
+/* ── Motion ──────────────────────────────────────────────────────────────
+ *
+ * Four categories. Every animation in the app is one of them, and the
+ * category decides the duration — nothing picks its own number.
+ *
+ *   enter   was not there, now is        `.motion-enter`        --dur-base
+ *   exit    was there, now going         `.motion-exit`         --dur-fast
+ *   move    stays, changes size or place `.reveal`, `.snap-*`   --dur-slow
+ *   state   a control under the pointer  `.press`, the buttons  --dur-fast
+ *
+ * Five rules keep it one system instead of five people's animations:
+ *
+ *  1. Enter is slower than exit. Arriving content has to be read; leaving
+ *     content has already been decided about.
+ *  2. Nothing scales. Scaling text re-rasterizes it, and the blur is plainly
+ *     visible on CJK glyphs at 13–15px. Things move and fade instead.
+ *  3. Enter and exit touch only `opacity` and `transform`, so neither can
+ *     cost a layout. `block-size` animates in exactly one place — `.reveal`,
+ *     where growing out of the row's own edge is the entire point.
+ *  4. The distance is always 4px. Motion says where something came from; it
+ *     is not a journey.
+ *  5. Every rule's end state is the static layout, so collapsing durations
+ *     under `prefers-reduced-motion` yields the same pixels, not a
+ *     different design.
+ */
+
+@keyframes motion-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* `both` so the from-state applies before the first frame — without it the
+   element paints once at full opacity and then jumps back to start. */
+.motion-enter {
+  animation: motion-enter var(--dur-base) var(--ease-out) both;
+}
+
+/* Exit has no keyframes because React removes the node before they could
+   run. This is for the cases that fade a node that stays mounted. */
+.motion-exit {
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+/* A live region is the "enter" category by definition: it exists to announce
+   that something just happened, so it is never on the page before it does.
+   This is why enter needs no per-component wiring — the accessibility markup
+   already identifies every node that appears in response to an action. */
+[role="alert"],
+[role="status"] {
+  animation: motion-enter var(--dur-base) var(--ease-out) both;
+}
+
 /* A pressable surface: lifts a hair on hover, meets the finger on press. */
 .press {
   transition:
@@ -583,15 +646,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  *,
-  *::before,
-  *::after {
     scroll-behavior: auto !important;
-    transition-duration: 0.01ms !important;
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
   }
 }
 

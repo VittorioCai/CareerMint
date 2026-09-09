@@ -124,7 +124,7 @@ export function FactEditor({
             </div>
           ) : null}
           {fact.sourceExcerpt ? (
-            <details className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
+            <details className="reveal rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
               <summary className="cursor-pointer text-xs font-black">查看原始证据</summary>
               <p className="mt-2 whitespace-pre-wrap break-words text-xs font-medium leading-5 text-[var(--ink-muted)]">
                 {fact.sourceExcerpt}
