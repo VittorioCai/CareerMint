@@ -113,7 +113,11 @@ export function FactEditor({
           </p>
           {data.startDate || data.endDate ? (
             <p className="text-xs font-bold text-[var(--ink-muted)]">
-              {data.startDate ?? "未填写"} — {data.endDate ?? "至今"}
+              {data.startDate && data.endDate
+                ? `${data.startDate} — ${data.endDate}`
+                : data.startDate
+                  ? `${data.startDate} 至今`
+                  : `截至 ${data.endDate}`}
             </p>
           ) : null}
           {data.skills.length > 0 ? (

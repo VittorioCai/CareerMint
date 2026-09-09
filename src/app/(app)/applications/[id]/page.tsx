@@ -74,7 +74,7 @@ function first(value: string | string[] | undefined) {
 }
 
 function formatDate(value: string | null) {
-  if (!value) return "未记录";
+  if (!value) return null;
   return new Intl.DateTimeFormat("zh-CN", {
     year: "numeric",
     month: "long",
@@ -92,26 +92,38 @@ function Overview({ application }: { application: Application }) {
             what fits in a third of that. This is a description list, so it is
             marked up as one. */}
         <dl className="dense-surface grid self-start sm:grid-cols-2 sm:divide-x sm:divide-[var(--line)]">
-          {[
-            ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
-            ["阶段开始", formatDate(application.stageChangedAt)],
-            ["首次投递", formatDate(application.appliedAt)],
-            ["办公方式", WORKPLACE_MODE_LABELS[application.workplaceMode]],
-            ["来源", application.source ?? "未填写"],
-            ["下一步", application.nextAction ?? "尚未设置"],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
-            >
-              <dt className="shrink-0 type-eyebrow text-[var(--ink-muted)]">
-                {label}
-              </dt>
-              <dd className="min-w-0 break-words text-right text-sm font-semibold">
-                {value}
-              </dd>
-            </div>
-          ))}
+          {/* A row appears when there is a value for it. 来源：未填写 is a
+              row that costs a line to report an absence the reader can see
+              from the row not being there. */}
+          {(
+            [
+              ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
+              ["阶段开始", formatDate(application.stageChangedAt)],
+              ["首次投递", formatDate(application.appliedAt)],
+              [
+                "办公方式",
+                application.workplaceMode === "unspecified"
+                  ? null
+                  : WORKPLACE_MODE_LABELS[application.workplaceMode],
+              ],
+              ["来源", application.source],
+              ["下一步", application.nextAction],
+            ] satisfies [string, string | null][]
+          )
+            .filter((entry): entry is [string, string] => Boolean(entry[1]))
+            .map(([label, value]) => (
+              <div
+                key={label}
+                className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
+              >
+                <dt className="shrink-0 type-eyebrow text-[var(--ink-muted)]">
+                  {label}
+                </dt>
+                <dd className="min-w-0 break-words text-right text-sm font-semibold">
+                  {value}
+                </dd>
+              </div>
+            ))}
         </dl>
         <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.12em]">更新进度</p>

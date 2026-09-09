@@ -100,7 +100,9 @@ export default async function DashboardPage() {
           {profile.displayName ? `${profile.displayName}，继续推进` : "继续推进你的求职"}
         </h1>
         <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-          当前目标：{profile.targetRole ?? "尚未填写目标岗位"}
+          {profile.targetRole
+            ? `当前目标：${profile.targetRole}`
+            : "还没有设定目标岗位，可以在账户设置里补上。"}
         </p>
       </div>
       <div className="mt-8">{primaryState}</div>

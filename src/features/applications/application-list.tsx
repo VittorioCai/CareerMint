@@ -77,10 +77,20 @@ function ApplicationCard({
         <h3 className="mt-1 break-words text-sm font-semibold leading-5">
           {application.roleTitle}
         </h3>
-        <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
-          {application.location ? <span>{application.location}</span> : null}
-          <span>· {WORKPLACE_MODE_LABELS[application.workplaceMode]}</span>
-        </div>
+        {/* Neither of these is guaranteed, and "未说明 · 未填写" is a line
+            that costs a row and says nothing. If there is no place and no
+            arrangement, the card simply does not carry that line. */}
+        {application.location || application.workplaceMode !== "unspecified" ? (
+          <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
+            {application.location ? <span>{application.location}</span> : null}
+            {application.workplaceMode !== "unspecified" ? (
+              <span>
+                {application.location ? "· " : null}
+                {WORKPLACE_MODE_LABELS[application.workplaceMode]}
+              </span>
+            ) : null}
+          </div>
+        ) : null}
         <p className="mt-3 border-t border-[var(--line)] pt-2 text-xs font-semibold text-[var(--ink-muted)]">
           更新于 {formatDate(application.updatedAt)}
         </p>
@@ -156,13 +166,13 @@ export function ApplicationList({
                   </Link>
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
-                  {application.location ?? "未填写"}
+                  {application.location ?? <span aria-label="没有填写">–</span>}
                 </td>
                 <td className="px-4 py-4">
                   <StageChip stage={application.stage} />
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
-                  {application.source ?? "未填写"}
+                  {application.source ?? <span aria-label="没有填写">–</span>}
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {formatDate(application.updatedAt)}

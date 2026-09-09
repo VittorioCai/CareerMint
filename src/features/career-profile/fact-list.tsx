@@ -24,12 +24,17 @@ const labels = {
 } as const;
 
 export function FactList({ facts }: { facts: CareerFact[] }) {
-  const counts = Object.fromEntries(
-    Object.keys(labels).map((type) => [
+  // Only the categories that have something in them. Nine sections for one
+  // fact meant eight boxes reading 暂时没有这类事实 — a placeholder rendered as
+  // content, contradicting the empty state's own promise that categories
+  // appear once there is something to put in them.
+  const groups = Object.entries(labels)
+    .map(([type, label]) => ({
       type,
-      facts.filter((fact) => fact.factType === type).length,
-    ]),
-  );
+      label,
+      facts: facts.filter((fact) => fact.factType === type),
+    }))
+    .filter((group) => group.facts.length > 0);
   const actions = {
     confirm: confirmFactAction,
     markNeedsDetail: markNeedsDetailAction,
@@ -40,27 +45,25 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
   return (
     <div
       className={`mt-6 grid min-w-0 gap-5 ${
-        facts.length ? "xl:grid-cols-[230px_minmax(0,1fr)]" : ""
+        groups.length > 1 ? "xl:grid-cols-[230px_minmax(0,1fr)]" : ""
       }`}
     >
-      {facts.length ? (
-      <aside className="soft-surface h-fit p-4 xl:sticky xl:top-24">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">档案分类</p>
+      {/* An index of one entry is not an index — it is the heading below it,
+          printed twice. */}
+      {groups.length > 1 ? (
+      <nav className="soft-surface h-fit p-4 xl:sticky xl:top-24" aria-label="档案分类">
+        <p className="type-eyebrow text-[var(--ink-muted)]">档案分类</p>
         <ul className="mt-3 divide-y divide-[var(--line)]">
-          {Object.entries(labels).map(([type, label]) => (
-            <li key={type} className="flex items-center justify-between gap-3 py-2.5 text-sm font-medium">
-              <a href={`#facts-${type}`} className="underline-offset-4 hover:underline">{label}</a>
-              <span
-                className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                  counts[type] ? "bg-[var(--canvas)]" : "text-[var(--ink-muted)]"
-                }`}
-              >
-                {counts[type] ?? 0}
+          {groups.map((group) => (
+            <li key={group.type} className="flex items-center justify-between gap-3 py-2.5 text-sm font-medium">
+              <a href={`#facts-${group.type}`} className="text-action underline-offset-4 hover:underline">{group.label}</a>
+              <span className="rounded-full bg-[var(--canvas)] px-2 py-0.5 text-xs font-semibold">
+                {group.facts.length}
               </span>
             </li>
           ))}
         </ul>
-      </aside>
+      </nav>
       ) : null}
 
       <div className="min-w-0">
@@ -83,28 +86,19 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
           </div>
         ) : (
           <div className="mt-4 space-y-5">
-            {Object.entries(labels).map(([type, label]) => {
-              const groupedFacts = facts.filter(
-                (fact) => fact.factType === type,
-              );
-              return (
-                <section key={type} id={`facts-${type}`} className="scroll-mt-24">
-                  <div className="flex items-center justify-between gap-3 rounded-t-2xl border border-b-0 border-[var(--line)] bg-[var(--canvas)] px-4 py-3">
-                    <h2 className="heading-font text-lg font-semibold">{label}</h2>
-                    <span className="text-xs font-semibold text-[var(--ink-muted)]">{groupedFacts.length} 条</span>
-                  </div>
-                  {groupedFacts.length > 0 ? (
-                    <div className="overflow-hidden rounded-b-2xl border border-[var(--line)]">
-                      {groupedFacts.map((fact) => (
-                        <FactEditor key={fact.id} fact={fact} actions={actions} />
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="rounded-b-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-5 text-sm font-medium text-[var(--ink-muted)]">暂时没有这类事实。</p>
-                  )}
-                </section>
-              );
-            })}
+            {groups.map((group) => (
+              <section key={group.type} id={`facts-${group.type}`} className="scroll-mt-24">
+                <div className="flex items-center justify-between gap-3 rounded-t-2xl border border-b-0 border-[var(--line)] bg-[var(--canvas)] px-4 py-3">
+                  <h2 className="heading-font text-lg font-semibold">{group.label}</h2>
+                  <span className="text-xs font-semibold text-[var(--ink-muted)]">{group.facts.length} 条</span>
+                </div>
+                <div className="overflow-hidden rounded-b-2xl border border-[var(--line)]">
+                  {group.facts.map((fact) => (
+                    <FactEditor key={fact.id} fact={fact} actions={actions} />
+                  ))}
+                </div>
+              </section>
+            ))}
           </div>
         )}
       </div>

@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 
 import type { SourceAssetStatus } from "./asset-usage";
 
-const DELETE_ERRORS: Record<number, string> = {
+export const resumeFileDeleteErrorCopy: Record<number, string> = {
   409: "这个文件还在被其他记录占用，暂时无法删除。",
 };
 
@@ -60,7 +60,7 @@ export function ResumeFileDeleteControl({
         onDeleted();
         return;
       }
-      setError(DELETE_ERRORS[response.status] ?? "文件没有删除成功，请重试。");
+      setError(resumeFileDeleteErrorCopy[response.status] ?? "文件没有删除成功，请重试。");
     });
   }
 

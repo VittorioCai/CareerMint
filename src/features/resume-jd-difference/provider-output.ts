@@ -167,7 +167,9 @@ function repairRequirement(value: unknown) {
     jdTerms: clampTextArray(raw.jdTerms, 160, 12),
     importanceReasonZh: clampText(raw.importanceReasonZh, 600) ?? "岗位描述中的要求。",
     priority: oneOf(raw.priority, differencePrioritySchema.options, "important"),
-    translationZh: clampText(raw.translationZh, 1_500) ?? "（暂无中文翻译）",
+    translationZh:
+      clampText(raw.translationZh, 1_500) ??
+      "这段岗位原文没有生成中文解释，重新分析可以再试一次。",
     assessment: oneOf(raw.assessment, ASSESSMENTS, "needs_confirmation"),
     resumeSegmentId,
     profileFactIds: (Array.isArray(raw.profileFactIds) ? raw.profileFactIds : [])
@@ -189,9 +191,13 @@ export function repairProviderOutput(value: unknown): unknown {
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     .slice(0, 24);
   return {
-    missionZh: clampText(raw.missionZh, 800) ?? "（暂无岗位使命判断）",
+    missionZh:
+      clampText(raw.missionZh, 800) ??
+      "这次没有得出岗位核心任务的判断，重新分析可以再试一次。",
     coreCapabilities: clampTextArray(raw.coreCapabilities, 240, 5),
-    overallSummaryZh: clampText(raw.overallSummaryZh, 1_000) ?? "（暂无总体判断）",
+    overallSummaryZh:
+      clampText(raw.overallSummaryZh, 1_000) ??
+      "这次没有得出总体判断，重新分析可以再试一次。",
     requirements,
   };
 }

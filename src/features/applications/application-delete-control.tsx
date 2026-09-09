@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 
 import type { ApplicationActionState } from "./actions";
 
-const DELETE_ERRORS: Record<string, string> = {
+export const applicationDeleteErrorCopy: Record<string, string> = {
   "application-not-found": "记录不存在或已被删除。",
   "deletion-confirmation-required": "请先确认删除这条记录。",
   "invalid-input": "删除请求无效，请刷新页面后重试。",
@@ -78,7 +78,7 @@ export function ApplicationDeleteControl({
         return;
       }
       const code = "error" in result ? result.error : "application-action-failed";
-      setError(DELETE_ERRORS[code] ?? DELETE_ERRORS["application-action-failed"]);
+      setError(applicationDeleteErrorCopy[code] ?? applicationDeleteErrorCopy["application-action-failed"]);
     });
   }
 

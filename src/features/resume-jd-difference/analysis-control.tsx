@@ -51,7 +51,7 @@ export type ResumeJDDifferenceAnalysisControlProps = {
   ocrPdf?: DifferenceBrowserOcrHook;
 };
 
-const errorCopy: Record<string, string> = {
+export const errorCopy: Record<string, string> = {
   "ai-processing-consent-required":
     "需要先允许 AI 处理 JD 与简历，授权后再试。",
   "resume-source-required": "请先选择一份对照简历。",
@@ -61,7 +61,8 @@ const errorCopy: Record<string, string> = {
   "resume-parse-failed":
     "无法读取这份简历。请回到简历页检查预览或重新上传。",
   "source-download-failed": "无法下载这份私有简历，请稍后重试。",
-  "resume-jd-difference-unavailable": "分析服务尚未配置或暂时不可用。",
+  "resume-jd-difference-unavailable":
+    "分析服务暂时不可用，与你上传的材料无关。稍后重新分析；如果一直这样，请联系我们。",
   "resume-jd-difference-invalid-output":
     "分析结果没有通过完整性检查，请重新分析。",
   "resume-jd-difference-evidence-invalid":
@@ -70,7 +71,8 @@ const errorCopy: Record<string, string> = {
   "ai-rate-limited": "分析请求较多，请稍后再试。",
   "ai-request-failed": "分析服务请求失败，请稍后再试。",
   "resume-jd-difference-request-failed": "分析请求失败，请稍后重试。",
-  "resume-jd-difference-failed": "分析没有完成，请重新尝试。",
+  "resume-jd-difference-failed":
+    "分析中途失败了，没有产生结果。重新分析一次；如果仍然失败，请到简历页检查提取出的文字是否完整。",
   "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
   "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
   "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
@@ -206,7 +208,9 @@ function AnalysisControlState({
   // Once the paste box is open the upload error is stale advice — it tells the
   // user to go back and re-upload, which is the opposite of what they are doing.
   const visibleError =
-    error && !pasteOpen ? errorCopy[error] ?? "分析没有完成，请重新尝试。" : null;
+    error && !pasteOpen
+      ? errorCopy[error] ?? errorCopy["resume-jd-difference-failed"]
+      : null;
 
   const canPasteText =
     error === "resume-text-insufficient" || error === "resume-parse-failed";

@@ -1,5 +1,9 @@
 import { notFound } from "next/navigation";
 
+import { ApplicationList } from "@/features/applications/application-list";
+import type { Application } from "@/features/applications/schemas";
+import { FactList } from "@/features/career-profile/fact-list";
+import type { CareerFact } from "@/features/career-profile/schemas";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
 import type { ResumeJDDifferenceRun } from "@/features/resume-jd-difference/repository";
 import type { ResumeJDDifferenceOutput } from "@/features/resume-jd-difference/schemas";
@@ -147,6 +151,72 @@ function State({
   );
 }
 
+/** A record with everything filled in, so the variants can take things away. */
+function application(
+  index: number,
+  overrides: Partial<Application> = {},
+): Application {
+  const now = "2026-09-01T09:00:00.000Z";
+  return {
+    id: `22222222-2222-4222-8222-${String(index).padStart(12, "0")}`,
+    userId: "33333333-3333-4333-8333-333333333333",
+    companyName: "Northstar GmbH",
+    roleTitle: "Product Analyst",
+    location: "Berlin, DE",
+    workplaceMode: "hybrid",
+    source: "LinkedIn",
+    jobUrl: "https://example.com/jobs/1",
+    jdText: shortJd,
+    stage: (["preparing", "applied", "hr", "interview", "offer", "rejected", "withdrawn"] as const)[
+      index % 7
+    ],
+    stageChangedAt: now,
+    appliedAt: now,
+    nextAction: "跟进招聘经理",
+    nextActionDueAt: now,
+    resumeSourceAssetId: null,
+    createdAt: now,
+    updatedAt: now,
+    ...overrides,
+  };
+}
+
+function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
+  return {
+    id: `55555555-5555-4555-8555-${String(index).padStart(12, "0")}`,
+    userId: "33333333-3333-4333-8333-333333333333",
+    sourceAssetId: null,
+    factType: "work_experience",
+    data: {
+      title: `跨部门业务复盘 ${index + 1}`,
+      organization: "Northstar GmbH",
+      startDate: "2024-01",
+      endDate: "2025-06",
+      description: "每季度与销售和运营复盘转化数据，输出改进项并跟踪落地情况。",
+      skills: ["SQL", "数据分析"],
+    },
+    sourceExcerpt: "Ran quarterly reviews with sales and operations.",
+    confirmationStatus: "confirmed",
+    confirmedAt: "2026-09-01T09:00:00.000Z",
+    ...overrides,
+  };
+}
+
+// A real German company name, not lorem: 63 characters, and the kind of thing
+// a user pastes from an actual posting.
+const longCompany =
+  "Norddeutsche Landesbank Girozentrale Digital Solutions GmbH & Co. KG";
+
+// The fixtures are not wired to anything: this page renders states, it does
+// not exercise them.
+async function noopDelete(formData: FormData) {
+  "use server";
+  return {
+    ok: true as const,
+    applicationId: String(formData.get("applicationId") ?? ""),
+  };
+}
+
 export default function DevStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -275,6 +345,108 @@ export default function DevStatesPage() {
             run={run(output())}
             facts={facts}
             stale
+          />
+        </State>
+
+        <State name="投递列表 · 空" note="新账号看到的第一屏">
+          <ApplicationList
+            applications={[]}
+            view="table"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State name="投递列表 · 一条（表格）" note="表格是默认，因为它撑得住一条">
+          <ApplicationList
+            applications={[application(0)]}
+            view="table"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State
+          name="投递列表 · 一条（看板）"
+          note="同样一条记录的看板：七列，六列是空的。这就是表格作默认的理由"
+        >
+          <ApplicationList
+            applications={[application(0)]}
+            view="board"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State
+          name="投递列表 · 字段缺失"
+          note="没有地点、没有来源、没有下一步 —— 占位符不该当内容渲染"
+        >
+          <ApplicationList
+            applications={[
+              application(1, {
+                location: null,
+                source: null,
+                jobUrl: null,
+                nextAction: null,
+                nextActionDueAt: null,
+                appliedAt: null,
+              }),
+            ]}
+            view="table"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State
+          name="投递列表 · 超长公司名"
+          note="68 个字符的真实德国公司名，看板列宽和表格单元格都要撑得住"
+        >
+          <ApplicationList
+            applications={[
+              application(2, {
+                companyName: longCompany,
+                roleTitle:
+                  "Senior Product Analyst, Marketplace Growth & Retention (m/w/d)",
+              }),
+            ]}
+            view="board"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State name="投递列表 · 二十条" note="密度上限：分组、排序和横向滚动">
+          <ApplicationList
+            applications={Array.from({ length: 20 }, (_, index) =>
+              application(index + 3),
+            )}
+            view="board"
+            deleteApplication={noopDelete}
+          />
+        </State>
+
+        <State name="职业档案 · 空" note="一条路径，不是两个并列的主按钮">
+          <FactList facts={[]} />
+        </State>
+
+        <State name="职业档案 · 一条" note="分类只在有内容之后出现">
+          <FactList facts={[fact(0)]} />
+        </State>
+
+        <State
+          name="职业档案 · 单类五十条"
+          note="全在一个分类里：计数、折叠和滚动是否还站得住"
+        >
+          <FactList facts={Array.from({ length: 50 }, (_, index) => fact(index))} />
+        </State>
+
+        <State
+          name="职业档案 · 待确认与缺细节"
+          note="三种确认状态并排，颜色是否还分得开"
+        >
+          <FactList
+            facts={[
+              fact(0, { confirmationStatus: "confirmed" }),
+              fact(1, { confirmationStatus: "pending", confirmedAt: null }),
+              fact(2, { confirmationStatus: "needs_detail", confirmedAt: null }),
+            ]}
           />
         </State>
       </div>

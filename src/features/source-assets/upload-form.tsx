@@ -23,17 +23,21 @@ const defaultOcrPdf = async (
   return extractScannedPdfText(file, options);
 };
 
-const errorCopy: Record<string, string> = {
+export const uploadErrorCopy: Record<string, string> = {
   "empty-file": "这个文件是空的，请选择另一份简历。",
   "file-too-large": "文件超过 10 MiB，请压缩后重试。",
-  "unsupported-content-type": "目前只支持 PDF 和 DOCX 文件。",
-  "unsupported-file-signature": "文件内容与支持的简历格式不符。",
-  "content-type-mismatch": "文件扩展名和实际内容不一致。",
+  "unsupported-content-type":
+    "这个格式读不了，目前只支持 PDF 和 DOCX。请另存为其中一种再上传。",
+  "unsupported-file-signature":
+    "文件内容看起来不是 PDF 或 DOCX，扩展名可能被改过。请用原始文件重新上传。",
+  "content-type-mismatch":
+    "扩展名和文件实际内容对不上。请从原始软件重新导出一份再上传。",
   "missing-file": "请先选择一份简历。",
   unauthorized: "登录已失效，请重新登录。",
   "upload-failed": "上传没有完成，请重试。",
   "resume-extraction-request-failed": "分析暂时没有完成，请重新尝试。",
-  "resume-text-too-short": "简历文字太少，无法完成分析。",
+  "resume-text-too-short":
+    "只读到很少的文字，这份多半是扫描件或图片型 PDF。可以在简历页用本地识别，或上传文字版简历。",
   "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
   "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
   "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
@@ -251,7 +255,10 @@ export function UploadForm({
     } catch (caught) {
       const code = errorCode(caught);
       setPhase("failed");
-      setError(errorCopy[code] ?? "分析暂时没有完成，请重新尝试。");
+      setError(
+        uploadErrorCopy[code] ??
+          uploadErrorCopy["resume-extraction-request-failed"],
+      );
     }
   }
 
@@ -259,14 +266,14 @@ export function UploadForm({
     ocrAbortControllerRef.current?.abort();
     setPhase("failed");
     setOcrProgress(null);
-    setError(errorCopy.AbortError);
+    setError(uploadErrorCopy.AbortError);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const file = inputRef.current?.files?.[0];
     if (!file) {
-      setError(errorCopy["missing-file"]);
+      setError(uploadErrorCopy["missing-file"]);
       return;
     }
 
@@ -301,7 +308,7 @@ export function UploadForm({
     } catch (caught) {
       const code = caught instanceof Error ? caught.message : "";
       setPhase("failed");
-      setError(errorCopy[code] ?? "上传失败，请稍后重试。");
+      setError(uploadErrorCopy[code] ?? "上传失败，请稍后重试。");
     }
   }
 
