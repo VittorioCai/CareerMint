@@ -333,7 +333,7 @@ export function UploadForm({
           />
           <label
             htmlFor="resume-source"
-            className="shrink-0 button-secondary cursor-pointer px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
+            className="button-secondary inline-flex shrink-0 cursor-pointer items-center justify-center px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
           >
             选择文件
           </label>

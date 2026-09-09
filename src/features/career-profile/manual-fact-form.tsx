@@ -70,7 +70,7 @@ export function ManualFactForm({
     return trigger === "link" ? (
       <button
         type="button"
-        className="text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:decoration-[var(--ink)]"
+        className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:decoration-[var(--ink)]"
         onClick={() => setOpen(true)}
       >
         手动写下第一条

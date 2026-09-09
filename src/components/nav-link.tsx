@@ -21,6 +21,7 @@ function NavigationIcon({ href }: { href: string }) {
 type NavLinkProps = {
   href: string;
   label: string;
+  /** A tab in the phone's bottom bar rather than a row in the sidebar. */
   compact?: boolean;
 };
 
@@ -31,13 +32,33 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
       ? pathname === href
       : pathname === href || pathname.startsWith(`${href}/`);
 
+  const shared =
+    "flex shrink-0 transition-[background-color,box-shadow,color] duration-[var(--dur-fast)] ease-[var(--ease-out)]";
+
+  if (compact) {
+    return (
+      <Link
+        href={href}
+        aria-current={selected ? "page" : undefined}
+        // The whole cell is the target, so the thumb has 97px of width and
+        // 56px of height rather than the label's own box.
+        className={`${shared} min-h-14 flex-col items-center justify-center gap-1 text-[11px] ${
+          selected
+            ? "font-semibold text-[var(--ink)]"
+            : "font-medium text-[var(--ink-muted)]"
+        }`}
+      >
+        <NavigationIcon href={href} />
+        <span>{label}</span>
+      </Link>
+    );
+  }
+
   return (
     <Link
       href={href}
       aria-current={selected ? "page" : undefined}
-      className={`flex shrink-0 items-center gap-3 rounded-lg transition-[background-color,box-shadow,color] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${
-        compact ? "px-3 py-2.5 text-sm" : "px-3 py-2.5 text-sm"
-      } ${
+      className={`${shared} min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${
         selected
           ? "bg-[var(--paper)] font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
           : "font-medium text-[var(--ink-muted)] hover:bg-[color-mix(in_srgb,var(--paper)_60%,transparent)] hover:text-[var(--ink)]"

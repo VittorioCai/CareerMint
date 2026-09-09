@@ -115,7 +115,7 @@ export default async function DashboardPage() {
               投递进度一眼看清
             </h2>
           </div>
-          <Link href="/applications" className="text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4">
+          <Link href="/applications" className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4">
             查看全部投递 →
           </Link>
         </div>

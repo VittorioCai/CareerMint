@@ -88,8 +88,8 @@ export function AccountPreferencesForm({
         <button type="submit" className="button-primary min-h-11 px-5 text-sm font-semibold" disabled={busy}>
           {busy ? "保存中…" : "保存设置"}
         </button>
-        <Link href="/forgot-password" className="text-sm font-semibold underline underline-offset-4">修改密码</Link>
-        <Link href="/settings/privacy" className="text-sm font-semibold underline underline-offset-4">数据导出与删除</Link>
+        <Link href="/forgot-password" className="text-action text-sm font-semibold underline underline-offset-4">修改密码</Link>
+        <Link href="/settings/privacy" className="text-action text-sm font-semibold underline underline-offset-4">数据导出与删除</Link>
       </div>
     </form>
   );

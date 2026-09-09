@@ -55,8 +55,8 @@ export function ApplicationDeleteControl({
         className={compact
           // --ink-soft on white is 2.71:1, below the 4.5:1 floor. Muted is
           // 5.94:1 and still reads as secondary next to the role title.
-          ? "text-xs font-medium text-[var(--ink-muted)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[var(--danger)] hover:decoration-current focus-visible:text-[var(--danger)]"
-          : "press inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--danger-line)] hover:text-[var(--danger)]"}
+          ? "text-action text-xs font-medium text-[var(--ink-muted)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[var(--danger)] hover:decoration-current focus-visible:text-[var(--danger)]"
+          : "press text-action inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--danger-line)] hover:text-[var(--danger)]"}
       >
         删除记录
       </button>

@@ -415,7 +415,7 @@ export default async function ApplicationDetailPage({
             key={tab.id}
             href={`/applications/${application.id}?tab=${tab.id}`}
             aria-current={activeTab === tab.id ? "page" : undefined}
-            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm transition-[background-color,color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${activeTab === tab.id ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+            className={`segment shrink-0 ${activeTab === tab.id ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
           >
             {tab.label}
           </Link>

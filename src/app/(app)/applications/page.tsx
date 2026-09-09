@@ -63,7 +63,7 @@ export default async function ApplicationsPage({
         className="reveal group mt-7"
         open={Boolean(filter.q || filter.stage) || applications.length > 8}
       >
-        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
+        <summary className="press text-action inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
           筛选与搜索
           {filter.q || filter.stage ? (
             <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-semibold text-[var(--ink)]">
@@ -125,7 +125,7 @@ export default async function ApplicationsPage({
             key={view}
             href={viewHref(view, filter.q, filter.stage)}
             aria-current={filter.view === view ? "page" : undefined}
-            className={`rounded-lg px-3.5 py-1.5 text-sm transition-[background-color,color] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${
+            className={`segment ${
               filter.view === view
                 ? "bg-[var(--surface-muted)] font-semibold"
                 : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"

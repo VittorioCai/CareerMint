@@ -181,11 +181,15 @@ test("complete private career-profile foundation flow", async ({
   for (const label of ["首页", "我的投递", "职业档案", "面试题库"]) {
     await expect(page.getByRole("link", { name: label }).first()).toBeVisible();
   }
-  const sidebarColor = await page
-    .locator("aside[aria-label='主导航']")
-    .evaluate((element) => getComputedStyle(element).backgroundColor);
-  const ctaColor = await page
-    .locator("aside a[href='/applications/new']")
+  // The sidebar is a plain container now — the landmark is the <nav> inside
+  // it, since a sidebar holding the primary navigation is not a complementary
+  // region.
+  const sidebar = page.getByTestId("sidebar");
+  const sidebarColor = await sidebar.evaluate(
+    (element) => getComputedStyle(element).backgroundColor,
+  );
+  const ctaColor = await sidebar
+    .locator("a[href='/applications/new']")
     .evaluate((element) => getComputedStyle(element).backgroundColor);
   // Chrome recedes to the page's own ground, and the one action inside it is
   // the darkest thing there — the whole colour budget of the navigation panel.

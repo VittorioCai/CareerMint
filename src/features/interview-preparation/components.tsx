@@ -330,7 +330,7 @@ export function QuestionPreparationCard({
       ) : null}
 
       <details className="reveal mt-4 rounded-xl bg-[var(--canvas)] p-3">
-        <summary className="cursor-pointer text-sm font-semibold">准备回答</summary>
+        <summary className="text-action cursor-pointer text-sm font-semibold">准备回答</summary>
         <form onSubmit={savePreparation} className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
             准备状态
