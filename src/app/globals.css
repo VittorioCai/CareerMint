@@ -534,8 +534,14 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 
 /* A control that reads as text but is still a control: a link inside a row of
    actions, a disclosure heading. Nothing changes visually — the box grows to a
-   thumb's size on a phone and collapses back on a pointer device. */
-.text-action {
+   thumb's size on a phone and collapses back on a pointer device.
+ *
+ * The display change is scoped to anchors because they are the only ones that
+ * need it: `min-height` does nothing to the inline box an <a> gets by default,
+ * while a <button> is already inline-block and a <summary> is a list-item.
+ * Applying it to all three would silently take the disclosure triangle off
+ * every <summary> — ::marker only exists on a list-item. */
+a.text-action {
   display: inline-flex;
   align-items: center;
 }

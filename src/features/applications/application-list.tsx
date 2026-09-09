@@ -58,6 +58,23 @@ function StageChip({ stage }: { stage: ApplicationStage }) {
 
 type DeleteApplication = (formData: FormData) => Promise<ApplicationActionState>;
 
+/**
+ * A table cannot drop a cell, so an empty one is marked rather than blank.
+ *
+ * The dash is typographic only and hidden from the accessibility tree: a
+ * screen reader announcing "en dash" is worse than the empty cell it already
+ * announces correctly, and the column header has already said what is missing.
+ *
+ * Deliberately not `sr-only` text alongside it. That class is
+ * `position: absolute`, and with no positioned ancestor its containing block
+ * is the viewport — so it escapes the table's `overflow-x: auto`, keeps its
+ * static position 450px into an 820px-wide table, and widens the whole
+ * document. On a 390px phone that is 51px of sideways drift on every page.
+ */
+function NoValue() {
+  return <span aria-hidden="true">–</span>;
+}
+
 function ApplicationCard({
   application,
   deleteApplication,
@@ -166,13 +183,13 @@ export function ApplicationList({
                   </Link>
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
-                  {application.location ?? <span aria-label="没有填写">–</span>}
+                  {application.location ?? <NoValue />}
                 </td>
                 <td className="px-4 py-4">
                   <StageChip stage={application.stage} />
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
-                  {application.source ?? <span aria-label="没有填写">–</span>}
+                  {application.source ?? <NoValue />}
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {formatDate(application.updatedAt)}
