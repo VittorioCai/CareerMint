@@ -135,7 +135,10 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
       initialRun: { status: "succeeded", errorCode: null },
       freshness: "current",
     });
-    expect(screen.getByText(/分析已完成/u)).toBeVisible();
+    // With a result on screen the panel's headline states it; the control is
+    // reduced to the action, so the sticker does not say it twice.
+    expect(screen.queryByText(/分析已完成/u)).not.toBeInTheDocument();
+    expect(screen.queryByText(/对照：/u)).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "重新分析" })).toBeEnabled();
 
     rerender(

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReactNode } from "react";
 
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 
@@ -9,6 +10,13 @@ export type ResumeJDDifferencePanelProps = {
   applicationId: string;
   run: ResumeJDDifferenceRun | null;
   facts: ConfirmedFactForAnalysis[];
+  /**
+   * The analysis control. It lives inside this panel's sticker rather than
+   * beside it: "start the analysis" and "here is what it found" are two states
+   * of one object, and rendering them as two cards made the page open with two
+   * competing headers.
+   */
+  control?: ReactNode;
   stale?: boolean;
 };
 
@@ -294,18 +302,20 @@ export function ResumeJDDifferencePanel({
   applicationId,
   run,
   facts,
+  control,
   stale = false,
 }: ResumeJDDifferencePanelProps) {
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
-  if (!run || run.status !== "succeeded" || !run.result) {
+  const result = run && run.status === "succeeded" ? run.result : null;
+
+  if (!result || !run) {
     return (
-      <section className="soft-surface px-6 py-8 text-sm font-medium text-[var(--ink-muted)]">
-        尚未完成差异分析。选好对照简历后，点击“开始差异分析”。
+      <section className="sticker-border bg-[var(--cream)] px-6 py-7 shadow-[8px_8px_0_var(--ink)] sm:px-8">
+        {control}
       </section>
     );
   }
 
-  const result = run.result;
   const rows = buildRows(result);
   const counts = tally(rows);
 
@@ -366,6 +376,12 @@ export function ResumeJDDifferencePanel({
             </span>
           ))}
         </div>
+
+        {control ? (
+          <div className="mt-5 border-t border-[color-mix(in_srgb,var(--ink)_14%,transparent)] pt-5">
+            {control}
+          </div>
+        ) : null}
       </section>
 
       {/* What the job is actually asking for — a sentence, not three cells. */}

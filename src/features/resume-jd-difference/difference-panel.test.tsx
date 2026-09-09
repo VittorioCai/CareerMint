@@ -199,6 +199,42 @@ function succeededRun(): ResumeJDDifferenceRun {
 }
 
 describe("ResumeJDDifferencePanel", () => {
+  it("holds the analysis control inside the one sticker, with or without a result", () => {
+    const control = <button type="button">重新分析</button>;
+    const { container, rerender } = render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={null}
+        facts={facts}
+        control={control}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "重新分析" })).toBeVisible();
+    expect(container.querySelectorAll(".sticker-border")).toHaveLength(1);
+
+    rerender(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+        control={control}
+      />,
+    );
+
+    // One sticker either way: the conclusion and the control it belongs to are
+    // two states of the same object, not two cards.
+    const sticker = container.querySelector(".sticker-border")!;
+    expect(container.querySelectorAll(".sticker-border")).toHaveLength(1);
+    expect(within(sticker as HTMLElement).getByRole("button", { name: "重新分析" })).toBeVisible();
+    expect(within(sticker as HTMLElement).getByTestId("severity-tally")).toBeVisible();
+    expect(
+      within(sticker as HTMLElement).getByText(
+        "当前简历有数据经历，但岗位语言、场景和结果证据仍不完整。",
+      ),
+    ).toBeVisible();
+  });
+
   it("leads with the conclusion, then the job, then the rows", () => {
     const { container } = render(
       <ResumeJDDifferencePanel
@@ -209,7 +245,7 @@ describe("ResumeJDDifferencePanel", () => {
     );
     const text = container.textContent ?? "";
     const order = [
-      "当前简历有可回查内容",
+      "当前简历有数据经历",
       "这个岗位真正要什么",
       "逐条差异 · 按严重度排序",
       "下一步：查看完善建议",

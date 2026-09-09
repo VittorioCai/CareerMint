@@ -458,21 +458,23 @@ export default async function ApplicationDetailPage({
                 找出这份简历尚未覆盖、表达不清或无法证明的岗位重点。
               </p>
             </header>
-            <ResumeJDDifferenceAnalysisControl
-              applicationId={application.id}
-              asset={selectedResumeAsset}
-              initialRun={differenceView.current ? {
-                status: differenceView.current.status,
-                errorCode: differenceView.current.errorCode,
-              } : null}
-              freshness={differenceView.freshness}
-              hasPreviousResult={Boolean(differenceView.previousSucceeded)}
-            />
             <ResumeJDDifferencePanel
               applicationId={application.id}
               run={displayedDifferenceRun}
               facts={differenceFacts}
               stale={showingPreviousDifference}
+              control={
+                <ResumeJDDifferenceAnalysisControl
+                  applicationId={application.id}
+                  asset={selectedResumeAsset}
+                  initialRun={differenceView.current ? {
+                    status: differenceView.current.status,
+                    errorCode: differenceView.current.errorCode,
+                  } : null}
+                  freshness={differenceView.freshness}
+                  hasPreviousResult={Boolean(differenceView.previousSucceeded)}
+                />
+              }
             />
           </div>
         ) : null}

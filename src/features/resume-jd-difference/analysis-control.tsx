@@ -341,30 +341,39 @@ function AnalysisControlState({
           ? "本次分析没有完成"
           : "准备分析当前 JD 与这份简历";
 
+  // When a result is on screen the panel's own headline already names the
+  // resume and the state, so repeating them here would be the page saying the
+  // same thing twice inside one sticker. Only `completed` qualifies: a stale
+  // run shows no conclusion, so hiding this too would leave nothing explaining
+  // why the page is empty.
+  const resultOnScreen = completed;
+
   return (
-    <section
-      className="sticker-border overflow-hidden bg-[var(--mist-blue)] shadow-[5px_5px_0_var(--ink)]"
-      aria-labelledby="difference-control-title"
+    <div
+      className="grid gap-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center"
       aria-busy={busy}
     >
-      <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="status-chip bg-white">
-              {completed ? "✓" : stale ? "!" : busy ? "◌" : "→"} {statusCopy}
-            </span>
-            {reused ? (
-              <span className="text-xs font-black text-[var(--ink-muted)]">
-                已复用相同材料的结果
-              </span>
-            ) : null}
-          </div>
-          <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-black">
-            对照：{asset.originalName}
-          </h2>
-          <p className="mt-2 max-w-3xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-            一次分析会同时生成岗位核心判断、完整差异和后续完善方向；不会修改简历。
-          </p>
+          {resultOnScreen ? null : (
+            <>
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="status-chip bg-[var(--paper)]">
+                  {busy ? "◌" : "→"} {statusCopy}
+                </span>
+              </div>
+              <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-black">
+                对照：{asset.originalName}
+              </h2>
+              <p className="mt-2 max-w-3xl text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
+                一次分析会同时生成岗位核心判断、完整差异和后续完善方向；不会修改简历。
+              </p>
+            </>
+          )}
+          {reused ? (
+            <p className="text-xs font-semibold text-[var(--ink-muted)]">
+              已复用相同材料的结果
+            </p>
+          ) : null}
           {visibleError ? (
             <p role="alert" className="mt-3 text-sm font-black text-[var(--error)]">
               {visibleError}
@@ -496,7 +505,7 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="button-primary min-h-11 min-w-36 px-5 text-sm font-black disabled:cursor-wait disabled:opacity-65"
+          className="button-primary inline-flex min-h-11 min-w-36 items-center justify-center rounded-full px-5 text-sm font-extrabold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >
@@ -508,7 +517,6 @@ function AnalysisControlState({
                 ? "重新分析"
                 : "开始差异分析"}
         </button>
-      </div>
-    </section>
+    </div>
   );
 }
