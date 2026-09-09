@@ -19,6 +19,24 @@
 
 ---
 
+## 现状（2026-09-09）
+
+| 阶段 | 状态 | 检验 |
+|---|---|---|
+| 0 清场 | ✅ | 手算对比度 |
+| 1 无障碍 CI | ✅ | `accessibility-floor.spec.ts` —— 双主题对比度 + 焦点环**比值**（不只是有无）+ 对话框焦点陷阱（`dialog-focus.spec.ts`） |
+| 2 状态矩阵 | ✅ | `/dev/states` 13 格：差异分析 6、投递列表 6、职业档案 4 |
+| 3 排版系统 | ✅ | `typography-floor.spec.ts` —— 以 `em` 量行长，一个数同时满足中英 |
+| 4 暗色 | ✅ | 阶段 1 脚本在暗色下同样跑 |
+| 5 动效 + 零跳动 | ✅ | CLS = 0，进 CI（`performance-budget.spec.ts`） |
+| 6 移动端 | ✅ | `mobile-layout.spec.ts` —— chrome 高度、触控目标、横向溢出、五个断点各一个主导航 |
+| 7 文案（可自动检验的部分） | ✅ | `copy-floor.spec.ts` + `error-copy.test.ts` |
+| 7 文案（人工部分） | ⬜ | 语气、空状态是否指向下一步、中英标点 —— 需要人逐条签字 |
+| 附 性能 | ◐ | 字节预算和 CLS 进 CI；LCP / TBT **故意不进** —— 共享 runner 量不准，见 spec 头部 |
+| 8 英文版 | ⬜ | 见下 |
+
+---
+
 ## 阶段 0 · 清场（半天）
 
 两个是我改版时制造的，一个是一直都在的。先清掉再往前走。
@@ -145,19 +163,40 @@ Apple 把无障碍当约束，不当加分项。现在这个项目没有任何�
 
 Apple 那一档里，"感觉快"和"看起来对"是同一件事。这几项不属于任何视觉阶段，但会直接毁掉观感：
 
-- **OCR 负载 32MB**（`public/ocr`，两个 PaddleOCR tiny 模型 + ORT wasm）。首次使用扫描版 PDF 的用户要等这个下载完。之前已经从 56MB 压到 32MB，还有空间。
+- ~~**OCR 负载 32MB**~~ —— 量过了，实际上线是 **11.4 MB**（gzip：runtime 25.6→6.0，模型 5.4）。且原本 `max-age=0`，每次会话都要重新验证；现在按版本目录 `immutable` 缓存，第二次为零。
+  **还想省的那一半省不掉**：`ort-wasm-simd-threaded.wasm`（12.9 MB）比 `.jsep`（25.6 MB）小一半，本应用 `backend: "wasm"` 从不碰 GPU。但 paddleocr-js 用一个 11 MB 的预打包 worker 跑推理，JSEP runtime 内联在里面、文件名写死，bundler alias 进不去（按 URL 取的文件）。删掉 `.jsep` 会让两个 `@real-ocr` 测试双双失败 —— 这是试出来的，不是推出来的。库确实暴露了 `createWorker`，但要自己实现整套 worker 协议。
 - **预算**：LCP < 2.0s、CLS = 0、TBT < 200ms，在 4× CPU 降速 + Fast 3G 下测。
 - **差异分析 32–49 秒**，而 fetch 超时是 50 秒 —— 这个余量太薄，一次网络抖动就是失败。属于功能问题，但用户体验到的是"这个产品不可靠"。
 
-**验收**：Lighthouse 在 CI 里跑，预算写死，超了就红。
+**验收**：`pnpm test:e2e:perf` 在 CI 里跑 —— CLS 和传输字节，对着 production build 量（dev server 不压缩，字节预算量它没有意义）。LCP 和 TBT 故意不设门：共享 runner 量不出可重复的时间，一个会被邻居噪声搞红的预算只会教所有人重跑。本地用 Lighthouse 对同一个 server 量，4× CPU + Fast 3G。
 
 ---
 
-## 阶段 8 · 英文版
+## 阶段 8 · 英文版 —— 未做，且它不是字符串抽取
 
-排版系统（阶段 3）和状态矩阵（阶段 2）做完之后再做，字符串抽取一次到位，避免翻译了又被改版删掉的内容。
+排版（3）和状态矩阵（2）已经做完，本来该轮到这里。查完之后没做，理由要写清楚，因为它改变了这一阶段的性质。
 
-已有 `docs/superpowers/specs/2026-08-30-english-default-and-interaction-polish-design.md`（307 行）和配套 785 行计划，但都写在这轮改版之前，需要先对齐。
+**规模**：58 个文件，852 条不同的中文字符串字面量。这部分是体力活。
+
+**真正的阻碍不在这里，在数据模型里。** 输出语言被写死在四层：
+
+| 层 | 证据 |
+|---|---|
+| 数据库列 | `translation_zh`、`jd_translation_zh`、`reason_zh`、`user_question_zh`、`candidate_translation_zh`、`target_jd_translation_zh` |
+| 列约束 | `202608240002_workspace_consistency.sql` 的 `security definer` RPC 里对 `candidate_translation_zh` 做长度校验 |
+| TS schema | 14 个 `Zh` 后缀字段：`translationZh` `missionZh` `resumeStatusZh` `directionZh` … |
+| Prompt 契约 | `prompts.ts:22`「所有解释和方向使用简体中文」，且 JSON 示例逐字段写着「中文…」 |
+
+导出（`privacy/export.ts`）和 Markdown 写出（`markdown.ts`）也都按这些字段名走。
+
+所以英文版有两条路，都不是 UI 层的事：
+
+1. **重命名**：`_zh` → 语言无关的列名，加一列 `output_language`。要动迁移、RPC、schema、prompt、导出契约和 Markdown。
+2. **不重命名**：英文用户的分析结果存进名叫 `translation_zh` 的列。能跑，但从此每个读这段代码的人都要先被骗一次。
+
+**建议**：走第 1 条，并且**在写第一行 i18n 代码之前**做完。字符串抽取先做只会抽出一批马上要改名的字段。
+
+`docs/superpowers/specs/2026-08-30-english-default-and-interaction-polish-design.md`（307 行）和配套的 785 行计划写在这轮改版之前，且没有提到 `_zh` 这一层，需要先对齐再用。
 
 ---
 
