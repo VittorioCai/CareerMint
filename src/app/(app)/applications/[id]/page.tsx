@@ -409,13 +409,13 @@ export default async function ApplicationDetailPage({
         </div>
       </div>
 
-      <nav className="mt-7 flex flex-wrap gap-2 border-b border-[var(--line)] pb-3" aria-label="申请详情">
+      <nav className="mt-7 flex w-fit flex-wrap gap-1 rounded-[10px] bg-[var(--surface-muted)] p-1" aria-label="申请详情">
         {applicationDetailTabs.map((tab) => (
           <Link
             key={tab.id}
             href={`/applications/${application.id}?tab=${tab.id}`}
             aria-current={activeTab === tab.id ? "page" : undefined}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)] font-black" : "font-semibold text-[var(--ink-muted)]"}`}
+            className={`shrink-0 rounded-lg px-3.5 py-1.5 text-sm transition-[background-color,color,box-shadow] duration-[var(--dur-fast)] ease-[var(--ease-out)] ${activeTab === tab.id ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
           >
             {tab.label}
           </Link>
