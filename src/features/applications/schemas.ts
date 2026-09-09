@@ -125,10 +125,26 @@ export const stageChangeSchema = stageChangeFormSchema
 
 export type StageChangeInput = z.infer<typeof stageChangeSchema>;
 
+export const APPLICATION_VIEW_COOKIE = "applications-view";
+
+/**
+ * Which list view to render.
+ *
+ * Table is the fallback because it survives having one record: the board is
+ * seven columns wide, so at any realistic early volume it is mostly empty. The
+ * board becomes the view once the user asks for it — and having asked once,
+ * they should not have to ask again, so the choice outranks the fallback but
+ * not an explicit `?view=` in the URL, which is what a shared link carries.
+ */
+export function resolveApplicationView(
+  fromUrl: string | undefined,
+  remembered: string | undefined,
+): "board" | "table" {
+  const view = z.enum(["board", "table"]);
+  return view.safeParse(fromUrl).data ?? view.safeParse(remembered).data ?? "table";
+}
+
 export const applicationFilterSchema = z.object({
-  // Table is the default because it survives having one record. The board is
-  // seven columns wide, so at any realistic early volume it is mostly empty —
-  // it becomes the view once the user asks for it.
   view: z.enum(["board", "table"]).catch("table").default("table"),
   q: z
     .preprocess(

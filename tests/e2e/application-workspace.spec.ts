@@ -241,3 +241,49 @@ test("gives board columns room for a real company name", async ({ page }) => {
     await admin.auth.admin.deleteUser(userId);
   }
 });
+
+test("remembers the board once it has been asked for", async ({ page }) => {
+  test.setTimeout(120_000);
+  const { admin, account } = clients();
+  const { email, userId } = await createUser(admin);
+
+  try {
+    await prepareAccount(page, account, email, userId);
+    await createApplication(page, "Northstar GmbH", "Product Analyst");
+
+    // Table is what a new account lands on.
+    await page.goto("/applications");
+    await expect(page.getByRole("button", { name: "表格" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    await page.getByRole("button", { name: "看板" }).click();
+    await expect(page.getByRole("button", { name: "看板" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+
+    // Leaving and coming back must not throw the choice away — that is the
+    // whole difference between a preference and a query parameter.
+    await page.goto("/app");
+    await page.goto("/applications");
+    await expect(page.getByRole("button", { name: "看板" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    await expect(
+      page.getByRole("heading", { name: "准备中", exact: true }),
+    ).toBeVisible();
+
+    // A link someone shares still shows what the sender saw, whichever way
+    // this browser last looked.
+    await page.goto("/applications?view=table");
+    await expect(page.getByRole("button", { name: "表格" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+  } finally {
+    await admin.auth.admin.deleteUser(userId);
+  }
+});

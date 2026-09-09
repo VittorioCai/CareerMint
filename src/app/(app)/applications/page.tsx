@@ -1,31 +1,26 @@
+import { cookies } from "next/headers";
 import Link from "next/link";
 
 import {
   ApplicationList,
   filterApplications,
 } from "@/features/applications/application-list";
-import { deleteApplicationAction } from "@/features/applications/actions";
+import {
+  deleteApplicationAction,
+  rememberApplicationViewAction,
+} from "@/features/applications/actions";
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGES,
   APPLICATION_STAGE_LABELS,
+  APPLICATION_VIEW_COOKIE,
   applicationFilterSchema,
+  resolveApplicationView,
 } from "@/features/applications/schemas";
 import { requireUser } from "@/lib/auth/require-user";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
-}
-
-function viewHref(
-  view: "board" | "table",
-  q: string,
-  stage?: string,
-) {
-  const params = new URLSearchParams({ view });
-  if (q) params.set("q", q);
-  if (stage) params.set("stage", stage);
-  return `/applications?${params.toString()}`;
 }
 
 export default async function ApplicationsPage({
@@ -35,8 +30,12 @@ export default async function ApplicationsPage({
 }) {
   const user = await requireUser();
   const raw = await searchParams;
+  const store = await cookies();
   const filter = applicationFilterSchema.parse({
-    view: first(raw.view),
+    view: resolveApplicationView(
+      first(raw.view),
+      store.get(APPLICATION_VIEW_COOKIE)?.value,
+    ),
     q: first(raw.q),
     stage: first(raw.stage),
   });
@@ -116,15 +115,22 @@ export default async function ApplicationsPage({
         </form>
       </details>
 
-      <div
+      {/* Buttons, not links: this is a toggle whose choice is remembered, and
+          only a Server Function can write the cookie that remembers it. The
+          URL still carries `?view=` so a shared link shows what the sender
+          saw. */}
+      <form
+        action={rememberApplicationViewAction}
         className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] p-1"
         aria-label="投递视图"
       >
         {(["board", "table"] as const).map((view) => (
-          <Link
+          <button
             key={view}
-            href={viewHref(view, filter.q, filter.stage)}
-            aria-current={filter.view === view ? "page" : undefined}
+            type="submit"
+            name="view"
+            value={view}
+            aria-pressed={filter.view === view}
             className={`segment ${
               filter.view === view
                 ? "bg-[var(--surface-muted)] font-semibold"
@@ -132,9 +138,9 @@ export default async function ApplicationsPage({
             }`}
           >
             {view === "board" ? "看板" : "表格"}
-          </Link>
+          </button>
         ))}
-      </div>
+      </form>
 
       <div className="mt-5">
         <ApplicationList

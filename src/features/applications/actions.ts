@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth/require-user";
@@ -10,6 +11,7 @@ import {
   ApplicationRepositoryError,
 } from "./repository";
 import {
+  APPLICATION_VIEW_COOKIE,
   applicationResumeSourceSchema,
   applicationDeleteSchema,
   newApplicationSchema,
@@ -138,4 +140,27 @@ export async function deleteApplicationAction(
   revalidatePath("/app");
   if (parsed.data.redirectAfterDelete) redirect("/applications");
   return { ok: true, applicationId: parsed.data.applicationId };
+}
+
+/**
+ * Remember which list view this browser prefers.
+ *
+ * A cookie rather than a column on the profile: it is per-device chrome, not
+ * account data, so it does not belong in an export, a deletion, or a
+ * migration. It is not httpOnly for any security reason — nothing reads it on
+ * the client — but it is SameSite=Lax so it does not ride along on cross-site
+ * requests, and it holds nothing about the user.
+ */
+export async function rememberApplicationViewAction(formData: FormData) {
+  await requireUser();
+  const view = formData.get("view");
+  if (view !== "board" && view !== "table") return;
+
+  const store = await cookies();
+  store.set(APPLICATION_VIEW_COOKIE, view, {
+    path: "/",
+    sameSite: "lax",
+    maxAge: 60 * 60 * 24 * 365,
+  });
+  revalidatePath("/applications");
 }
