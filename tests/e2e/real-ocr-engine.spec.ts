@@ -135,7 +135,11 @@ test("@real-ocr recognizes a scanned resume with the real WebAssembly engine", a
     ).toBe("undefined");
 
     await page.getByRole("button", { name: "在本机识别扫描版 PDF" }).click();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible({
+    // The tally, not a heading: this spec is excluded from `pnpm test:e2e`, so
+    // it drifted quietly when the redesign replaced the 岗位核心判断 heading
+    // with a chip, and reported an OCR failure that had not happened. A
+    // testid is the anchor that survives the panel being redrawn.
+    await expect(page.getByTestId("severity-tally")).toBeVisible({
       timeout: 300_000,
     });
 

@@ -15,9 +15,18 @@ const inter = Inter({
   variable: "--font-inter",
 });
 
+/**
+ * Not preloaded. Every route's first paint in this app is Chinese, which no
+ * Latin face covers — Nunito Sans is only reached by the Latin runs inside
+ * headings ("Product Analyst", "Job desk"). Preloading it puts 30 KB on the
+ * critical path of a login screen whose only Latin string is a placeholder
+ * email. It still loads when something needs it, and the metric-matched
+ * fallback means arriving late costs no layout shift.
+ */
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
   display: "swap",
+  preload: false,
   variable: "--font-nunito-sans",
 });
 

@@ -86,3 +86,8 @@ jobs:
           } >> "$GITHUB_ENV"
       - run: pnpm exec playwright install --with-deps chromium
       - run: pnpm test:e2e -- --project=chromium
+      # Layout shift and transfer size against a production build. Timings —
+      # LCP, TBT — are deliberately not gated here: a shared runner cannot
+      # measure them repeatably, and a budget that fails on a noisy neighbour
+      # teaches everyone to re-run it. See the spec's header.
+      - run: pnpm test:e2e:perf

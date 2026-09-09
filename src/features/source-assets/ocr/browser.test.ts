@@ -8,6 +8,7 @@ import {
   PADDLE_OPTIONS,
   resetBrowserOcrModelForTests,
 } from "./browser";
+import { ORT_RUNTIME_VERSION } from "./runtime-version";
 
 describe("createBrowserOcrAdapter", () => {
   beforeEach(() => resetBrowserOcrModelForTests());
@@ -52,7 +53,10 @@ describe("createBrowserOcrAdapter", () => {
       textRecognitionModelAsset: {
         url: "/ocr/models/PP-OCRv6_tiny_rec_onnx_infer.tar",
       },
-      ortOptions: { wasmPaths: "/ocr/wasm/" },
+      // Under the resolved version, not a bare directory: the runtime's own
+      // filename never changes between releases, so the version has to be in
+      // the path for the file to be cacheable forever.
+      ortOptions: { wasmPaths: `/ocr/wasm/${ORT_RUNTIME_VERSION}/` },
     });
   });
 

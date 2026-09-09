@@ -1,5 +1,6 @@
 import type { PdfAdapter, PdfDocumentAdapter, PdfPageImage } from "./runner";
 import { raceWithAbort } from "./abort";
+import { ORT_RUNTIME_VERSION } from "./runtime-version";
 
 interface PdfJsPage {
   getViewport: (options: { scale: number }) => { width: number; height: number };
@@ -165,7 +166,7 @@ const PADDLE_OPTIONS: Record<string, unknown> = {
   initialize: false,
   ortOptions: {
     backend: "wasm",
-    wasmPaths: "/ocr/wasm/",
+    wasmPaths: `/ocr/wasm/${ORT_RUNTIME_VERSION}/`,
     numThreads: 1,
     simd: true,
     proxy: false,
