@@ -104,8 +104,13 @@ async function uploadBaseline(
 ) {
   await page.getByLabel("上传新的 PDF 或 DOCX 简历").setInputFiles(fixture);
   await page.getByRole("button", { name: "上传并使用这份简历" }).click();
+  // This navigation waits on a real upload to storage and a server-side text
+  // extraction. Playwright's default expect timeout is five seconds, which is
+  // enough when this spec runs alone and not when it runs twenty-sixth against
+  // one dev server — the failure looked like flake and was a missing timeout.
   await expect(page).toHaveURL(
     new RegExp(`/applications/${applicationId}\\?tab=difference&setup=1$`, "u"),
+    { timeout: 60_000 },
   );
 }
 
@@ -212,6 +217,7 @@ test("marks old analysis stale and keeps previous results explicit during retry 
     await page.getByRole("button", { name: "上传并使用这份简历" }).click();
     await expect(page).toHaveURL(
       new RegExp(`/applications/${application.applicationId}\\?tab=resume$`, "u"),
+      { timeout: 60_000 },
     );
     await expect(
       page.getByRole("button", { name: "预览 resume-zh.docx", exact: true }).first(),
