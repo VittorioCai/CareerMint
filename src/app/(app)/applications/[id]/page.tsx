@@ -128,7 +128,7 @@ function Overview({ application }: { application: Application }) {
         </div>
         </aside>
       </div>
-      <aside className="rounded-2xl border border-[var(--danger-line)] bg-white p-5">
+      <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
         <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
           删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
@@ -151,7 +151,7 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
   return (
     <ol className="space-y-3">
       {events.map((event) => (
-        <li key={event.id} className="grid gap-3 rounded-2xl border border-[var(--line)] bg-white p-4 sm:grid-cols-[150px_minmax(0,1fr)]">
+        <li key={event.id} className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:grid-cols-[150px_minmax(0,1fr)]">
           <time className="text-xs font-black text-[var(--ink-muted)]" dateTime={event.occurredAt}>
             {formatDate(event.occurredAt)}
           </time>
@@ -219,7 +219,7 @@ function InterviewPanel({
     <div className="space-y-6">
       <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
-          <span className="status-chip bg-white">可能问题，不是雇主承诺</span>
+          <span className="status-chip bg-[var(--paper)]">可能问题，不是雇主承诺</span>
           <h2 className="heading-font mt-3 text-2xl font-black">岗位面试准备</h2>
           <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
             已自动包含 {commonCount} 道通用题；岗位增量题不会复制通用问题，准备记录会回写全局题库。
@@ -251,7 +251,7 @@ function InterviewPanel({
               <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
               <h2 className="heading-font mt-1 text-2xl font-black">本岗位准备清单</h2>
             </div>
-            <span className="status-chip bg-white">{questions.length} 道</span>
+            <span className="status-chip bg-[var(--paper)]">{questions.length} 道</span>
           </div>
           <div className="mt-4 space-y-3">
             {questions.map((question) => (

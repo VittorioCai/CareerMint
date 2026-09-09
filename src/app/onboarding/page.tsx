@@ -34,7 +34,7 @@ export default async function OnboardingPage() {
             <span aria-hidden="true" className="logo-mark size-10" />
             <span className="heading-font text-lg font-black">求职搭子</span>
           </Link>
-          <span className="rounded-full border border-[var(--ink)] bg-white px-3 py-1 text-xs font-black">私密建档</span>
+          <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-black">私密建档</span>
         </header>
         <section className="mt-9">
           <p className="text-xs font-black uppercase tracking-[0.16em] text-[var(--ink-muted)]">Career profile setup</p>

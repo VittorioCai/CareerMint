@@ -240,7 +240,7 @@ export function ApplicationDraftForm({
       {error ? (
         <p
           role="alert"
-          className="mt-5 rounded-xl border border-[var(--error)] bg-[#fff0ee] p-3 text-sm font-bold text-[var(--error)]"
+          className="mt-5 rounded-xl bg-[var(--danger-tint)] p-3 text-sm font-bold text-[var(--error)]"
         >
           {error}
         </p>

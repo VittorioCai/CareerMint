@@ -83,7 +83,7 @@ export default async function InterviewPage({
               通用题只准备一次，每个岗位都会自动包含；职能、行业和岗位题作为增量加入。所有 AI 题都只表示“可能会问”。
             </p>
           </div>
-          <span className="status-chip bg-white">{questions.length} 道核心题</span>
+          <span className="status-chip bg-[var(--paper)]">{questions.length} 道核心题</span>
         </div>
         <div className="mt-6 grid gap-3 sm:grid-cols-3">
           {[
@@ -91,7 +91,7 @@ export default async function InterviewPage({
             ["已练习", practicedCount],
             ["已准备", readyCount],
           ].map(([label, value]) => (
-            <div key={label} className="rounded-xl border border-[var(--ink)] bg-white/80 p-4">
+            <div key={label} className="rounded-xl border border-[var(--ink)] bg-[color-mix(in_srgb,var(--paper)_80%,transparent)] p-4">
               <p className="type-eyebrow text-[var(--ink-muted)]">
                 {label}
               </p>
@@ -107,7 +107,7 @@ export default async function InterviewPage({
             applications={applications}
             addQuestion={addInterviewQuestionAction.bind(null, {})}
           />
-          <form method="get" className="rounded-2xl border border-[var(--line)] bg-white p-4">
+          <form method="get" className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
             <h2 className="heading-font text-lg font-black">筛选题库</h2>
             <label className="mt-3 block text-sm font-black">
               搜索问题
@@ -163,7 +163,7 @@ export default async function InterviewPage({
                       {INTERVIEW_CATEGORY_LABELS[group.category]}
                     </h2>
                   </div>
-                  <span className="status-chip bg-white">{group.questions.length} 道</span>
+                  <span className="status-chip bg-[var(--paper)]">{group.questions.length} 道</span>
                 </div>
                 <div className="mt-4 space-y-3">
                   {group.questions.map((question) => (
@@ -180,7 +180,7 @@ export default async function InterviewPage({
             ) : null,
           )}
           {visibleQuestions.length === 0 ? (
-            <article className="rounded-2xl border border-dashed border-[var(--ink-soft)] bg-white p-8 text-center">
+            <article className="rounded-2xl border border-dashed border-[var(--ink-soft)] bg-[var(--paper)] p-8 text-center">
               <p className="text-sm font-black">没有符合条件的问题</p>
               <p className="mt-2 text-xs font-semibold text-[var(--ink-muted)]">
                 调整筛选，或在左侧加入一道新问题。

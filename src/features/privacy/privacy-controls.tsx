@@ -54,7 +54,7 @@ export function PrivacyControls() {
         </a>
       </section>
 
-      <section className="rounded-2xl border border-[var(--coral)] bg-white p-5 sm:p-7">
+      <section className="rounded-2xl border border-[var(--coral)] bg-[var(--paper)] p-5 sm:p-7">
         <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--error)]">危险操作</p>
         <h2 className="heading-font mt-2 text-2xl font-black">永久删除账户</h2>
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -67,7 +67,7 @@ export function PrivacyControls() {
 
       {dialogOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[color:var(--ink)]/40 p-4">
-          <section role="dialog" aria-modal="true" aria-label="确认删除账户" className="sticker-border w-full max-w-lg bg-white p-5 sm:p-7">
+          <section role="dialog" aria-modal="true" aria-label="确认删除账户" className="sticker-border w-full max-w-lg bg-[var(--paper)] p-5 sm:p-7">
             <h2 className="heading-font text-2xl font-black">确认永久删除</h2>
             <p className="mt-3 text-sm font-medium leading-6 text-[var(--ink-muted)]">
               输入 <strong className="text-[var(--ink)]">DELETE</strong> 才能继续。关闭窗口不会执行任何操作。
@@ -79,7 +79,7 @@ export function PrivacyControls() {
             {error ? <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">{error}</p> : null}
             <div className="mt-6 flex flex-wrap justify-end gap-2">
               <button type="button" className="button-secondary min-h-10 px-4 text-sm font-black" disabled={busy} onClick={() => setDialogOpen(false)}>取消</button>
-              <button type="button" className="min-h-10 rounded-xl bg-[var(--error)] px-4 text-sm font-black text-white disabled:cursor-not-allowed disabled:opacity-40" disabled={confirmation !== "DELETE" || busy} onClick={() => void removeAccount()}>
+              <button type="button" className="button-danger min-h-10 px-4 text-sm font-semibold disabled:cursor-not-allowed disabled:opacity-40" disabled={confirmation !== "DELETE" || busy} onClick={() => void removeAccount()}>
                 {busy ? "正在删除…" : "永久删除账户"}
               </button>
             </div>

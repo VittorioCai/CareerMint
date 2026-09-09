@@ -21,7 +21,7 @@ export function ComingSoonPage({
         <p className="mt-4 max-w-2xl text-base font-medium leading-7 text-[var(--ink-muted)] sm:text-lg">{description}</p>
       </div>
 
-      <div className="soft-surface mt-10 max-w-3xl bg-white p-6 sm:p-8">
+      <div className="soft-surface mt-10 max-w-3xl bg-[var(--paper)] p-6 sm:p-8">
         <div className="flex items-start gap-4">
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] text-sm font-black">→</span>
           <div>

@@ -56,12 +56,12 @@ export function AppShell({ children, email }: AppShellProps) {
             <div className="ml-auto flex items-center gap-2">
 
               <details className="group relative">
-                <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-2.5 [&::-webkit-details-marker]:hidden">
+                <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
                   <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
                   <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
-                <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-[var(--paper)] p-2">
                   <div className="border-b border-[var(--line)] px-3 py-2.5">
                     <p className="type-eyebrow text-[var(--ink-muted)]">已验证账户</p>
                     <p className="mt-1 truncate text-sm font-bold">{displayEmail}</p>
@@ -69,7 +69,7 @@ export function AppShell({ children, email }: AppShellProps) {
                   <Link href="/settings/account" className="mt-1 block rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--canvas)]">账户设置</Link>
                   <Link href="/settings/privacy" className="block rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--canvas)]">AI 与数据授权</Link>
                   <form action={signOut} className="mt-1 border-t border-[var(--line)] pt-1">
-                    <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[var(--error)] hover:bg-[#fff0ee]">退出登录</button>
+                    <button type="submit" className="w-full rounded-lg px-3 py-2 text-left text-sm font-bold text-[var(--error)] hover:bg-[var(--danger-tint)]">退出登录</button>
                   </form>
                 </div>
               </details>

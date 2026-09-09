@@ -236,7 +236,7 @@ export function BaselineSelector({
       </div>
 
       {selectedAsset ? (
-        <div className="mt-5 rounded-xl border border-[var(--line)] bg-white p-4">
+        <div className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0">
               <p className="break-words text-sm font-black">{selectedAsset.originalName}</p>
@@ -258,7 +258,7 @@ export function BaselineSelector({
 
       {previewAsset ? (
         <section
-          className="mt-5 overflow-hidden rounded-2xl border-2 border-[var(--ink)] bg-white"
+          className="mt-5 overflow-hidden rounded-2xl border-2 border-[var(--ink)] bg-[var(--paper)]"
           aria-label={`简历预览：${previewAsset.originalName}`}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--sev-minor)] px-4 py-3">
@@ -290,7 +290,7 @@ export function BaselineSelector({
             key={previewAsset.id}
             title={`预览 ${previewAsset.originalName}`}
             src={`/api/source-assets/${previewAsset.id}/preview`}
-            className="block h-[32rem] w-full bg-white"
+            className="block h-[32rem] w-full bg-[var(--paper)]"
           />
         </section>
       ) : null}
@@ -304,7 +304,7 @@ export function BaselineSelector({
                 {availableAssets.map((asset) => (
                   <article
                     key={asset.id}
-                    className="flex min-h-14 w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-[var(--line)] bg-white px-4 py-3 text-left transition hover:border-[var(--ink)] sm:flex-row sm:items-center"
+                    className="flex min-h-14 w-full flex-col items-stretch justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-left transition hover:border-[var(--ink)] sm:flex-row sm:items-center"
                   >
                     <span className="min-w-0">
                       <span className="block break-words text-sm font-black">{asset.originalName}</span>
@@ -413,7 +413,7 @@ export function BaselineSelector({
       {setupMode ? (
         <button
           type="button"
-          className="press mt-5 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] bg-white px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)] disabled:cursor-wait disabled:opacity-60"
+          className="press mt-5 inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--ink-soft)] hover:text-[var(--ink)] disabled:cursor-wait disabled:opacity-60"
           onClick={() => void finishSelection(null)}
           disabled={busy}
         >

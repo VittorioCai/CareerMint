@@ -39,8 +39,8 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
         compact ? "px-3 py-2.5 text-sm" : "px-3 py-2.5 text-sm"
       } ${
         selected
-          ? "bg-white font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
-          : "font-medium text-[var(--ink-muted)] hover:bg-white/60 hover:text-[var(--ink)]"
+          ? "bg-[var(--paper)] font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
+          : "font-medium text-[var(--ink-muted)] hover:bg-[color-mix(in_srgb,var(--paper)_60%,transparent)] hover:text-[var(--ink)]"
       }`}
     >
       <NavigationIcon href={href} />

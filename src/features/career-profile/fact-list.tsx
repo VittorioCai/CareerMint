@@ -100,7 +100,7 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
                       ))}
                     </div>
                   ) : (
-                    <p className="rounded-b-2xl border border-[var(--line)] bg-white px-4 py-5 text-sm font-medium text-[var(--ink-muted)]">暂时没有这类事实。</p>
+                    <p className="rounded-b-2xl border border-[var(--line)] bg-[var(--paper)] px-4 py-5 text-sm font-medium text-[var(--ink-muted)]">暂时没有这类事实。</p>
                   )}
                 </section>
               );

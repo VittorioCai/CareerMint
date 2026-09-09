@@ -61,6 +61,97 @@
   --foreground: var(--ink);
 }
 
+/* Dark is a re-grading, not an inversion.
+ *
+ * Two things do not survive a naive flip. The severity tints are pale fills
+ * behind dark ink; on a dark ground they have to become dark fills behind
+ * light ink, and the lightness order has to reverse with them so the ramp
+ * still runs 关键 → 已对上. And elevation cannot be a shadow: a black shadow
+ * on a near-black ground is invisible, so surfaces lift by getting lighter
+ * than the ground instead of by casting onto it.
+ *
+ * The accessibility floor runs against this palette too, which is the only
+ * reason to trust it.
+ */
+:root:not([data-theme="light"]) {
+  @media (prefers-color-scheme: dark) {
+    --canvas: #161a18;
+    --paper: #1f2422;
+    --white: #1f2422;
+    --surface-muted: #2a302d;
+
+    --ink: #e8ece9;
+    --ink-muted: #a3aca7;
+    --ink-soft: #79837e;
+    --line: #303734;
+
+    --sev-critical: #3a1f1b;
+    --sev-critical-ink: #f4a99c;
+    --sev-gate: #45211a;
+    --sev-gate-ink: #f8bfb2;
+    --sev-important: #362c15;
+    --sev-important-ink: #e3c377;
+    --sev-minor: #2b312e;
+    --sev-minor-ink: #b3bcb7;
+    --sev-matched: #16302442;
+    --sev-matched-ink: #86d3ab;
+
+    --danger: #e2695b;
+    --danger-hover: #ef7d70;
+    --danger-tint: #3a1f1b;
+    --danger-line: #5c322b;
+
+    --mint: #2f8f63;
+    --mint-strong: #86d3ab;
+    --cream: #e3c377;
+    --coral: #e2695b;
+    --error: #e2695b;
+
+    /* Light, not shadow. */
+    --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
+    --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  }
+}
+
+:root[data-theme="dark"] {
+  --canvas: #161a18;
+  --paper: #1f2422;
+  --white: #1f2422;
+  --surface-muted: #2a302d;
+
+  --ink: #e8ece9;
+  --ink-muted: #a3aca7;
+  --ink-soft: #79837e;
+  --line: #303734;
+
+  --sev-critical: #3a1f1b;
+  --sev-critical-ink: #f4a99c;
+  --sev-gate: #45211a;
+  --sev-gate-ink: #f8bfb2;
+  --sev-important: #362c15;
+  --sev-important-ink: #e3c377;
+  --sev-minor: #2b312e;
+  --sev-minor-ink: #b3bcb7;
+  --sev-matched: #163024;
+  --sev-matched-ink: #86d3ab;
+
+  --danger: #e2695b;
+  --danger-hover: #ef7d70;
+  --danger-tint: #3a1f1b;
+  --danger-line: #5c322b;
+
+  --mint: #2f8f63;
+  --mint-strong: #86d3ab;
+  --cream: #e3c377;
+  --coral: #e2695b;
+  --error: #e2695b;
+
+  --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
+  --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -128,7 +219,7 @@ button {
   position: relative;
   flex: none;
   border-radius: 35%;
-  background: var(--ink);
+  background: #1f2320;
   box-shadow: 0 8px 16px -10px color-mix(in srgb, var(--ink) 85%, transparent);
 }
 
@@ -144,13 +235,13 @@ button {
 
 .logo-mark::before {
   left: 20%;
-  background: var(--mint);
+  background: #bdebd7;
 }
 
 .logo-mark::after {
   right: 20%;
-  background: var(--cream);
-  box-shadow: -2.5px 0 0 var(--ink);
+  background: #fff2a8;
+  box-shadow: -2.5px 0 0 #1f2320;
 }
 
 .sticker-shadow {
@@ -336,7 +427,7 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
    emphasis this palette needs now that nothing else is filled. */
 .button-primary {
   background: var(--ink);
-  color: var(--paper);
+  color: var(--canvas);
   box-shadow: var(--elevation-1);
 }
 

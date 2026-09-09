@@ -42,7 +42,7 @@ export function AuthShell({
         <div aria-hidden="true" className="absolute -right-12 -top-12 size-48 rotate-12 rounded-[42px] border-2 border-[var(--ink)] bg-[var(--sev-minor)]" />
         <div aria-hidden="true" className="absolute -bottom-16 -left-12 size-44 rounded-full border-2 border-[var(--ink)] bg-[var(--surface-muted)]" />
         <div className="relative mx-auto w-full max-w-lg">
-          <div className="mb-8 inline-flex rotate-2 rounded-xl border-2 border-[var(--ink)] bg-[var(--sev-critical)] px-4 py-2 text-sm font-black text-white">你的海外求职工作台 ↗</div>
+          <div className="mb-8 inline-flex rotate-2 rounded-xl bg-[var(--sev-critical)] px-4 py-2 text-sm font-semibold text-[var(--sev-critical-ink)]">你的海外求职工作台 ↗</div>
           <h2 className="heading-font max-w-md text-4xl font-black leading-[1.08] tracking-[-0.04em]">一份可信档案，复用到每次申请。</h2>
           <div className="mt-9 border-y-2 border-[var(--ink)]">
             {principles.map(([index, heading, detail]) => (

@@ -25,7 +25,7 @@ export function SetupProgress({ current }: { current: SetupProgressStep }) {
                   ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)]"
                   : completed
                     ? "border-[var(--ink-soft)] bg-[var(--sev-matched)]"
-                    : "border-[var(--line)] bg-white text-[var(--ink-muted)]"
+                    : "border-[var(--line)] bg-[var(--paper)] text-[var(--ink-muted)]"
               }`}
             >
               <span className="mr-1.5" aria-hidden="true">

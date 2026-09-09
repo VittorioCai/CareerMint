@@ -70,7 +70,7 @@ export function FactEditor({
         : "severity-important";
 
   return (
-    <article className="min-w-0 border-b border-[var(--line)] bg-white p-4 last:border-b-0 sm:p-5">
+    <article className="min-w-0 border-b border-[var(--line)] bg-[var(--paper)] p-4 last:border-b-0 sm:p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <span className={`status-chip ${chipClass}`}>{statusCopy[status]}</span>
@@ -237,7 +237,7 @@ export function FactEditor({
             role="dialog"
             aria-modal="true"
             aria-label="确认职业事实"
-            className="sticker-border w-full max-w-xl bg-white p-5 sm:p-7"
+            className="sticker-border w-full max-w-xl bg-[var(--paper)] p-5 sm:p-7"
           >
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
             <h2 className="heading-font mt-2 text-2xl font-black">确认职业事实</h2>

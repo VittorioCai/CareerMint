@@ -95,7 +95,7 @@ export function NewInterviewQuestionForm({
           </p>
           <h2 className="heading-font mt-1 text-xl font-black">手动加入题库</h2>
         </div>
-        <span className="status-chip bg-white">零 AI 费用</span>
+        <span className="status-chip bg-[var(--paper)]">零 AI 费用</span>
       </div>
       <label className="mt-4 block text-sm font-black">
         核心问题
@@ -178,7 +178,7 @@ const sourceLabels = {
 } as const;
 
 const statusColors: Record<InterviewPreparationStatus, string> = {
-  not_started: "bg-white",
+  not_started: "bg-[var(--paper)]",
   outlined: "bg-[var(--sev-minor)]",
   practiced: "bg-[var(--surface-muted)]",
   ready: "bg-[var(--sev-matched)]",
@@ -279,7 +279,7 @@ export function QuestionPreparationCard({
   }
 
   return (
-    <article className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
+    <article className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="status-chip bg-[var(--sev-minor)]">
           {INTERVIEW_CATEGORY_LABELS[question.category]}
@@ -371,7 +371,7 @@ export function QuestionPreparationCard({
           <fieldset>
             <legend className="text-sm font-black">关联已确认事实 / STAR</legend>
             {sortedFacts.length ? (
-              <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-white p-3">
+              <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--paper)] p-3">
                 {sortedFacts.map((fact) => (
                   <label
                     key={fact.id}

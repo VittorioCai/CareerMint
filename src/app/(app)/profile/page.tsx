@@ -25,8 +25,8 @@ export default async function ProfilePage() {
           <div
             className={`w-fit rounded-full border px-3 py-1.5 text-xs font-semibold ${
               pending
-                ? "border-[#e0b93a] bg-[#fffbe4]"
-                : "border-[var(--mint-strong)] bg-[#eef8f2]"
+                ? "severity-important"
+                : "severity-matched"
             }`}
           >
             {pending ? `${pending} 条待处理` : "全部已核对"}

@@ -413,7 +413,7 @@ function AnalysisControlState({
                   value={pastedText}
                   onChange={(event) => setPastedText(event.target.value)}
                   placeholder="把简历内容粘贴到这里。不会上传原文件，只发送这段文字。"
-                  className="mt-2 w-full rounded-xl border-2 border-[var(--ink)] bg-white p-3 text-sm font-semibold leading-6"
+                  className="mt-2 w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] p-3 text-sm font-semibold leading-6"
                 />
                 {pasteError ? (
                   <p role="alert" className="mt-2 text-sm font-black text-[var(--error)]">

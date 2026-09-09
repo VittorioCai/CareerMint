@@ -148,13 +148,13 @@ function ImprovementItem({
             {gateDirection?.direction ?? direction?.directionZh ?? issue.problemZh}
           </p>
           {unsupported ? (
-            <p className="mt-3 rounded-xl border-2 border-[var(--coral)] bg-white px-4 py-3 text-sm font-black leading-6">
+            <p className="mt-3 rounded-xl border-2 border-[var(--coral)] bg-[var(--paper)] px-4 py-3 text-sm font-black leading-6">
               当前材料没有可回查证据。如未实际做过，请不要加入简历。
             </p>
           ) : null}
         </div>
 
-        <dl className="grid content-start gap-4 rounded-2xl border border-[var(--line)] bg-white p-4">
+        <dl className="grid content-start gap-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
           <div>
             <dt className="text-xs font-black text-[var(--ink-muted)]">目标位置</dt>
             <dd className="mt-1 text-sm font-black leading-6">
@@ -329,7 +329,7 @@ export function ResumeJDImprovementPanel({
           </p>
         </div>
         <Link
-          className="inline-flex justify-center rounded-xl border-2 border-[var(--ink)] bg-white px-4 py-3 text-sm font-black"
+          className="inline-flex justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--paper)] px-4 py-3 text-sm font-black"
           href={`/applications/${applicationId}?tab=interview`}
         >
           进入面试准备

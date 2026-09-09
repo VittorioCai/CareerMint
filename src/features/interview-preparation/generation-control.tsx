@@ -268,7 +268,7 @@ export function InterviewQuestionGenerationControl({
           {candidates.map((candidate) => {
             const pending = candidate.status === "pending";
             return (
-              <article key={candidate.id} className="rounded-xl border border-[var(--line)] bg-white p-4">
+              <article key={candidate.id} className="rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4">
                 <div className="flex items-start gap-3">
                   <input
                     type="checkbox"
@@ -282,7 +282,7 @@ export function InterviewQuestionGenerationControl({
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="status-chip bg-[var(--sev-minor)]">{INTERVIEW_CATEGORY_LABELS[candidate.category]}</span>
                       <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">可能会问</span>
-                      <span className="status-chip bg-white">{candidateStatusLabels[candidate.status]}</span>
+                      <span className="status-chip bg-[var(--paper)]">{candidateStatusLabels[candidate.status]}</span>
                     </div>
                     <h3 className="heading-font mt-3 text-lg font-black leading-7">{candidate.prompt}</h3>
                     <p className="mt-3 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
@@ -316,7 +316,7 @@ export function InterviewQuestionGenerationControl({
           </div>
         </div>
       ) : run?.status === "succeeded" && candidates.length === 0 ? (
-        <p className="mt-5 rounded-xl border border-[var(--line)] bg-white p-4 text-sm font-bold text-[var(--ink-muted)]">
+        <p className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4 text-sm font-bold text-[var(--ink-muted)]">
           这次没有留下可预览的岗位增量题。
         </p>
       ) : null}

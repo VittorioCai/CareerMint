@@ -63,7 +63,7 @@ export default async function ApplicationsPage({
         className="reveal group mt-7"
         open={Boolean(filter.q || filter.stage) || applications.length > 8}
       >
-        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mist-blue)] [&::-webkit-details-marker]:hidden">
+        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mist-blue)] [&::-webkit-details-marker]:hidden">
           筛选与搜索
           {filter.q || filter.stage ? (
             <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-semibold text-[var(--ink)]">
@@ -102,13 +102,13 @@ export default async function ApplicationsPage({
           <div className="flex items-end gap-2">
             <button
               type="submit"
-              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--ink)] bg-white px-4 text-sm font-semibold"
+              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--ink)] bg-[var(--paper)] px-4 text-sm font-semibold"
             >
               筛选
             </button>
             <Link
               href={`/applications?view=${filter.view}`}
-              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line)] bg-white px-4 text-sm font-medium text-[var(--ink-muted)]"
+              className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-4 text-sm font-medium text-[var(--ink-muted)]"
             >
               清除
             </Link>
@@ -117,7 +117,7 @@ export default async function ApplicationsPage({
       </details>
 
       <div
-        className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-white p-1"
+        className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] p-1"
         aria-label="投递视图"
       >
         {(["board", "table"] as const).map((view) => (

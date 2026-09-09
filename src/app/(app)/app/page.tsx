@@ -36,7 +36,7 @@ export default async function DashboardPage() {
   let primaryState;
   if (assets.length === 0) {
     primaryState = (
-      <article className="soft-surface bg-white p-5 sm:p-7">
+      <article className="soft-surface bg-[var(--paper)] p-5 sm:p-7">
         <span className="status-chip severity-important">第一步</span>
         <h2 className="heading-font mt-4 text-2xl font-black">上传一份已有简历</h2>
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -49,7 +49,7 @@ export default async function DashboardPage() {
     );
   } else if (activeJob || assets.some((asset) => asset.status === "extracting")) {
     primaryState = (
-      <article className="soft-surface bg-white p-6 sm:p-8">
+      <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip severity-minor">处理中</span>
         <h2 className="heading-font mt-4 text-2xl font-black">正在整理你的职业事实</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -63,7 +63,7 @@ export default async function DashboardPage() {
     );
   } else if (pendingFacts.length > 0) {
     primaryState = (
-      <article className="soft-surface bg-white p-6 sm:p-8">
+      <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">需要你判断</span>
         <h2 className="heading-font mt-4 text-2xl font-black">继续核对职业档案</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -80,7 +80,7 @@ export default async function DashboardPage() {
   } else {
     primaryState = (
       <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
-        <span className="status-chip bg-white">✓ 已完成核对</span>
+        <span className="status-chip bg-[var(--paper)]">✓ 已完成核对</span>
         <h2 className="heading-font mt-4 text-3xl font-black">职业档案已就绪</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           已确认 {confirmedCount} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                 className={`rounded-2xl border p-4 ${
                   index === 0
                     ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)]"
-                    : "border-[var(--line)] bg-white"
+                    : "border-[var(--line)] bg-[var(--paper)]"
                 }`}
               >
                 <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
@@ -145,7 +145,7 @@ export default async function DashboardPage() {
           ) : null}
 
         {applicationSummary.recent.length > 0 ? (
-          <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-white">
+          <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
             <div className="border-b border-[var(--line)] px-4 py-3">
               <h3 className="text-sm font-black">最近更新</h3>
             </div>
@@ -166,7 +166,7 @@ export default async function DashboardPage() {
             </ul>
           </div>
         ) : (
-          <article className="mt-5 rounded-2xl border border-dashed border-[var(--ink-soft)] bg-white p-5">
+          <article className="mt-5 rounded-2xl border border-dashed border-[var(--ink-soft)] bg-[var(--paper)] p-5">
             <p className="text-sm font-bold">还没有真实申请记录。</p>
             <Link href="/applications/new" className="mt-3 inline-flex text-sm font-black underline underline-offset-4">
               新建申请工作区

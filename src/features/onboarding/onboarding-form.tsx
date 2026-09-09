@@ -82,7 +82,7 @@ export function OnboardingForm({
                 ? "bg-[var(--surface-muted)]"
                 : step > item.number
                   ? "bg-[var(--sev-matched)]"
-                  : "bg-white"
+                  : "bg-[var(--paper)]"
             }`}
           >
             <span className="text-xs font-black text-[var(--ink-muted)]">
@@ -93,7 +93,7 @@ export function OnboardingForm({
         ))}
       </ol>
 
-      <div className="mt-6 min-w-0 rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-7">
+      <div className="mt-6 min-w-0 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-7">
         {step === 1 ? (
           <form className="grid min-w-0 gap-5 sm:grid-cols-2" onSubmit={saveGoals}>
             <div className="sm:col-span-2">

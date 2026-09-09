@@ -136,7 +136,7 @@ function IssueDetails({
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
               <span className="block">{safeCopy(row.resumeStatusZh)}</span>
-              <span className="mt-2 block rounded-xl bg-white px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
+              <span className="mt-2 block rounded-xl bg-[var(--paper)] px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
                 {resumeEvidence(row)}
               </span>
             </dd>

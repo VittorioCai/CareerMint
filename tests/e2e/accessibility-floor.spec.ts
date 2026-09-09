@@ -261,10 +261,14 @@ async function createUser(admin: SupabaseClient) {
   return { email, userId: created.data.user.id };
 }
 
-test("every rendered text node clears the WCAG contrast floor", async ({
+for (const theme of ["light", "dark"] as const) {
+test(`every rendered text node clears the WCAG contrast floor in ${theme}`, async ({
   page,
 }) => {
   test.setTimeout(300_000);
+  // Dark is a separate palette, not a filter over this one, so it has to be
+  // measured separately. "It looks fine" is not a check.
+  await page.emulateMedia({ colorScheme: theme });
   const { admin, account } = clients();
   const { email, userId } = await createUser(admin);
 
@@ -333,6 +337,7 @@ test("every rendered text node clears the WCAG contrast floor", async ({
     await admin.auth.admin.deleteUser(userId);
   }
 });
+}
 
 test("every focusable control shows a focus ring that is not clipped", async ({
   page,
