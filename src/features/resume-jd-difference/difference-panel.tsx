@@ -12,12 +12,6 @@ export type ResumeJDDifferencePanelProps = {
   stale?: boolean;
 };
 
-const priorityCopy: Record<DifferenceIssue["priority"], string> = {
-  critical: "关键",
-  important: "重要",
-  minor: "次要",
-};
-
 const typeCopy: Record<DifferenceIssue["type"], string> = {
   missing: "未覆盖",
   language_misaligned: "岗位语言未对齐",
@@ -30,29 +24,20 @@ const typeCopy: Record<DifferenceIssue["type"], string> = {
   gate: "岗位门槛",
 };
 
-const severityBandClass: Record<DifferenceIssue["priority"], string> = {
-  critical: "bg-[var(--coral)]",
-  important: "bg-[var(--cream)]",
-  minor: "bg-[var(--mist-blue)]",
-};
-
-const severityChipClass: Record<DifferenceIssue["priority"], string> = {
-  critical: "severity-critical",
-  important: "severity-important",
-  minor: "severity-minor",
-};
-
 function safeCopy(value: string) {
   return value
     .replaceAll("你不具备", "当前材料未找到相关证据")
     .replaceAll("用户不具备", "当前材料未找到相关证据");
 }
 
-function resumeEvidence(issue: DifferenceIssue) {
-  if (!issue.resumeExcerpt || issue.authenticity === "unsupported") {
+function resumeEvidence(row: {
+  resumeExcerpt: string | null;
+  unsupported: boolean;
+}) {
+  if (!row.resumeExcerpt || row.unsupported) {
     return "当前材料未找到相关证据";
   }
-  return issue.resumeExcerpt;
+  return row.resumeExcerpt;
 }
 
 // Ids can outlive the fact they point at, so only facts the profile still has
@@ -67,92 +52,89 @@ function resolveCitedFacts(
 }
 
 function IssueDetails({
-  issue,
-  kind,
+  row,
   citedFacts,
-  badgeMark,
 }: {
-  issue: DifferenceIssue;
-  kind: "difference" | "gate";
+  row: PanelRow;
   citedFacts: ConfirmedFactForAnalysis[];
-  badgeMark: string;
 }) {
-  const isGate = issue.isGate || issue.type === "gate";
   return (
-    <details className="group" data-testid={`${kind}-issue-${issue.id}`}>
+    <details className="group" data-testid={`difference-issue-${row.id}`}>
       <span
         aria-hidden="true"
-        className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[issue.priority]}`}
+        className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[row.severity]}`}
       />
-      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)]">
+      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)] group-open:bg-[var(--paper)]">
         <span
           aria-hidden="true"
           data-testid="row-badge"
-          className={`badge-index heading-font mt-0.5 ${isGate ? "badge-index--gate" : ""}`}
+          className={`badge-index heading-font mt-0.5 ${badgeVariant[row.severity]}`}
         >
-          {badgeMark}
+          {row.badgeMark}
         </span>
         <span className="min-w-0 flex-1">
           <span className="flex flex-wrap items-center gap-2">
             <span
               data-testid="row-priority"
-              className={`severity-chip ${severityChipClass[issue.priority]}`}
+              className={`severity-chip ${severityChipClass[row.severity]}`}
             >
-              {priorityCopy[issue.priority]}
+              {severityLabel[row.severity]}
             </span>
             <span
               data-testid="row-type"
               className="text-xs font-semibold text-[var(--ink-muted)]"
             >
-              {typeCopy[issue.type]}
+              {row.typeLabel}
             </span>
           </span>
-          <span className="mt-2 block text-base font-bold leading-[1.55]">
-            {safeCopy(issue.jdTranslationZh)}
+          <span className="mt-2 block max-w-[64ch] text-base font-bold leading-[1.55]">
+            {safeCopy(row.jdTranslationZh)}
           </span>
           <span
-            className="mt-1.5 block break-words text-[13px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
+            className="mt-1.5 block max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
             lang="und"
           >
-            “{issue.jdOriginal}”
+            “{row.jdOriginal}”
           </span>
         </span>
         <span
           aria-hidden="true"
-          className="mt-1 grid size-7 shrink-0 place-items-center rounded-full transition-transform group-open:rotate-180"
+          className="mt-1 grid size-7 shrink-0 place-items-center rounded-full text-[var(--ink-muted)] transition-transform group-open:rotate-180"
         >
-          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ink-muted)]">
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
             <path d="M5 8l5 5 5-5" />
           </svg>
         </span>
       </summary>
-      <div className="ml-[58px] mr-4 mb-3 rounded-2xl bg-[var(--canvas)] px-5 py-4">
-        <dl className="grid gap-x-8 gap-y-5 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
+      <div className="mb-2.5 ml-[58px] mr-2 rounded-2xl bg-[var(--canvas)] px-5 py-4">
+        <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5">
           <div>
             <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               简历现状
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              <span className="block">{safeCopy(issue.resumeStatusZh)}</span>
+              <span className="block">{safeCopy(row.resumeStatusZh)}</span>
               <span className="mt-2 block rounded-xl bg-white px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
-                {resumeEvidence(issue)}
+                {resumeEvidence(row)}
               </span>
             </dd>
           </div>
-          <div>
-            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-              问题点
-            </dt>
-            <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              {safeCopy(issue.problemZh)}
-            </dd>
-          </div>
+          {row.problemZh ? (
+            <div>
+              <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+                问题点
+              </dt>
+              <dd className="mt-2 text-sm font-medium leading-[1.65]">
+                {safeCopy(row.problemZh)}
+              </dd>
+            </div>
+          ) : null}
           <div>
             <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               判断依据
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              {safeCopy(issue.reasonZh)}
+              {safeCopy(row.reasonZh)}
             </dd>
           </div>
           {citedFacts.length ? (
@@ -179,12 +161,133 @@ function IssueDetails({
   );
 }
 
-function topIssues(result: ResumeJDDifferenceOutput) {
-  const byId = new Map(result.issues.map((issue) => [issue.id, issue]));
-  return result.overallDifference.topIssueIds
-    .map((id) => byId.get(id))
-    .filter((issue): issue is DifferenceIssue => Boolean(issue && !issue.isGate))
-    .slice(0, 3);
+type RowSeverity = "critical" | "gate" | "important" | "minor" | "matched";
+
+type PanelRow = {
+  id: string;
+  severity: RowSeverity;
+  badgeMark: string;
+  typeLabel: string;
+  jdOriginal: string;
+  jdTranslationZh: string;
+  resumeStatusZh: string;
+  resumeExcerpt: string | null;
+  unsupported: boolean;
+  problemZh: string | null;
+  reasonZh: string;
+  profileFactIds: readonly string[];
+};
+
+const severityRank: Record<RowSeverity, number> = {
+  critical: 0,
+  gate: 1,
+  important: 2,
+  minor: 3,
+  matched: 4,
+};
+
+const severityLabel: Record<RowSeverity, string> = {
+  critical: "关键",
+  gate: "关键",
+  important: "重要",
+  minor: "次要",
+  matched: "已对上",
+};
+
+const tallyLabel: Record<RowSeverity, string> = {
+  critical: "关键差异",
+  gate: "岗位门槛",
+  important: "重要差异",
+  minor: "次要差异",
+  matched: "已对上",
+};
+
+const badgeVariant: Record<RowSeverity, string> = {
+  critical: "",
+  gate: "badge-index--gate",
+  important: "",
+  minor: "",
+  matched: "badge-index--matched",
+};
+
+const severityBandClass: Record<RowSeverity, string> = {
+  critical: "bg-[var(--coral)]",
+  gate: "bg-[var(--coral)]",
+  important: "bg-[var(--cream)]",
+  minor: "bg-[var(--mist-blue)]",
+  matched: "bg-[var(--mint-strong)]",
+};
+
+const severityChipClass: Record<RowSeverity, string> = {
+  critical: "severity-critical",
+  gate: "severity-critical",
+  important: "severity-important",
+  minor: "severity-minor",
+  matched: "severity-matched",
+};
+
+// One list, ordered so the rows that change what you do next come first, and
+// the two that are not part of that sequence — a gate rewriting cannot fix,
+// and something already covered — sit at the ends carrying a mark instead of
+// a number.
+function buildRows(result: ResumeJDDifferenceOutput): PanelRow[] {
+  const issues = result.issues.map((issue) => {
+    const isGate = issue.isGate || issue.type === "gate";
+    return {
+      id: issue.id,
+      severity: (isGate ? "gate" : issue.priority) as RowSeverity,
+      badgeMark: "",
+      typeLabel: typeCopy[issue.type],
+      jdOriginal: issue.jdOriginal,
+      jdTranslationZh: issue.jdTranslationZh,
+      resumeStatusZh: issue.resumeStatusZh,
+      resumeExcerpt: issue.resumeExcerpt,
+      unsupported: issue.authenticity === "unsupported",
+      problemZh: issue.problemZh,
+      reasonZh: issue.reasonZh,
+      profileFactIds: issue.profileFactIds,
+    } satisfies PanelRow;
+  });
+
+  const matched = result.matched.map((item) => ({
+    id: item.id,
+    severity: "matched" as const,
+    badgeMark: "",
+    typeLabel: "简历已有可回查证据",
+    jdOriginal: item.jdOriginal,
+    jdTranslationZh: item.jdTranslationZh,
+    resumeStatusZh: "简历里已经有对得上的表述。",
+    resumeExcerpt: item.resumeExcerpt,
+    unsupported: false,
+    problemZh: null,
+    reasonZh: item.reasonZh,
+    profileFactIds: item.profileFactIds,
+  } satisfies PanelRow));
+
+  const ordered = [...issues, ...matched].sort(
+    (left, right) => severityRank[left.severity] - severityRank[right.severity],
+  );
+
+  let differenceNumber = 0;
+  return ordered.map((row) => ({
+    ...row,
+    badgeMark:
+      row.severity === "gate"
+        ? "!"
+        : row.severity === "matched"
+          ? "✓"
+          : String((differenceNumber += 1)),
+  }));
+}
+
+function tally(rows: readonly PanelRow[]) {
+  return (Object.keys(severityRank) as RowSeverity[])
+    .map((severity) => ({
+      severity,
+      label: tallyLabel[severity],
+      count: rows.filter((row) => row.severity === severity).length,
+    }))
+    .filter((entry) => entry.count > 0);
 }
 
 export function ResumeJDDifferencePanel({
@@ -196,216 +299,134 @@ export function ResumeJDDifferencePanel({
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
   if (!run || run.status !== "succeeded" || !run.result) {
     return (
-      <section className="dense-surface px-5 py-8 text-sm font-semibold text-[var(--ink-muted)]">
+      <section className="soft-surface px-6 py-8 text-sm font-medium text-[var(--ink-muted)]">
         尚未完成差异分析。选好对照简历后，点击“开始差异分析”。
       </section>
     );
   }
 
   const result = run.result;
-  const differences = result.issues.filter((issue) => !issue.isGate);
-  const gates = result.issues.filter((issue) => issue.isGate);
-  const leadingIssues = topIssues(result);
+  const rows = buildRows(result);
+  const counts = tally(rows);
 
   return (
     <section
-      className="space-y-8"
+      className="space-y-7"
       aria-labelledby="resume-jd-difference-title"
       data-run-id={run.id}
     >
-      <div className="dense-surface grid overflow-hidden sm:grid-cols-[220px_minmax(0,1fr)]">
-        <div className="bg-[var(--cream)] px-5 py-4 text-xs font-black uppercase tracking-[0.14em]">
-          {stale ? "上一次分析使用的简历" : "本次对照简历"}
-        </div>
-        <div className="flex min-w-0 flex-wrap items-center justify-between gap-4 px-5 py-4">
+      {/* The page's one sticker. It carries the conclusion, not decoration. */}
+      <section className="sticker-border bg-[var(--cream)] px-6 py-7 shadow-[8px_8px_0_var(--ink)] sm:px-8">
+        <div className="grid gap-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start">
           <div className="min-w-0">
-            <h2 id="resume-jd-difference-title" className="break-words text-base font-black">
-              {run.sourceFilename}
-            </h2>
-            <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
-              所有判断只针对这份简历；职业档案只作为已确认补充，不计作简历已覆盖。
+            <p className="flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2.5 py-1">
+                <span aria-hidden="true" className="size-[7px] rounded-full bg-[var(--mint-strong)]" />
+                <span className="font-bold text-[var(--ink)]">
+                  {stale ? "结果已过期" : "分析已完成"}
+                </span>
+              </span>
+              <span lang="und">对照 {run.sourceFilename}</span>
             </p>
+            <h2
+              id="resume-jd-difference-title"
+              className="heading-font mt-3.5 max-w-[30ch] text-2xl font-black leading-[1.3] tracking-[-0.03em] sm:text-3xl"
+            >
+              {safeCopy(result.overallDifference.summaryZh)}
+            </h2>
           </div>
-          <a
-            className="button-secondary inline-flex min-h-10 shrink-0 items-center px-4 text-xs font-black"
-            href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
-            download
-          >
-            导出 Markdown
-          </a>
+          <div className="flex shrink-0 flex-wrap items-center gap-2.5">
+            <a
+              className="inline-flex min-h-11 items-center rounded-full border-2 border-[var(--ink)] bg-[var(--paper)] px-4 text-[13px] font-bold transition hover:-translate-x-px hover:-translate-y-px hover:shadow-[3px_3px_0_var(--ink)]"
+              href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
+              download
+            >
+              导出 Markdown
+            </a>
+          </div>
+        </div>
+
+        <div
+          data-testid="severity-tally"
+          className="mt-6 flex flex-wrap gap-2 border-t-2 border-dashed border-[color-mix(in_srgb,var(--ink)_22%,transparent)] pt-5"
+        >
+          {counts.map((entry) => (
+            <span
+              key={entry.severity}
+              className="inline-flex items-center gap-2 rounded-full bg-[var(--paper)] py-2 pl-3 pr-3.5"
+            >
+              <span
+                aria-hidden="true"
+                className={`severity-band size-2.5 rounded-full ${severityBandClass[entry.severity]}`}
+              />
+              <span className="heading-font text-[17px] font-black leading-none">
+                {entry.count}
+              </span>
+              <span className="text-[13px] font-semibold">{entry.label}</span>
+            </span>
+          ))}
+        </div>
+      </section>
+
+      {/* What the job is actually asking for — a sentence, not three cells. */}
+      <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
+        <span className="inline-flex w-fit items-center rounded-full border border-[var(--mint)] bg-[#f2fbf6] px-3 py-1.5 text-xs font-bold text-[#2f6b4f]">
+          这个岗位真正要什么
+        </span>
+        <div className="min-w-0">
+          <p className="max-w-[64ch] text-base font-semibold leading-[1.7]">
+            {safeCopy(result.jobCore.missionZh)}
+          </p>
+          <div className="mt-2.5 flex flex-wrap gap-2">
+            {result.jobCore.coreCapabilities.map((capability) => (
+              <span
+                key={capability}
+                className="rounded-full bg-[var(--mint)] px-3 py-1.5 text-[13px] font-semibold text-[#20372c]"
+              >
+                {capability}
+              </span>
+            ))}
+          </div>
         </div>
       </div>
 
-      <section className="sticker-border overflow-hidden bg-[var(--mint)] shadow-[6px_6px_0_var(--ink)]" aria-labelledby="job-core-title">
-        <div className="border-b-2 border-[var(--ink)] px-5 py-5 sm:px-6">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Job brief
-          </p>
-          <h2 id="job-core-title" className="heading-font mt-1 text-2xl font-black sm:text-3xl">
-            岗位核心判断
+      <section aria-labelledby="specific-differences-title">
+        <div className="flex flex-wrap items-baseline justify-between gap-3">
+          <h2
+            id="specific-differences-title"
+            className="heading-font text-xl font-black tracking-[-0.02em] sm:text-2xl"
+          >
+            逐条差异 · 按严重度排序
           </h2>
-          <p className="mt-3 max-w-4xl text-base font-bold leading-7">
-            {safeCopy(result.jobCore.missionZh)}
-          </p>
+          <span className="text-[13px] font-medium text-[var(--ink-muted)]">
+            点任意一行展开依据 · 珊瑚色行是改简历前必须先看的
+          </span>
         </div>
-        <ol className="grid gap-px bg-[var(--ink)] sm:grid-cols-3">
-          {result.jobCore.coreCapabilities.map((capability, index) => (
-            <li key={`${index}-${capability}`} className="bg-[var(--mint)] px-5 py-4">
-              <span className="text-xs font-black text-[var(--ink-muted)]">
-                0{index + 1}
-              </span>
-              <span className="mt-1 block text-sm font-black leading-6">
-                {safeCopy(capability)}
-              </span>
+
+        <ol className="soft-surface mt-3.5 list-none p-2">
+          {rows.map((row) => (
+            <li key={row.id}>
+              <IssueDetails
+                row={row}
+                citedFacts={resolveCitedFacts(row.profileFactIds, factsById)}
+              />
             </li>
           ))}
         </ol>
       </section>
 
-      <section className="dense-surface overflow-hidden" aria-labelledby="overall-difference-title">
-        <div className="bg-[var(--mist-blue)] px-5 py-5 sm:px-6">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Executive read
-          </p>
-          <h2 id="overall-difference-title" className="heading-font mt-1 text-2xl font-black">
-            这份简历的总体差异
-          </h2>
-          <p className="mt-3 max-w-4xl text-sm font-bold leading-7">
-            {safeCopy(result.overallDifference.summaryZh)}
-          </p>
-        </div>
-        {leadingIssues.length ? (
-          <ol className="grid border-t border-[var(--line)] lg:grid-cols-3">
-            {leadingIssues.map((issue, index) => (
-              <li
-                key={issue.id}
-                data-testid="top-difference"
-                className="border-t border-[var(--line)] px-5 py-4 first:border-t-0 lg:border-l lg:border-t-0 lg:first:border-l-0"
-              >
-                <p className="text-xs font-black text-[var(--ink-muted)]">
-                  重点 0{index + 1}
-                </p>
-                <p className="mt-2 text-sm font-black leading-6">
-                  {safeCopy(issue.problemZh)}
-                </p>
-              </li>
-            ))}
-          </ol>
-        ) : null}
-      </section>
-
-      <section aria-labelledby="specific-differences-title">
-        <div className="mb-3 flex flex-wrap items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-              Evidence review
-            </p>
-            <h2 id="specific-differences-title" className="heading-font mt-1 text-2xl font-black">
-              具体差异
-            </h2>
-          </div>
-          <span className="text-xs font-black text-[var(--ink-muted)]">
-            {differences.length} 项 · 点击逐条查看依据
-          </span>
-        </div>
-        <div className="soft-surface overflow-hidden p-1.5">
-          {differences.map((issue, index) => (
-            <IssueDetails
-              key={issue.id}
-              issue={issue}
-              kind="difference"
-              badgeMark={String(index + 1)}
-              citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
-            />
-          ))}
-        </div>
-      </section>
-
-      <section aria-labelledby="gate-differences-title">
-        <div className="mb-3">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Qualification check
-          </p>
-          <h2 id="gate-differences-title" className="heading-font mt-1 text-2xl font-black">
-            岗位门槛待确认
-          </h2>
-        </div>
-        {gates.length ? (
-          <div className="soft-surface overflow-hidden p-1.5">
-            {gates.map((issue) => (
-              <IssueDetails
-                key={issue.id}
-                issue={issue}
-                kind="gate"
-                badgeMark="!"
-                citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
-              />
-            ))}
-          </div>
-        ) : (
-          <p className="dense-surface px-5 py-4 text-sm font-semibold text-[var(--ink-muted)]">
-            当前分析没有识别出需要单独确认的硬性门槛。
-          </p>
-        )}
-      </section>
-
-      <section aria-labelledby="matched-title">
-        <div className="mb-3">
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Confirmed alignment
-          </p>
-          <h2 id="matched-title" className="heading-font mt-1 text-2xl font-black">
-            已经对上的内容
-          </h2>
-        </div>
-        <details className="dense-surface overflow-hidden" data-testid="matched-details">
-          <summary className="cursor-pointer px-5 py-4 text-sm font-black focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)]">
-            查看 {result.matched.length} 条已匹配内容
-          </summary>
-          <ul className="border-t border-[var(--line)]">
-            {result.matched.map((item) => (
-              <li key={item.id} className="border-t border-[var(--line)] px-5 py-5 first:border-t-0">
-                <p className="text-sm font-black leading-6">{safeCopy(item.jdTranslationZh)}</p>
-                <p className="mt-1 break-words text-xs font-semibold leading-5 text-[var(--ink-muted)]" lang="und">
-                  {item.jdOriginal}
-                </p>
-                <blockquote className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm font-semibold leading-6" lang="und">
-                  {item.resumeExcerpt}
-                </blockquote>
-                <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                  {safeCopy(item.reasonZh)}
-                </p>
-                {resolveCitedFacts(item.profileFactIds, factsById).length ? (
-                  <p className="mt-1 text-xs font-bold leading-5 text-[var(--ink-muted)]">
-                    档案依据：
-                    {resolveCitedFacts(item.profileFactIds, factsById)
-                      .map((fact) => fact.title)
-                      .join(" · ")}
-                  </p>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </details>
-      </section>
-
-      <section className="sticker-border grid gap-4 bg-[var(--cream)] p-5 shadow-[5px_5px_0_var(--ink)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6" aria-labelledby="difference-next-step-title">
+      <section className="soft-surface grid gap-5 px-6 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-7">
         <div>
-          <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Soft workflow
-          </p>
-          <h2 id="difference-next-step-title" className="heading-font mt-1 text-xl font-black">
-            下一步：查看完善建议
-          </h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
-            建议会告诉你应核对哪段经历、补足哪些真实信息，不会直接代写或修改简历。
+          <h2 className="heading-font text-lg font-black">下一步：查看完善建议</h2>
+          <p className="mt-1.5 max-w-[62ch] text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
+            建议只告诉你该核对哪段经历、补足哪些真实信息，不会代写简历。
           </p>
         </div>
         <Link
           href={`/applications/${applicationId}?tab=improvements`}
-          className="button-secondary inline-flex min-h-11 items-center justify-center px-5 text-sm font-black"
+          className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-[15px] font-extrabold"
         >
-          查看完善建议
+          查看完善建议 →
         </Link>
       </section>
     </section>

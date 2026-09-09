@@ -147,15 +147,14 @@ test("runs one grounded analysis and reuses the same run for improvements", asyn
 
     await page.goto(`${application.detailUrl}?tab=difference`);
     await page.getByRole("button", { name: "开始差异分析" }).click();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toBeVisible();
     expect(analyzePosts).toHaveLength(1);
-    await expect(page.getByTestId("top-difference")).toHaveCount(3);
-    await expect(page.getByTestId(/^difference-issue-/u)).toHaveCount(3);
-    await expect(page.getByTestId(/^gate-issue-/u)).toHaveCount(1);
-    const matched = page.getByTestId("matched-details");
-    await expect(matched).not.toHaveAttribute("open", "");
-    await matched.locator("summary").click();
-    await expect(matched).toHaveAttribute("open", "");
+    // Differences, the gate and the match are one list now, ordered by
+    // severity, each row closed until asked.
+    const rows = page.getByTestId(/^difference-issue-/u);
+    await expect(rows).toHaveCount(5);
+    await expect(page.getByTestId("severity-tally")).toContainText("岗位门槛");
+    await expect(rows.last()).not.toHaveAttribute("open", "");
 
     const firstDifference = page.getByTestId(/^difference-issue-/u).first();
     // The row itself carries both languages and the severity; expanding adds
@@ -201,7 +200,7 @@ test("marks old analysis stale and keeps previous results explicit during retry 
     const application = await createApplication(page, "Change Labs", "Data Analyst");
     await uploadBaseline(page, application.applicationId);
     await page.getByRole("button", { name: "开始差异分析" }).click();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toBeVisible();
 
     await page.goto(`${application.detailUrl}?tab=resume`);
     await page.getByRole("button", { name: "上传新简历" }).click();
@@ -218,7 +217,7 @@ test("marks old analysis stale and keeps previous results explicit during retry 
 
     await page.goto(`${application.detailUrl}?tab=difference`);
     await expect(page.getByText(/材料已变化，请重新分析/u)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toHaveCount(0);
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toHaveCount(0);
     await page.goto(`${application.detailUrl}?tab=improvements`);
     await expect(page.getByText("材料已变化，请重新分析", { exact: true })).toBeVisible();
 
@@ -239,7 +238,7 @@ test("marks old analysis stale and keeps previous results explicit during retry 
     await page.getByRole("button", { name: "重新分析" }).click();
     await expect(page.getByRole("link", { name: "查看上次结果" })).toBeVisible();
     await page.getByRole("link", { name: "查看上次结果" }).click();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toBeVisible();
     await expect(page.getByRole("link", { name: "导出 Markdown" })).toHaveAttribute(
       "href",
       /stale=1/u,
@@ -307,7 +306,7 @@ test("recovers scanned PDF text through OCR and remains usable on mobile", async
       page.getByRole("alert").filter({ hasText: "没有读到足够的简历文字" }),
     ).toBeVisible();
     await page.getByRole("button", { name: "在本机识别扫描版 PDF" }).click();
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toBeVisible();
     expect(analyzeBodies).toHaveLength(2);
     expect(analyzeBodies[0]).toBeNull();
     expect(analyzeBodies[1]).toContain('"ocrText"');
@@ -382,7 +381,7 @@ test("lets a user paste resume text when the file cannot be read", async ({
     await page.getByRole("textbox", { name: "简历文字" }).fill(pasted);
     await page.getByRole("button", { name: "用这段文字分析" }).click();
 
-    await expect(page.getByRole("heading", { name: "岗位核心判断" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toBeVisible();
     expect(analyzeBodies).toHaveLength(2);
     expect(analyzeBodies[0]).toBeNull();
     expect(JSON.parse(String(analyzeBodies[1]))).toEqual({ ocrText: pasted });

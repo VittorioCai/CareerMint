@@ -199,7 +199,7 @@ function succeededRun(): ResumeJDDifferenceRun {
 }
 
 describe("ResumeJDDifferencePanel", () => {
-  it("renders the approved information order and a soft next step", () => {
+  it("leads with the conclusion, then the job, then the rows", () => {
     const { container } = render(
       <ResumeJDDifferencePanel
         applicationId={applicationId}
@@ -208,28 +208,25 @@ describe("ResumeJDDifferencePanel", () => {
       />,
     );
     const text = container.textContent ?? "";
-    const headings = [
-      "本次对照简历",
-      "岗位核心判断",
-      "这份简历的总体差异",
-      "具体差异",
-      "岗位门槛待确认",
-      "已经对上的内容",
+    const order = [
+      "当前简历有可回查内容",
+      "这个岗位真正要什么",
+      "逐条差异 · 按严重度排序",
       "下一步：查看完善建议",
     ];
-    for (let index = 1; index < headings.length; index += 1) {
-      expect(text.indexOf(headings[index - 1])).toBeLessThan(
-        text.indexOf(headings[index]),
+    for (let index = 1; index < order.length; index += 1) {
+      expect(text.indexOf(order[index - 1])).toBeLessThan(
+        text.indexOf(order[index]),
       );
     }
-    expect(screen.getByText("product-analyst-resume.pdf")).toBeVisible();
-    expect(screen.getByRole("link", { name: "查看完善建议" })).toHaveAttribute(
+    expect(screen.getByText(/product-analyst-resume\.pdf/u)).toBeVisible();
+    expect(screen.getByRole("link", { name: /查看完善建议/u })).toHaveAttribute(
       "href",
       `/applications/${applicationId}?tab=improvements`,
     );
   });
 
-  it("shows at most three top issues while keeping every issue accessible", () => {
+  it("keeps every issue and every match reachable in the one list", () => {
     render(
       <ResumeJDDifferencePanel
         applicationId={applicationId}
@@ -237,9 +234,10 @@ describe("ResumeJDDifferencePanel", () => {
         facts={facts}
       />,
     );
-    expect(screen.getAllByTestId("top-difference")).toHaveLength(3);
-    expect(screen.getAllByTestId(/^difference-issue-/u)).toHaveLength(3);
-    expect(screen.getByTestId("gate-issue-issue-4")).toBeInTheDocument();
+    // Four issues plus one match, none hidden behind a section or a summary.
+    expect(screen.getAllByTestId(/^difference-issue-/u)).toHaveLength(5);
+    expect(screen.getByTestId("difference-issue-issue-4")).toBeInTheDocument();
+    expect(screen.getByTestId("difference-issue-matched-1")).toBeInTheDocument();
   });
 
   it("keeps the original beside its Chinese reading on the row itself", async () => {
@@ -278,7 +276,10 @@ describe("ResumeJDDifferencePanel", () => {
     );
     expect(screen.getAllByText("当前材料未找到相关证据").length).toBeGreaterThan(0);
     expect(screen.queryByText("你不具备")).not.toBeInTheDocument();
-    expect(screen.getByTestId("matched-details")).not.toHaveAttribute("open");
+    // A match is a row like any other now, closed until asked.
+    expect(screen.getByTestId("difference-issue-matched-1")).not.toHaveAttribute(
+      "open",
+    );
   });
 
   it("names the confirmed facts behind a difference and a match", async () => {
@@ -296,9 +297,10 @@ describe("ResumeJDDifferencePanel", () => {
     expect(within(issue).getByText("跨部门业务复盘")).toBeVisible();
     expect(within(issue).queryByText(forgottenFactId)).not.toBeInTheDocument();
 
-    const matched = screen.getByTestId("matched-details");
+    const matched = screen.getByTestId("difference-issue-matched-1");
     await userEvent.click(matched.querySelector("summary")!);
-    expect(within(matched).getByText(/档案依据：跨部门业务复盘/u)).toBeVisible();
+    expect(within(matched).getByText("档案依据")).toBeVisible();
+    expect(within(matched).getByText("跨部门业务复盘")).toBeVisible();
   });
 
   it("numbers ordinary differences and marks gates and matches instead", async () => {
@@ -359,6 +361,91 @@ describe("ResumeJDDifferencePanel", () => {
     expect(within(issue).getByText("判断依据")).toBeVisible();
   });
 
+  it("puts differences, gates and matches in one list ordered by severity", () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    const rows = screen.getAllByTestId(/^difference-issue-/u);
+    const badges = rows.map((row) =>
+      within(row).getByTestId("row-badge").textContent,
+    );
+    // Numbering runs across the sorted list and skips the two rows that are
+    // not part of the sequence: a gate you cannot fix by rewriting, and
+    // something that already lines up.
+    expect(badges).toEqual(["1", "!", "2", "3", "✓"]);
+  });
+
+  it("counts the list once, at the top, instead of per section", () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    const tally = screen.getByTestId("severity-tally");
+    expect(tally).toHaveTextContent("1关键差异");
+    expect(tally).toHaveTextContent("1岗位门槛");
+    expect(tally).toHaveTextContent("1已对上");
+  });
+
+  it("drops the three section headings the single list replaces", () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    expect(screen.queryByText("岗位门槛待确认")).not.toBeInTheDocument();
+    expect(screen.queryByText("已经对上的内容")).not.toBeInTheDocument();
+    expect(screen.queryByText("岗位核心判断")).not.toBeInTheDocument();
+  });
+
+  it("states the job's core as a sentence rather than three empty cells", () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    expect(screen.getByText("这个岗位真正要什么")).toBeVisible();
+    expect(screen.getByText("通过数据和跨团队协作支持业务决策。")).toBeVisible();
+    expect(screen.getByText("业务分析")).toBeVisible();
+    // The numbered cells said nothing the sentence above does not.
+    expect(screen.queryByText("重点 01")).not.toBeInTheDocument();
+  });
+
+  it("stops decorating a Chinese page with English section kickers", () => {
+    const { container } = render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    for (const kicker of [
+      "Job brief",
+      "Executive read",
+      "Evidence review",
+      "Qualification check",
+      "Confirmed alignment",
+      "Soft workflow",
+    ]) {
+      expect(container).not.toHaveTextContent(kicker);
+    }
+  });
+
   it("does not call a stale run's file the current baseline", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
@@ -367,7 +454,7 @@ describe("ResumeJDDifferencePanel", () => {
         facts={facts}
       />,
     );
-    expect(screen.getByText("本次对照简历")).toBeVisible();
+    expect(screen.getByText("分析已完成")).toBeVisible();
 
     rerender(
       <ResumeJDDifferencePanel
@@ -377,8 +464,8 @@ describe("ResumeJDDifferencePanel", () => {
         stale
       />,
     );
-    expect(screen.getByText("上一次分析使用的简历")).toBeVisible();
-    expect(screen.queryByText("本次对照简历")).not.toBeInTheDocument();
+    expect(screen.getByText("结果已过期")).toBeVisible();
+    expect(screen.queryByText("分析已完成")).not.toBeInTheDocument();
   });
 
   it("offers a Markdown export for the displayed run and marks previous results", () => {
