@@ -59,8 +59,25 @@ export default async function ApplicationsPage({
         </div>
       </div>
 
-      <div className="dense-surface mt-7 p-4">
-        <form method="get" className="grid gap-3 md:grid-cols-[minmax(0,1fr)_220px_auto]">
+      <details
+        className="reveal group mt-7"
+        open={Boolean(filter.q || filter.stage) || applications.length > 8}
+      >
+        <summary className="press inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-[var(--mist-blue)] [&::-webkit-details-marker]:hidden">
+          筛选与搜索
+          {filter.q || filter.stage ? (
+            <span className="rounded-full bg-[var(--cream)] px-2 py-0.5 text-xs font-semibold text-[var(--ink)]">
+              已启用
+            </span>
+          ) : null}
+          <span
+            aria-hidden="true"
+            className="text-xs transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180"
+          >
+            ⌄
+          </span>
+        </summary>
+        <form method="get" className="soft-surface mt-3 grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_220px_auto]">
           <input type="hidden" name="view" value={filter.view} />
           <label className="text-xs font-black text-[var(--ink-muted)]">
             搜索公司、职位、地点或来源
@@ -97,7 +114,7 @@ export default async function ApplicationsPage({
             </Link>
           </div>
         </form>
-      </div>
+      </details>
 
       <div
         className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-white p-1"

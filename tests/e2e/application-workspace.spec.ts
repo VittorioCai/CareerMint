@@ -225,7 +225,9 @@ test("gives board columns room for a real company name", async ({ page }) => {
   try {
     await prepareAccount(page, account, email, userId);
     await createApplication(page, "Mercedes-Benz Group AG", "Praktikant*in Customer Experience");
-    await page.goto("/applications");
+    // The board is opt-in now — table is what a new account lands on — so this
+    // asks for the view whose column width it is about to measure.
+    await page.goto("/applications?view=board");
 
     // At the old width a seven-column board gave each stage about 205px, which
     // broke "Mercedes-Benz Group AG" across two lines and the role across three.

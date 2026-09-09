@@ -98,8 +98,11 @@ function IssueDetails({
           <span className="mt-2 block max-w-[64ch] text-base font-bold leading-[1.55]">
             {safeCopy(row.jdTranslationZh)}
           </span>
+          {/* A requirement can quote a whole paragraph. Unclamped it runs
+              three lines of grey English above the Chinese judgement it is
+              supposed to support; the full text is in the panel below. */}
           <span
-            className="mt-1.5 block max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
+            className="mt-1.5 line-clamp-2 block max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
             lang="und"
           >
             “{row.jdOriginal}”
@@ -116,6 +119,17 @@ function IssueDetails({
       </summary>
       <div className="mb-2.5 ml-[58px] mr-2 rounded-2xl bg-[var(--canvas)] px-5 py-4">
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5">
+          <div>
+            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+              岗位原文
+            </dt>
+            <dd
+              className="mt-2 break-words text-sm font-normal leading-[1.65] text-[var(--ink-muted)]"
+              lang="und"
+            >
+              {row.jdOriginal}
+            </dd>
+          </div>
           <div>
             <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               简历现状

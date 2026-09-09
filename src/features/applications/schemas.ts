@@ -126,7 +126,10 @@ export const stageChangeSchema = stageChangeFormSchema
 export type StageChangeInput = z.infer<typeof stageChangeSchema>;
 
 export const applicationFilterSchema = z.object({
-  view: z.enum(["board", "table"]).catch("board").default("board"),
+  // Table is the default because it survives having one record. The board is
+  // seven columns wide, so at any realistic early volume it is mostly empty —
+  // it becomes the view once the user asks for it.
+  view: z.enum(["board", "table"]).catch("table").default("table"),
   q: z
     .preprocess(
       (value) => (typeof value === "string" ? value.trim() : value),

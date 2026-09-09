@@ -292,11 +292,13 @@ describe("ResumeJDDifferencePanel", () => {
     // Collapsed, the row already carries both languages — the original is
     // never behind a click.
     expect(within(issue).getByText("将业务需求转化为报告需求。")).toBeVisible();
+    // Clamped on the row, in full inside the panel — so it appears twice.
     expect(
-      within(issue).getByText(/Translate business needs into reporting requirements\./u),
-    ).toBeVisible();
+      within(issue).getAllByText(/Translate business needs into reporting requirements\./u),
+    ).toHaveLength(2);
 
     await user.click(summary!);
+    expect(within(issue).getByText("岗位原文")).toBeVisible();
     expect(within(issue).getByText("简历现状")).toBeVisible();
     expect(within(issue).getByText("问题点")).toBeVisible();
     expect(within(issue).getByText("判断依据")).toBeVisible();
