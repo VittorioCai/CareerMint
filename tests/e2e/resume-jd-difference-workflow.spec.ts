@@ -158,9 +158,13 @@ test("runs one grounded analysis and reuses the same run for improvements", asyn
     await expect(matched).toHaveAttribute("open", "");
 
     const firstDifference = page.getByTestId(/^difference-issue-/u).first();
+    // The row itself carries both languages and the severity; expanding adds
+    // the evidence behind the judgement, not a repeat of the row.
+    await expect(firstDifference.getByTestId("row-badge")).toBeVisible();
+    await expect(firstDifference.getByTestId("row-priority")).toBeVisible();
     await firstDifference.locator("summary").click();
-    await expect(firstDifference.getByText("JD 原文", { exact: true })).toBeVisible();
-    await expect(firstDifference.getByText("中文解释", { exact: true })).toBeVisible();
+    await expect(firstDifference.getByText("简历现状", { exact: true })).toBeVisible();
+    await expect(firstDifference.getByText("判断依据", { exact: true })).toBeVisible();
     const differenceRunId = await page
       .locator("section[data-run-id]")
       .getAttribute("data-run-id");

@@ -30,10 +30,16 @@ const typeCopy: Record<DifferenceIssue["type"], string> = {
   gate: "岗位门槛",
 };
 
-const priorityClass: Record<DifferenceIssue["priority"], string> = {
+const severityBandClass: Record<DifferenceIssue["priority"], string> = {
   critical: "bg-[var(--coral)]",
   important: "bg-[var(--cream)]",
   minor: "bg-[var(--mist-blue)]",
+};
+
+const severityChipClass: Record<DifferenceIssue["priority"], string> = {
+  critical: "severity-critical",
+  important: "severity-important",
+  minor: "severity-minor",
 };
 
 function safeCopy(value: string) {
@@ -64,90 +70,101 @@ function IssueDetails({
   issue,
   kind,
   citedFacts,
+  badgeMark,
 }: {
   issue: DifferenceIssue;
   kind: "difference" | "gate";
   citedFacts: ConfirmedFactForAnalysis[];
+  badgeMark: string;
 }) {
+  const isGate = issue.isGate || issue.type === "gate";
   return (
-    <details
-      className="group border-t border-[var(--line)] first:border-t-0"
-      data-testid={`${kind}-issue-${issue.id}`}
-    >
-      <summary className="flex cursor-pointer list-none items-start gap-3 px-4 py-4 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)] sm:px-5">
+    <details className="group" data-testid={`${kind}-issue-${issue.id}`}>
+      <span
+        aria-hidden="true"
+        className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[issue.priority]}`}
+      />
+      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)]">
         <span
           aria-hidden="true"
-          className="mt-0.5 grid size-6 shrink-0 place-items-center rounded-full border border-[var(--ink)] bg-white text-xs font-black transition-transform group-open:rotate-45"
+          data-testid="row-badge"
+          className={`badge-index heading-font mt-0.5 ${isGate ? "badge-index--gate" : ""}`}
         >
-          +
+          {badgeMark}
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-sm font-black leading-6">
+          <span className="flex flex-wrap items-center gap-2">
+            <span
+              data-testid="row-priority"
+              className={`severity-chip ${severityChipClass[issue.priority]}`}
+            >
+              {priorityCopy[issue.priority]}
+            </span>
+            <span
+              data-testid="row-type"
+              className="text-xs font-semibold text-[var(--ink-muted)]"
+            >
+              {typeCopy[issue.type]}
+            </span>
+          </span>
+          <span className="mt-2 block text-base font-bold leading-[1.55]">
             {safeCopy(issue.jdTranslationZh)}
           </span>
-          <span className="mt-1 block break-words text-xs font-semibold leading-5 text-[var(--ink-muted)]" lang="und">
-            {issue.jdOriginal}
+          <span
+            className="mt-1.5 block break-words text-[13px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
+            lang="und"
+          >
+            “{issue.jdOriginal}”
           </span>
         </span>
-        <span className={`status-chip ${priorityClass[issue.priority]}`}>
-          {priorityCopy[issue.priority]} · {typeCopy[issue.type]}
+        <span
+          aria-hidden="true"
+          className="mt-1 grid size-7 shrink-0 place-items-center rounded-full transition-transform group-open:rotate-180"
+        >
+          <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" className="text-[var(--ink-muted)]">
+            <path d="M5 8l5 5 5-5" />
+          </svg>
         </span>
       </summary>
-      <div className="border-t border-[var(--line)] bg-[var(--paper)] px-4 py-5 sm:px-11">
-        <dl className="grid gap-x-8 gap-y-5 lg:grid-cols-2">
+      <div className="ml-[58px] mr-4 mb-3 rounded-2xl bg-[var(--canvas)] px-5 py-4">
+        <dl className="grid gap-x-8 gap-y-5 grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
           <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              JD 原文
-            </dt>
-            <dd className="mt-2 break-words text-sm font-semibold leading-6" lang="und">
-              {issue.jdOriginal}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              中文解释
-            </dt>
-            <dd className="mt-2 text-sm font-semibold leading-6">
-              {safeCopy(issue.jdTranslationZh)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               简历现状
             </dt>
-            <dd className="mt-2 text-sm font-semibold leading-6">
+            <dd className="mt-2 text-sm font-medium leading-[1.65]">
               <span className="block">{safeCopy(issue.resumeStatusZh)}</span>
-              <span className="mt-2 block rounded-xl border border-[var(--line)] bg-white px-3 py-2" lang="und">
+              <span className="mt-2 block rounded-xl bg-white px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
                 {resumeEvidence(issue)}
               </span>
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               问题点
             </dt>
-            <dd className="mt-2 text-sm font-semibold leading-6">
+            <dd className="mt-2 text-sm font-medium leading-[1.65]">
               {safeCopy(issue.problemZh)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+            <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
               判断依据
             </dt>
-            <dd className="mt-2 text-sm font-semibold leading-6">
+            <dd className="mt-2 text-sm font-medium leading-[1.65]">
               {safeCopy(issue.reasonZh)}
             </dd>
           </div>
           {citedFacts.length ? (
             <div>
-              <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+              <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                 档案依据
               </dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {citedFacts.map((fact) => (
                   <span
                     key={fact.id}
-                    className="rounded-full border border-[var(--ink)] bg-[var(--mint)] px-3 py-1 text-xs font-black"
+                    className="rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-semibold"
                     title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
                   >
                     {fact.title}
@@ -156,14 +173,6 @@ function IssueDetails({
               </dd>
             </div>
           ) : null}
-          <div>
-            <dt className="text-xs font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-              优先级
-            </dt>
-            <dd className="mt-2 text-sm font-black">
-              {priorityCopy[issue.priority]}
-            </dd>
-          </div>
         </dl>
       </div>
     </details>
@@ -299,14 +308,15 @@ export function ResumeJDDifferencePanel({
             {differences.length} 项 · 点击逐条查看依据
           </span>
         </div>
-        <div className="dense-surface overflow-hidden">
-          {differences.map((issue) => (
+        <div className="soft-surface overflow-hidden p-1.5">
+          {differences.map((issue, index) => (
             <IssueDetails
-                key={issue.id}
-                issue={issue}
-                kind="difference"
-                citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
-              />
+              key={issue.id}
+              issue={issue}
+              kind="difference"
+              badgeMark={String(index + 1)}
+              citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
+            />
           ))}
         </div>
       </section>
@@ -321,12 +331,13 @@ export function ResumeJDDifferencePanel({
           </h2>
         </div>
         {gates.length ? (
-          <div className="overflow-hidden rounded-2xl border-2 border-[var(--coral)] bg-white">
+          <div className="soft-surface overflow-hidden p-1.5">
             {gates.map((issue) => (
               <IssueDetails
                 key={issue.id}
                 issue={issue}
                 kind="gate"
+                badgeMark="!"
                 citedFacts={resolveCitedFacts(issue.profileFactIds, factsById)}
               />
             ))}

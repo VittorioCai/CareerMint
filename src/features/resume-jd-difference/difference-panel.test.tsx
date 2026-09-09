@@ -242,7 +242,7 @@ describe("ResumeJDDifferencePanel", () => {
     expect(screen.getByTestId("gate-issue-issue-4")).toBeInTheDocument();
   });
 
-  it("shows original and Chinese text together with all diagnostic fields", async () => {
+  it("keeps the original beside its Chinese reading on the row itself", async () => {
     const user = userEvent.setup();
     render(
       <ResumeJDDifferencePanel
@@ -254,18 +254,18 @@ describe("ResumeJDDifferencePanel", () => {
     const issue = screen.getByTestId("difference-issue-issue-1");
     const summary = issue.querySelector("summary");
     expect(summary).not.toBeNull();
-    await user.click(summary!);
-    expect(within(issue).getByText("JD 原文")).toBeVisible();
+
+    // Collapsed, the row already carries both languages — the original is
+    // never behind a click.
+    expect(within(issue).getByText("将业务需求转化为报告需求。")).toBeVisible();
     expect(
-      within(issue).getAllByText(
-        "Translate business needs into reporting requirements.",
-      ),
-    ).toHaveLength(2);
-    expect(within(issue).getByText("中文解释")).toBeVisible();
+      within(issue).getByText(/Translate business needs into reporting requirements\./u),
+    ).toBeVisible();
+
+    await user.click(summary!);
     expect(within(issue).getByText("简历现状")).toBeVisible();
     expect(within(issue).getByText("问题点")).toBeVisible();
     expect(within(issue).getByText("判断依据")).toBeVisible();
-    expect(within(issue).getByText("优先级")).toBeVisible();
   });
 
   it("uses safe no-evidence copy and keeps matched content collapsed by default", () => {
@@ -299,6 +299,64 @@ describe("ResumeJDDifferencePanel", () => {
     const matched = screen.getByTestId("matched-details");
     await userEvent.click(matched.querySelector("summary")!);
     expect(within(matched).getByText(/档案依据：跨部门业务复盘/u)).toBeVisible();
+  });
+
+  it("numbers ordinary differences and marks gates and matches instead", async () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    // The badge carries the row's identity: a running number for a difference
+    // you work through, "!" for something rewriting cannot fix, "✓" for what
+    // already lines up.
+    const first = screen.getByTestId("difference-issue-issue-1");
+    expect(within(first).getByTestId("row-badge")).toHaveTextContent("1");
+  });
+
+  it("separates priority from type instead of crowding one chip", async () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    const issue = screen.getByTestId("difference-issue-issue-1");
+    const chip = within(issue).getByTestId("row-priority");
+    expect(chip).toHaveTextContent("关键");
+    expect(chip).not.toHaveTextContent("岗位语言未对齐");
+    expect(within(issue).getByTestId("row-type")).toHaveTextContent(
+      "岗位语言未对齐",
+    );
+  });
+
+  it("drops the three detail fields the row already shows", async () => {
+    render(
+      <ResumeJDDifferencePanel
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+
+    const issue = screen.getByTestId("difference-issue-issue-1");
+    await userEvent.click(issue.querySelector("summary")!);
+
+    // JD original is already on the row, the Chinese reading IS the row
+    // heading, and priority IS the chip — repeating them was the page's
+    // biggest source of filler.
+    expect(within(issue).queryByText("JD 原文")).not.toBeInTheDocument();
+    expect(within(issue).queryByText("中文解释")).not.toBeInTheDocument();
+    expect(within(issue).queryByText("优先级")).not.toBeInTheDocument();
+
+    expect(within(issue).getByText("简历现状")).toBeVisible();
+    expect(within(issue).getByText("问题点")).toBeVisible();
+    expect(within(issue).getByText("判断依据")).toBeVisible();
   });
 
   it("does not call a stale run's file the current baseline", () => {
