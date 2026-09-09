@@ -1,21 +1,57 @@
 @import "tailwindcss";
 
 :root {
-  --canvas: #fffaf2;
-  --paper: #fffdf8;
-  --mint: #bdebd7;
-  --mint-strong: #55a982;
-  --cream: #fff2a8;
-  --coral: #ff796d;
-  --mist-blue: #c8ddff;
-  --ink: #293733;
-  --ink-muted: #596761;
-  --ink-soft: #94a09b;
-  --line: #dbe0dc;
+  /* Direction B: surfaces float on a warm ground, and colour appears only
+     where something has a state. The two things the old palette got right —
+     a chosen warm neutral and a green-black rather than #000 — are kept; the
+     candy fills are not. */
+  --canvas: #f4f3f0;
+  --paper: #ffffff;
   --white: #ffffff;
-  --error: #b83b36;
-  /* One easing for everything that moves. It leaves fast and lands slow, so a
-     panel reads as settling into place rather than sliding to a stop. */
+  --surface-muted: #eceae5;
+
+  --ink: #1f2320;
+  /* Clears 4.5:1 on all three grounds — paper, canvas and the muted trough —
+     with margin. The warmer ground of the old palette let a lighter grey pass;
+     this one does not, and the checker said so on 104 nodes. */
+  --ink-muted: #5c635d;
+  --ink-soft: #8b928e;
+  --line: #e4e3df;
+
+  /* Severity, monotonic in lightness so the order survives greyscale, a
+     colour-blind reader, and a printer. The old set was scrambled: 重要 was
+     the lightest of the three and 关键 the darkest, 1.21:1 apart. */
+  --sev-critical: #fdeceb;
+  --sev-critical-ink: #8c2f22;
+  --sev-gate: #f7e2df;
+  --sev-gate-ink: #5c2018;
+  --sev-important: #fbf1dc;
+  --sev-important-ink: #7a5a12;
+  --sev-minor: #f0f1f0;
+  --sev-minor-ink: #5d6560;
+  --sev-matched: #e6f4ec;
+  --sev-matched-ink: #1f6b47;
+
+  /* Destructive actions are solid, not tinted: a pale fill behind white text
+     is unreadable, and a pale fill behind dark text does not read as a button
+     you should think twice about. */
+  --danger: #a5342a;
+  --danger-hover: #8c2b22;
+  --danger-tint: #fdeceb;
+  --danger-line: #f0c7c1;
+
+  /* Kept so the brand mark and the few remaining accents still resolve. */
+  --mint: #bdebd7;
+  --mint-strong: #2f8f63;
+  --cream: #fff2a8;
+  --coral: #d2503f;
+  --mist-blue: #c8ddff;
+  --error: #a5342a;
+
+  --elevation-1: 0 1px 2px rgba(31, 35, 32, 0.05);
+  --elevation-2: 0 1px 2px rgba(31, 35, 32, 0.05), 0 12px 32px -22px rgba(31, 35, 32, 0.5);
+  --elevation-row: 0 1px 2px rgba(31, 35, 32, 0.05), 0 8px 22px -20px rgba(31, 35, 32, 0.5);
+
   --ease-out: cubic-bezier(0.22, 0.7, 0.2, 1);
   --ease-spring: cubic-bezier(0.34, 1.3, 0.5, 1);
   --dur-fast: 140ms;
@@ -80,8 +116,9 @@ button {
 }
 
 .sticker-border {
-  border: 2px solid var(--ink);
   border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--elevation-2);
 }
 
 /* Two people at one desk. The cream disc carries a small ink shadow so the
@@ -117,13 +154,13 @@ button {
 }
 
 .sticker-shadow {
-  box-shadow: 8px 8px 0 var(--ink);
+  box-shadow: var(--elevation-2);
 }
 
 .dense-surface {
-  border: 1px solid var(--line);
   border-radius: 14px;
-  background: var(--white);
+  background: var(--paper);
+  box-shadow: var(--elevation-1);
 }
 
 /* The type ramp.
@@ -172,52 +209,63 @@ button {
 /* The page keeps exactly one sticker — the one carrying the conclusion. Every
    other container lifts off the canvas with light instead of a hard offset. */
 .soft-surface {
-  border-radius: 20px;
-  background: var(--white);
-  box-shadow: 0 10px 30px -26px color-mix(in srgb, var(--ink) 70%, transparent);
+  border-radius: 16px;
+  background: var(--paper);
+  box-shadow: var(--elevation-2);
 }
 
 /* A row's severity, read before any text. The inner hairline is not
    decoration: --cream and --mist-blue have too little contrast against white
    to register as a band on their own. */
+/* No inner hairline any more — a colour that needs an outline to be seen is
+   the wrong colour, and these carry enough value contrast on their own. */
 .severity-band {
   height: 4px;
   border-radius: 999px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 
 /* Same hairline treatment, but round and sized by whatever utility sets it —
    the band's fixed height would otherwise flatten these into dashes. */
 .severity-dot {
   border-radius: 999px;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--ink) 22%, transparent);
 }
 
 /* Row identity: a running number for a difference, and a filled mark for the
    two kinds that are not part of that sequence. */
+/* The badge takes the row's own severity tint, so the mark and the chip beside
+   it say the same thing in the same colour. */
 .badge-index {
   display: grid;
   place-items: center;
   flex: none;
-  width: 34px;
-  height: 34px;
-  border: 1.5px solid color-mix(in srgb, var(--ink) 22%, transparent);
+  width: 28px;
+  height: 28px;
   border-radius: 999px;
-  background: var(--paper);
-  color: var(--ink);
-  font-size: 0.9375rem;
-  font-weight: 900;
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  font-size: 0.8125rem;
+  font-weight: 700;
   line-height: 1;
 }
 
+.badge-critical {
+  background: var(--sev-critical);
+  color: var(--sev-critical-ink);
+}
+
 .badge-index--gate {
-  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
-  background: var(--coral);
+  background: var(--sev-gate);
+  color: var(--sev-gate-ink);
+}
+
+.badge-important {
+  background: var(--sev-important);
+  color: var(--sev-important-ink);
 }
 
 .badge-index--matched {
-  border-color: color-mix(in srgb, var(--ink) 14%, transparent);
-  background: var(--mint);
+  background: var(--sev-matched);
+  color: var(--sev-matched-ink);
 }
 
 .form-label {
@@ -277,40 +325,65 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 
 .button-primary,
 .button-secondary {
-  border: 2px solid var(--ink);
-  border-radius: 12px;
-  color: var(--ink);
-  transition: transform 160ms ease, box-shadow 160ms ease, background-color 160ms ease;
+  border-radius: 10px;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
 }
 
+/* The primary action is the darkest thing on the page, which is the only
+   emphasis this palette needs now that nothing else is filled. */
 .button-primary {
-  background: var(--cream);
-  box-shadow: 4px 4px 0 var(--ink);
+  background: var(--ink);
+  color: var(--paper);
+  box-shadow: var(--elevation-1);
 }
 
 .button-secondary {
-  background: var(--white);
+  background: var(--surface-muted);
+  color: var(--ink);
 }
 
-.button-primary:hover,
+.button-primary:hover {
+  background: #333a36;
+}
+
 .button-secondary:hover {
-  transform: translate(-1px, -1px);
-  box-shadow: 5px 5px 0 var(--ink);
+  background: #e2e0da;
+}
+
+.button-danger {
+  border-radius: 10px;
+  background: var(--danger);
+  color: var(--paper);
+  box-shadow: var(--elevation-1);
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    transform var(--dur-fast) var(--ease-out);
+}
+
+.button-danger:hover {
+  background: var(--danger-hover);
+}
+
+.button-danger:active {
+  transform: translateY(1px);
 }
 
 .button-primary:active,
 .button-secondary:active {
-  transform: translate(2px, 2px);
-  box-shadow: 1px 1px 0 var(--ink);
+  transform: translateY(1px);
 }
 
 .status-chip {
   flex: none;
-  border: 1px solid var(--ink);
   border-radius: 999px;
-  padding: 0.24rem 0.5rem;
-  font-size: 0.68rem;
-  font-weight: 800;
+  background: var(--surface-muted);
+  color: var(--ink-muted);
+  padding: 0.28rem 0.6rem;
+  font-size: 0.7rem;
+  font-weight: 600;
   line-height: 1;
 }
 
@@ -332,33 +405,36 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
   flex: none;
   display: inline-flex;
   align-items: center;
-  border: 1px solid var(--ink);
   border-radius: 999px;
-  padding: 0.19rem 0.5rem;
-  color: var(--ink);
+  padding: 0.19rem 0.55rem;
   font-size: 0.75rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.2;
 }
 
 .severity-critical {
-  border-color: var(--coral);
-  background: #ffece9;
+  background: var(--sev-critical);
+  color: var(--sev-critical-ink);
+}
+
+.severity-gate {
+  background: var(--sev-gate);
+  color: var(--sev-gate-ink);
 }
 
 .severity-important {
-  border-color: #e0b93a;
-  background: #fffbe4;
+  background: var(--sev-important);
+  color: var(--sev-important-ink);
 }
 
 .severity-minor {
-  border-color: #8fb4f0;
-  background: #eef4ff;
+  background: var(--sev-minor);
+  color: var(--sev-minor-ink);
 }
 
 .severity-matched {
-  border-color: var(--mint-strong);
-  background: #eef8f2;
+  background: var(--sev-matched);
+  color: var(--sev-matched-ink);
 }
 
 /* Rows open by growing from their own edge instead of snapping. `<details>`

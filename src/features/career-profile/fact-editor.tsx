@@ -64,10 +64,10 @@ export function FactEditor({
 
   const chipClass =
     status === "confirmed"
-      ? "status-mint"
+      ? "severity-matched"
       : status === "needs_detail"
-        ? "bg-[var(--coral)] text-white"
-        : "status-yellow";
+        ? "bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]"
+        : "severity-important";
 
   return (
     <article className="min-w-0 border-b border-[var(--line)] bg-white p-4 last:border-b-0 sm:p-5">
@@ -117,7 +117,7 @@ export function FactEditor({
           {data.skills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {data.skills.map((skill) => (
-                <span key={skill} className="rounded-full bg-[var(--mist-blue)] px-2.5 py-1 text-xs font-black">
+                <span key={skill} className="rounded-full bg-[var(--sev-minor)] px-2.5 py-1 text-xs font-black">
                   {skill}
                 </span>
               ))}
@@ -237,7 +237,7 @@ export function FactEditor({
             role="dialog"
             aria-modal="true"
             aria-label="确认职业事实"
-            className="sticker-border w-full max-w-xl bg-white p-5 shadow-[6px_6px_0_var(--ink)] sm:p-7"
+            className="sticker-border w-full max-w-xl bg-white p-5 sm:p-7"
           >
             <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
             <h2 className="heading-font mt-2 text-2xl font-black">确认职业事实</h2>

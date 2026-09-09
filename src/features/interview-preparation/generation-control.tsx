@@ -225,7 +225,7 @@ export function InterviewQuestionGenerationControl({
   const initialFailure = run?.status === "failed" ? safeFailure(run.errorCode) : null;
 
   return (
-    <section className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--coral)] p-4 shadow-[3px_3px_0_var(--ink)] sm:p-5">
+    <section className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-critical)] p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.12em]">AI 岗位增量题</p>
@@ -280,8 +280,8 @@ export function InterviewQuestionGenerationControl({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="status-chip bg-[var(--mist-blue)]">{INTERVIEW_CATEGORY_LABELS[candidate.category]}</span>
-                      <span className="status-chip bg-[var(--coral)] text-white">可能会问</span>
+                      <span className="status-chip bg-[var(--sev-minor)]">{INTERVIEW_CATEGORY_LABELS[candidate.category]}</span>
+                      <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">可能会问</span>
                       <span className="status-chip bg-white">{candidateStatusLabels[candidate.status]}</span>
                     </div>
                     <h3 className="heading-font mt-3 text-lg font-black leading-7">{candidate.prompt}</h3>

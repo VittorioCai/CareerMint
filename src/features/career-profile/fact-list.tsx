@@ -74,7 +74,7 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
             <div className="mt-6 flex flex-col items-center gap-3">
               <Link
                 href="/app"
-                className="press inline-flex min-h-11 items-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-5 text-sm font-bold shadow-[3px_3px_0_var(--ink)]"
+                className="press inline-flex min-h-11 items-center rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-5 text-sm font-bold"
               >
                 去上传简历
               </Link>

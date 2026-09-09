@@ -67,7 +67,7 @@ export function PrivacyControls() {
 
       {dialogOpen ? (
         <div className="fixed inset-0 z-50 grid place-items-center overflow-y-auto bg-[color:var(--ink)]/40 p-4">
-          <section role="dialog" aria-modal="true" aria-label="确认删除账户" className="sticker-border w-full max-w-lg bg-white p-5 shadow-[6px_6px_0_var(--ink)] sm:p-7">
+          <section role="dialog" aria-modal="true" aria-label="确认删除账户" className="sticker-border w-full max-w-lg bg-white p-5 sm:p-7">
             <h2 className="heading-font text-2xl font-black">确认永久删除</h2>
             <p className="mt-3 text-sm font-medium leading-6 text-[var(--ink-muted)]">
               输入 <strong className="text-[var(--ink)]">DELETE</strong> 才能继续。关闭窗口不会执行任何操作。

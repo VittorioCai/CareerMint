@@ -79,9 +79,9 @@ export function OnboardingForm({
             key={item.number}
             className={`rounded-2xl border-2 border-[var(--ink)] p-4 ${
               step === item.number
-                ? "bg-[var(--cream)] shadow-[3px_3px_0_var(--ink)]"
+                ? "bg-[var(--surface-muted)]"
                 : step > item.number
-                  ? "bg-[var(--mint)]"
+                  ? "bg-[var(--sev-matched)]"
                   : "bg-white"
             }`}
           >
@@ -194,7 +194,7 @@ export function OnboardingForm({
                 前往核对职业档案
               </Link>
             ) : (
-              <p className="mt-5 rounded-xl bg-[var(--mist-blue)] p-4 text-sm font-bold">
+              <p className="mt-5 rounded-xl bg-[var(--sev-minor)] p-4 text-sm font-bold">
                 你暂时没有待核对事实，可以先进入工作台，之后随时手动添加。
               </p>
             )}

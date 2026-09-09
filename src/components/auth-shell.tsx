@@ -38,11 +38,11 @@ export function AuthShell({
         <p className="text-xs font-semibold text-[var(--ink-muted)]">© 2026 求职搭子 · 先确认事实，再交给 AI</p>
       </section>
 
-      <aside className="relative hidden overflow-hidden border-l-2 border-[var(--ink)] bg-[var(--mint)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">
-        <div aria-hidden="true" className="absolute -right-12 -top-12 size-48 rotate-12 rounded-[42px] border-2 border-[var(--ink)] bg-[var(--mist-blue)]" />
-        <div aria-hidden="true" className="absolute -bottom-16 -left-12 size-44 rounded-full border-2 border-[var(--ink)] bg-[var(--cream)]" />
+      <aside className="relative hidden overflow-hidden border-l-2 border-[var(--ink)] bg-[var(--sev-matched)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">
+        <div aria-hidden="true" className="absolute -right-12 -top-12 size-48 rotate-12 rounded-[42px] border-2 border-[var(--ink)] bg-[var(--sev-minor)]" />
+        <div aria-hidden="true" className="absolute -bottom-16 -left-12 size-44 rounded-full border-2 border-[var(--ink)] bg-[var(--surface-muted)]" />
         <div className="relative mx-auto w-full max-w-lg">
-          <div className="mb-8 inline-flex rotate-2 rounded-xl border-2 border-[var(--ink)] bg-[var(--coral)] px-4 py-2 text-sm font-black text-white shadow-[3px_3px_0_var(--ink)]">你的海外求职工作台 ↗</div>
+          <div className="mb-8 inline-flex rotate-2 rounded-xl border-2 border-[var(--ink)] bg-[var(--sev-critical)] px-4 py-2 text-sm font-black text-white">你的海外求职工作台 ↗</div>
           <h2 className="heading-font max-w-md text-4xl font-black leading-[1.08] tracking-[-0.04em]">一份可信档案，复用到每次申请。</h2>
           <div className="mt-9 border-y-2 border-[var(--ink)]">
             {principles.map(([index, heading, detail]) => (

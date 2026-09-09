@@ -37,7 +37,7 @@ export default async function DashboardPage() {
   if (assets.length === 0) {
     primaryState = (
       <article className="soft-surface bg-white p-5 sm:p-7">
-        <span className="status-chip status-yellow">第一步</span>
+        <span className="status-chip severity-important">第一步</span>
         <h2 className="heading-font mt-4 text-2xl font-black">上传一份已有简历</h2>
         <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           系统先在服务器提取 PDF 或 DOCX 文字；只有你授权后，才会将文字发送给 AI 分析。
@@ -50,7 +50,7 @@ export default async function DashboardPage() {
   } else if (activeJob || assets.some((asset) => asset.status === "extracting")) {
     primaryState = (
       <article className="soft-surface bg-white p-6 sm:p-8">
-        <span className="status-chip status-blue">处理中</span>
+        <span className="status-chip severity-minor">处理中</span>
         <h2 className="heading-font mt-4 text-2xl font-black">正在整理你的职业事实</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           任务已经安全保存。你可以离开此页继续浏览，稍后回来查看结果。
@@ -64,13 +64,13 @@ export default async function DashboardPage() {
   } else if (pendingFacts.length > 0) {
     primaryState = (
       <article className="soft-surface bg-white p-6 sm:p-8">
-        <span className="status-chip bg-[var(--coral)] text-white">需要你判断</span>
+        <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">需要你判断</span>
         <h2 className="heading-font mt-4 text-2xl font-black">继续核对职业档案</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
           还有 {pendingFacts.length} 条事实等待确认或补充。未确认内容不会被写进正式简历。
         </p>
         <div className="mt-5 h-3 max-w-xl overflow-hidden rounded-full border-2 border-[var(--ink)] bg-[var(--canvas)]">
-          <div className="h-full bg-[var(--mint)]" style={{ width: `${facts.length ? (confirmedCount / facts.length) * 100 : 0}%` }} />
+          <div className="h-full bg-[var(--sev-matched)]" style={{ width: `${facts.length ? (confirmedCount / facts.length) * 100 : 0}%` }} />
         </div>
         <Link href="/profile" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-black">
           继续核对职业档案 →
@@ -79,7 +79,7 @@ export default async function DashboardPage() {
     );
   } else {
     primaryState = (
-      <article className="soft-surface bg-[var(--mint)] p-6 sm:p-8">
+      <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
         <span className="status-chip bg-white">✓ 已完成核对</span>
         <h2 className="heading-font mt-4 text-3xl font-black">职业档案已就绪</h2>
         <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -132,7 +132,7 @@ export default async function DashboardPage() {
                 key={label}
                 className={`rounded-2xl border p-4 ${
                   index === 0
-                    ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[3px_3px_0_var(--ink)]"
+                    ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)]"
                     : "border-[var(--line)] bg-white"
                 }`}
               >
@@ -157,7 +157,7 @@ export default async function DashboardPage() {
                       <span className="block truncate text-sm font-black">{application.companyName}</span>
                       <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--ink-muted)]">{application.roleTitle}</span>
                     </span>
-                    <span className="status-chip bg-[var(--mist-blue)]">
+                    <span className="status-chip bg-[var(--sev-minor)]">
                       {APPLICATION_STAGE_LABELS[application.stage]}
                     </span>
                   </Link>

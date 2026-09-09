@@ -179,7 +179,7 @@ function ImprovementItem({
                 {terms.map((term) => (
                   <span
                     key={term}
-                    className="rounded-full border border-[var(--ink)] bg-[var(--mist-blue)] px-3 py-1 text-xs font-black"
+                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-minor)] px-3 py-1 text-xs font-black"
                     lang="und"
                   >
                     {term}
@@ -196,7 +196,7 @@ function ImprovementItem({
                   <span
                     key={fact.id}
                     data-testid={`improvement-fact-${fact.id}`}
-                    className="rounded-full border border-[var(--ink)] bg-[var(--mint)] px-3 py-1 text-xs font-black"
+                    className="rounded-full border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1 text-xs font-black"
                     title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
                   >
                     {fact.title}
@@ -234,7 +234,7 @@ function Prerequisite({
         完善方向只会基于当前 JD、所选简历和可回查事实生成。
       </p>
       <Link
-        className="mt-5 inline-flex rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-4 py-2 text-sm font-black shadow-[3px_3px_0_var(--ink)]"
+        className="mt-5 inline-flex rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-4 py-2 text-sm font-black"
         href={`/applications/${applicationId}?tab=difference`}
       >
         前往差异分析
@@ -279,7 +279,7 @@ export function ResumeJDImprovementPanel({
       aria-labelledby="improvement-panel-title"
       data-run-id={run.id}
     >
-      <header className="sticker-border bg-[var(--mint)] p-5 shadow-[6px_6px_0_var(--ink)] sm:p-6">
+      <header className="sticker-border bg-[var(--sev-matched)] p-5 sm:p-6">
         <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           Grounded guidance
         </p>
@@ -318,7 +318,7 @@ export function ResumeJDImprovementPanel({
         );
       })}
 
-      <section className="sticker-border grid gap-4 bg-[var(--cream)] p-5 shadow-[5px_5px_0_var(--ink)] sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
+      <section className="sticker-border grid gap-4 bg-[var(--surface-muted)] p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
         <div>
           <p className="text-xs font-black uppercase tracking-[0.14em] text-[var(--ink-muted)]">
             Optional next step
@@ -329,7 +329,7 @@ export function ResumeJDImprovementPanel({
           </p>
         </div>
         <Link
-          className="inline-flex justify-center rounded-xl border-2 border-[var(--ink)] bg-white px-4 py-3 text-sm font-black shadow-[3px_3px_0_var(--ink)]"
+          className="inline-flex justify-center rounded-xl border-2 border-[var(--ink)] bg-white px-4 py-3 text-sm font-black"
           href={`/applications/${applicationId}?tab=interview`}
         >
           进入面试准备

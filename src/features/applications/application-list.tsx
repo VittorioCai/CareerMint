@@ -13,11 +13,11 @@ import {
 } from "./schemas";
 
 const stageTone: Record<ApplicationStage, string> = {
-  preparing: "bg-[var(--cream)]",
-  applied: "bg-[var(--mist-blue)]",
+  preparing: "bg-[var(--surface-muted)]",
+  applied: "bg-[var(--sev-minor)]",
   hr: "bg-white",
-  interview: "bg-[var(--coral)] text-white",
-  offer: "bg-[var(--mint)]",
+  interview: "bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]",
+  offer: "bg-[var(--sev-matched)]",
   rejected: "bg-[#f3e8e6]",
   withdrawn: "bg-[#eef0ee]",
 };
@@ -100,7 +100,7 @@ function ApplicationCard({
 
 function EmptyApplications() {
   return (
-    <article className="soft-surface bg-[var(--mint)] p-6 sm:p-8">
+    <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
       <span className="status-chip bg-white">从一个真实岗位开始</span>
       <h2 className="heading-font mt-4 text-2xl font-black">还没有投递记录</h2>
       <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">

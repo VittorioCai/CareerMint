@@ -231,7 +231,7 @@ export function BaselineSelector({
           </p>
         </div>
         {selectedAsset && !setupMode ? (
-          <span className="status-chip bg-[var(--mint)]">已选择</span>
+          <span className="status-chip bg-[var(--sev-matched)]">已选择</span>
         ) : null}
       </div>
 
@@ -261,7 +261,7 @@ export function BaselineSelector({
           className="mt-5 overflow-hidden rounded-2xl border-2 border-[var(--ink)] bg-white"
           aria-label={`简历预览：${previewAsset.originalName}`}
         >
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--mist-blue)] px-4 py-3">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--sev-minor)] px-4 py-3">
             <div className="min-w-0">
               <p className="break-words text-sm font-black">{previewAsset.originalName}</p>
               <p className="mt-0.5 text-xs font-semibold text-[var(--ink-muted)]">
@@ -364,7 +364,7 @@ export function BaselineSelector({
               />
               <label
                 htmlFor={`baseline-upload-${applicationId}`}
-                className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--mint)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
+                className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
               >
                 选择文件
               </label>

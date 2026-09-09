@@ -25,7 +25,7 @@ export function AppShell({ children, email }: AppShellProps) {
           </div>
         </Link>
 
-        <Link href="/applications/new" className="press mt-6 flex min-h-11 items-center justify-center rounded-[10px] border border-[var(--ink)] bg-[var(--cream)] px-4 text-sm font-bold hover:shadow-[0_6px_14px_-10px_var(--ink)]">
+        <Link href="/applications/new" className="press button-primary mt-6 flex min-h-11 items-center justify-center px-4 text-sm font-semibold">
           ＋ 新建申请
         </Link>
 
@@ -57,11 +57,11 @@ export function AppShell({ children, email }: AppShellProps) {
 
               <details className="group relative">
                 <summary className="press flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-white px-2.5 [&::-webkit-details-marker]:hidden">
-                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--mist-blue)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-black">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
                   <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
-                <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2 shadow-[4px_4px_0_var(--ink)]">
+                <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2">
                   <div className="border-b border-[var(--line)] px-3 py-2.5">
                     <p className="type-eyebrow text-[var(--ink-muted)]">已验证账户</p>
                     <p className="mt-1 truncate text-sm font-bold">{displayEmail}</p>
@@ -80,7 +80,7 @@ export function AppShell({ children, email }: AppShellProps) {
             <Link
               href="/applications/new"
               aria-label="移动端新建申请"
-              className="flex shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-2.5 text-sm font-black shadow-[2px_2px_0_var(--ink)]"
+              className="flex shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-3 py-2.5 text-sm font-black"
             >
               ＋ 新建申请
             </Link>

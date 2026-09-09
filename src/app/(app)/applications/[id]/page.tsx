@@ -113,7 +113,7 @@ function Overview({ application }: { application: Application }) {
             </div>
           ))}
         </dl>
-        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]">
+        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] p-5">
         <p className="text-xs font-black uppercase tracking-[0.12em]">更新进度</p>
         <h2 className="heading-font mt-2 text-xl font-black">发生了什么？记下来</h2>
         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
@@ -128,8 +128,8 @@ function Overview({ application }: { application: Application }) {
         </div>
         </aside>
       </div>
-      <aside className="rounded-2xl border border-[#d89a94] bg-white p-5">
-        <p className="text-xs font-black uppercase tracking-[0.12em] text-[#a83c34]">删除投递记录</p>
+      <aside className="rounded-2xl border border-[var(--danger-line)] bg-white p-5">
+        <p className="text-xs font-black uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
         <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
           删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
         </p>
@@ -217,7 +217,7 @@ function InterviewPanel({
   ).length;
   return (
     <div className="space-y-6">
-      <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-5 shadow-[3px_3px_0_var(--ink)] sm:flex sm:items-center sm:justify-between sm:gap-5">
+      <article className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
           <span className="status-chip bg-white">可能问题，不是雇主承诺</span>
           <h2 className="heading-font mt-3 text-2xl font-black">岗位面试准备</h2>
@@ -395,7 +395,7 @@ export default async function ApplicationDetailPage({
       <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="status-chip bg-[var(--cream)]">{APPLICATION_STAGE_LABELS[application.stage]}</span>
+            <span className="status-chip bg-[var(--surface-muted)]">{APPLICATION_STAGE_LABELS[application.stage]}</span>
             {application.location ? <span className="text-xs font-bold text-[var(--ink-muted)]">{application.location}</span> : null}
           </div>
           <h1
@@ -415,7 +415,7 @@ export default async function ApplicationDetailPage({
             key={tab.id}
             href={`/applications/${application.id}?tab=${tab.id}`}
             aria-current={activeTab === tab.id ? "page" : undefined}
-            className={`shrink-0 rounded-xl px-4 py-2 text-sm ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--cream)] font-black shadow-[2px_2px_0_var(--ink)]" : "font-semibold text-[var(--ink-muted)]"}`}
+            className={`shrink-0 rounded-xl px-4 py-2 text-sm ${activeTab === tab.id ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)] font-black" : "font-semibold text-[var(--ink-muted)]"}`}
           >
             {tab.label}
           </Link>

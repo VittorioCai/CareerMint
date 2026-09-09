@@ -333,7 +333,7 @@ export function UploadForm({
           />
           <label
             htmlFor="resume-source"
-            className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--mint)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
+            className="shrink-0 cursor-pointer rounded-lg border border-[var(--ink)] bg-[var(--sev-matched)] px-3 py-1.5 text-sm font-black peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-[3px] peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--mist-blue)]"
           >
             选择文件
           </label>
@@ -388,7 +388,7 @@ export function UploadForm({
       ) : null}
 
       {phase === "succeeded" ? (
-        <p className="mt-4 rounded-xl border border-[var(--ink)] bg-[var(--mint)] p-3 text-sm font-black" role="status">
+        <p className="mt-4 rounded-xl border border-[var(--ink)] bg-[var(--sev-matched)] p-3 text-sm font-black" role="status">
           <span aria-hidden="true">✓ </span>
           <span>简历分析完成</span>
         </p>

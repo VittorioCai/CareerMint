@@ -22,9 +22,9 @@ export function SetupProgress({ current }: { current: SetupProgressStep }) {
               aria-current={active ? "step" : undefined}
               className={`rounded-xl border px-3 py-3 text-xs font-black ${
                 active
-                  ? "border-2 border-[var(--ink)] bg-[var(--cream)] shadow-[2px_2px_0_var(--ink)]"
+                  ? "border-2 border-[var(--ink)] bg-[var(--surface-muted)]"
                   : completed
-                    ? "border-[var(--ink-soft)] bg-[var(--mint)]"
+                    ? "border-[var(--ink-soft)] bg-[var(--sev-matched)]"
                     : "border-[var(--line)] bg-white text-[var(--ink-muted)]"
               }`}
             >

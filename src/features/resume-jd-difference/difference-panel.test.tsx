@@ -211,7 +211,7 @@ describe("ResumeJDDifferencePanel", () => {
     );
 
     expect(screen.getByRole("button", { name: "重新分析" })).toBeVisible();
-    expect(container.querySelectorAll(".sticker-border")).toHaveLength(1);
+    expect(container.querySelectorAll(".soft-surface")).toHaveLength(1);
 
     rerender(
       <ResumeJDDifferencePanel
@@ -224,8 +224,7 @@ describe("ResumeJDDifferencePanel", () => {
 
     // One sticker either way: the conclusion and the control it belongs to are
     // two states of the same object, not two cards.
-    const sticker = container.querySelector(".sticker-border")!;
-    expect(container.querySelectorAll(".sticker-border")).toHaveLength(1);
+    const sticker = container.querySelector(".soft-surface")!;
     expect(within(sticker as HTMLElement).getByRole("button", { name: "重新分析" })).toBeVisible();
     expect(within(sticker as HTMLElement).getByTestId("severity-tally")).toBeVisible();
     expect(

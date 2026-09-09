@@ -72,7 +72,7 @@ export function ResumeFileDeleteControl({
           setError(null);
           setExpanded(true);
         }}
-        className="button-secondary min-h-9 px-3 text-xs font-black text-[#a83c34]"
+        className="button-secondary min-h-9 px-3 text-xs font-black text-[var(--danger)]"
       >
         删除 {originalName}
       </button>
@@ -82,7 +82,7 @@ export function ResumeFileDeleteControl({
   return (
     <div
       role="alert"
-      className="w-full rounded-xl border border-[#d89a94] bg-[#fff4f2] p-3 text-left"
+      className="w-full rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] p-3 text-left"
     >
       <p className="text-xs font-black text-[var(--ink)]">
         确定删除 {originalName}？
@@ -94,7 +94,7 @@ export function ResumeFileDeleteControl({
         {usageCopy(applicationCount, confirmedFactCount)}
       </p>
       {status === "extracting" ? (
-        <p className="mt-1 text-xs font-black leading-5 text-[#a83c34]">
+        <p className="mt-1 text-xs font-black leading-5 text-[var(--danger)]">
           这个文件正在提取中，删除后本次提取会失败，已提取的内容不会保存。
         </p>
       ) : null}
@@ -102,7 +102,7 @@ export function ResumeFileDeleteControl({
         原文件不能恢复，需要时请重新上传。
       </p>
       {error ? (
-        <p className="mt-2 text-xs font-black text-[#a83c34]">{error}</p>
+        <p className="mt-2 text-xs font-black text-[var(--danger)]">{error}</p>
       ) : null}
       <div className="mt-3 flex flex-wrap gap-2">
         <button
@@ -112,7 +112,7 @@ export function ResumeFileDeleteControl({
             setError(null);
             setExpanded(false);
           }}
-          className="rounded-lg border border-[var(--ink)] bg-white px-3 py-2 text-xs font-black disabled:opacity-60"
+          className="button-secondary px-3 py-2 text-xs font-medium disabled:opacity-60"
         >
           取消
         </button>
@@ -120,7 +120,7 @@ export function ResumeFileDeleteControl({
           type="button"
           disabled={pending}
           onClick={submitDeletion}
-          className="rounded-lg border border-[var(--ink)] bg-[var(--coral)] px-3 py-2 text-xs font-black text-white disabled:opacity-60"
+          className="button-danger px-3 py-2 text-xs font-semibold disabled:opacity-60"
         >
           {pending ? "正在删除…" : "确认删除文件"}
         </button>

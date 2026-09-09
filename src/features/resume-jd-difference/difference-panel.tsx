@@ -72,7 +72,7 @@ function IssueDetails({
         aria-hidden="true"
         className={`severity-band mx-4 mb-1 mt-2.5 block ${severityBandClass[row.severity]}`}
       />
-      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)] group-open:bg-[var(--paper)]">
+      <summary className="flex cursor-pointer list-none items-start gap-4 rounded-2xl px-4 py-3.5 marker:hidden focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-inset focus-visible:ring-[var(--mist-blue)] group-open:bg-[var(--canvas)]">
         <span
           aria-hidden="true"
           data-testid="row-badge"
@@ -117,7 +117,7 @@ function IssueDetails({
           </svg>
         </span>
       </summary>
-      <div className="mb-2.5 ml-[58px] mr-2 rounded-2xl bg-[var(--canvas)] px-5 py-4">
+      <div className="mb-2.5 ml-[46px] mr-2 rounded-xl bg-[var(--canvas)] px-5 py-4">
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5">
           <div>
             <dt className="text-xs font-extrabold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
@@ -168,7 +168,7 @@ function IssueDetails({
                 {citedFacts.map((fact) => (
                   <span
                     key={fact.id}
-                    className="rounded-full bg-[var(--mint)] px-3 py-1 text-xs font-semibold"
+                    className="rounded-full bg-[var(--sev-matched)] px-3 py-1 text-xs font-medium text-[var(--sev-matched-ink)]"
                     title={fact.organization ? `${fact.title} · ${fact.organization}` : fact.title}
                   >
                     {fact.title}
@@ -225,24 +225,24 @@ const tallyLabel: Record<RowSeverity, string> = {
 };
 
 const badgeVariant: Record<RowSeverity, string> = {
-  critical: "",
+  critical: "badge-critical",
   gate: "badge-index--gate",
-  important: "",
+  important: "badge-important",
   minor: "",
   matched: "badge-index--matched",
 };
 
 const severityBandClass: Record<RowSeverity, string> = {
-  critical: "bg-[var(--coral)]",
-  gate: "bg-[var(--coral)]",
-  important: "bg-[var(--cream)]",
-  minor: "bg-[var(--mist-blue)]",
-  matched: "bg-[var(--mint-strong)]",
+  critical: "bg-[var(--sev-critical-ink)]",
+  gate: "bg-[var(--sev-gate-ink)]",
+  important: "bg-[var(--sev-important-ink)]",
+  minor: "bg-[var(--ink-soft)]",
+  matched: "bg-[var(--sev-matched-ink)]",
 };
 
 const severityChipClass: Record<RowSeverity, string> = {
   critical: "severity-critical",
-  gate: "severity-critical",
+  gate: "severity-gate",
   important: "severity-important",
   minor: "severity-minor",
   matched: "severity-matched",
@@ -324,7 +324,7 @@ export function ResumeJDDifferencePanel({
 
   if (!result || !run) {
     return (
-      <section className="sticker-border bg-[var(--cream)] px-6 py-7 shadow-[8px_8px_0_var(--ink)] sm:px-8">
+      <section className="soft-surface px-6 py-7 sm:px-8">
         {control}
       </section>
     );
@@ -341,12 +341,12 @@ export function ResumeJDDifferencePanel({
       data-run-id={run.id}
     >
       {/* The page's one sticker. It carries the conclusion, not decoration. */}
-      <section className="sticker-border bg-[var(--cream)] px-6 py-5 shadow-[6px_6px_0_var(--ink)] sm:px-7">
+      <section className="soft-surface px-6 py-5 sm:px-7">
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-normal text-[var(--ink-muted)]">
           <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)]">
             <span
               aria-hidden="true"
-              className={`size-1.5 rounded-full ${stale ? "bg-[var(--coral)]" : "bg-[var(--mint-strong)]"}`}
+              className={`size-1.5 rounded-full ${stale ? "bg-[var(--sev-critical-ink)]" : "bg-[var(--mint-strong)]"}`}
             />
             {stale ? "结果已过期" : "分析已完成"}
           </span>
@@ -364,7 +364,7 @@ export function ResumeJDDifferencePanel({
             below use, so the reader learns it once. */}
         <div
           data-testid="severity-tally"
-          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[color-mix(in_srgb,var(--ink)_20%,transparent)] pt-3.5"
+          className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-[var(--line)] pt-3.5"
         >
           {counts.map((entry) => (
             <span
@@ -377,7 +377,9 @@ export function ResumeJDDifferencePanel({
                   // Outside the ramp on purpose: a glyph centred in a 14px
                   // badge, not a size anyone reads.
                   className={`grid size-3.5 place-items-center rounded-full text-[9px] font-black leading-none ${
-                    entry.severity === "gate" ? "bg-[var(--coral)]" : "bg-[var(--mint)]"
+                    entry.severity === "gate"
+                      ? "bg-[var(--sev-gate)] text-[var(--sev-gate-ink)]"
+                      : "bg-[var(--sev-matched)] text-[var(--sev-matched-ink)]"
                   }`}
                 >
                   {entry.severity === "gate" ? "!" : "✓"}
@@ -394,9 +396,9 @@ export function ResumeJDDifferencePanel({
           ))}
         </div>
 
-        <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[color-mix(in_srgb,var(--ink)_14%,transparent)] pt-4">
+        <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
           <a
-            className="press inline-flex min-h-10 items-center rounded-full border border-[var(--ink)] px-4 type-meta font-semibold hover:bg-[var(--paper)]"
+            className="press button-secondary inline-flex min-h-10 items-center px-4 type-meta font-medium"
             href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
             download
           >
@@ -408,7 +410,7 @@ export function ResumeJDDifferencePanel({
 
       {/* What the job is actually asking for — a sentence, not three cells. */}
       <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
-        <span className="inline-flex w-fit items-center rounded-full border border-[var(--mint)] bg-[#f2fbf6] px-3 py-1.5 text-xs font-bold text-[#2f6b4f]">
+        <span className="inline-flex w-fit items-center rounded-full bg-[var(--sev-matched)] px-3 py-1.5 text-xs font-semibold text-[var(--sev-matched-ink)]">
           这个岗位真正要什么
         </span>
         <div className="min-w-0">
@@ -419,7 +421,7 @@ export function ResumeJDDifferencePanel({
             {result.jobCore.coreCapabilities.map((capability) => (
               <span
                 key={capability}
-                className="rounded-full bg-[var(--mint)] px-3 py-1.5 type-meta font-semibold text-[#20372c]"
+                className="type-meta rounded-full bg-[var(--sev-matched)] px-3 py-1.5 font-medium text-[var(--sev-matched-ink)]"
               >
                 {capability}
               </span>

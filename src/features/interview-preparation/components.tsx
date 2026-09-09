@@ -86,7 +86,7 @@ export function NewInterviewQuestionForm({
   return (
     <form
       onSubmit={submit}
-      className="self-start rounded-2xl border-2 border-[var(--ink)] bg-[var(--cream)] p-5 shadow-[3px_3px_0_var(--ink)]"
+      className="self-start rounded-2xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] p-5"
     >
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
@@ -179,9 +179,9 @@ const sourceLabels = {
 
 const statusColors: Record<InterviewPreparationStatus, string> = {
   not_started: "bg-white",
-  outlined: "bg-[var(--mist-blue)]",
-  practiced: "bg-[var(--cream)]",
-  ready: "bg-[var(--mint)]",
+  outlined: "bg-[var(--sev-minor)]",
+  practiced: "bg-[var(--surface-muted)]",
+  ready: "bg-[var(--sev-matched)]",
 };
 
 export function QuestionPreparationCard({
@@ -281,14 +281,14 @@ export function QuestionPreparationCard({
   return (
     <article className="rounded-2xl border border-[var(--line)] bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="status-chip bg-[var(--mist-blue)]">
+        <span className="status-chip bg-[var(--sev-minor)]">
           {INTERVIEW_CATEGORY_LABELS[question.category]}
         </span>
         <span className={`status-chip ${statusColors[question.preparationStatus]}`}>
           {INTERVIEW_STATUS_LABELS[question.preparationStatus]}
         </span>
         {applicationLink?.predicted || question.source === "ai" ? (
-          <span className="status-chip bg-[var(--coral)] text-white">
+          <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">
             可能会问
           </span>
         ) : null}

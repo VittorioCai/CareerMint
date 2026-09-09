@@ -17,7 +17,7 @@ export default function NewApplicationPage() {
             保存公司、职位和完整 JD，建立独立申请工作区。当前版本不会自动抓取招聘网站，也不会在输入时调用 AI。
           </p>
         </div>
-        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--mist-blue)] p-4 shadow-[3px_3px_0_var(--ink)]">
+        <aside className="rounded-2xl border-2 border-[var(--ink)] bg-[var(--sev-minor)] p-4">
           <p className="text-xs font-black uppercase tracking-[0.12em]">数据边界</p>
           <p className="mt-2 text-sm font-bold leading-6">
             JD 原文只保存在你的私有工作区，不写入普通应用日志。

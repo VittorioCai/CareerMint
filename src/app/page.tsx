@@ -49,7 +49,7 @@ export default function Home() {
 
       <section className="mx-auto grid w-full max-w-[1180px] gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
         <div className="relative z-10 max-w-[620px]">
-          <div className="mb-7 inline-flex rotate-[-1deg] items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-[var(--mint)] px-4 py-2 text-sm font-extrabold shadow-[3px_3px_0_var(--ink)]">
+          <div className="mb-7 inline-flex rotate-[-1deg] items-center gap-2 rounded-full border-2 border-[var(--ink)] bg-[var(--sev-matched)] px-4 py-2 text-sm font-extrabold">
             <span className="flex size-5 items-center justify-center rounded-full bg-white"><CheckIcon /></span>
             不编经历，只把真实优势说清楚
           </div>
@@ -58,7 +58,7 @@ export default function Home() {
             让每次申请
             <span className="relative mt-2 block w-fit">
               都有依据
-              <span aria-hidden="true" className="absolute -bottom-1 left-1 h-3 w-[96%] -rotate-1 bg-[var(--coral)] opacity-70 -z-10" />
+              <span aria-hidden="true" className="absolute -bottom-1 left-1 h-3 w-[96%] -rotate-1 bg-[var(--sev-critical)] opacity-70 -z-10" />
             </span>
           </h1>
 
@@ -78,22 +78,22 @@ export default function Home() {
 
           <ul className="mt-7 flex flex-wrap gap-x-6 gap-y-2 text-sm font-semibold text-[var(--ink-muted)]" aria-label="产品原则">
             <li className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--mint-strong)]" />事实有来源</li>
-            <li className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--mist-blue)]" />修改可解释</li>
-            <li className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--coral)]" />写入先确认</li>
+            <li className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--sev-minor)]" />修改可解释</li>
+            <li className="flex items-center gap-2"><span className="size-2 rounded-full bg-[var(--sev-critical)]" />写入先确认</li>
           </ul>
         </div>
 
         <div className="relative mx-auto w-full max-w-[620px] lg:mx-0">
-          <div aria-hidden="true" className="absolute -right-10 -top-10 size-36 rotate-12 rounded-[34px] border-2 border-[var(--ink)] bg-[var(--mist-blue)] max-sm:hidden" />
-          <div aria-hidden="true" className="absolute -bottom-8 -left-8 size-24 -rotate-6 rounded-full border-2 border-[var(--ink)] bg-[var(--cream)] max-sm:hidden" />
+          <div aria-hidden="true" className="absolute -right-10 -top-10 size-36 rotate-12 rounded-[34px] border-2 border-[var(--ink)] bg-[var(--sev-minor)] max-sm:hidden" />
+          <div aria-hidden="true" className="absolute -bottom-8 -left-8 size-24 -rotate-6 rounded-full border-2 border-[var(--ink)] bg-[var(--surface-muted)] max-sm:hidden" />
 
           <div className="sticker-border sticker-shadow relative overflow-hidden bg-white">
-            <div className="flex items-center justify-between border-b-2 border-[var(--ink)] bg-[var(--mint)] px-5 py-4">
+            <div className="flex items-center justify-between border-b-2 border-[var(--ink)] bg-[var(--sev-matched)] px-5 py-4">
               <div>
                 <p className="text-xs font-extrabold uppercase tracking-[0.13em] text-[var(--ink-muted)]">申请工作区</p>
                 <p className="heading-font mt-1 text-xl font-black">Senior Product Manager</p>
               </div>
-              <div className="rounded-full border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-1.5 text-xs font-black">1 项待确认</div>
+              <div className="rounded-full border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-black">1 项待确认</div>
             </div>
 
             <div className="grid sm:grid-cols-[1fr_180px]">
@@ -116,7 +116,7 @@ export default function Home() {
 
                 <div className="mt-6 border-t border-dashed border-[var(--ink-soft)] pt-5">
                   <div className="flex items-start gap-3">
-                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--coral)] text-sm font-black text-white">AI</div>
+                    <div className="flex size-9 shrink-0 items-center justify-center rounded-xl border-2 border-[var(--ink)] bg-[var(--sev-critical)] text-sm font-black text-white">AI</div>
                     <div>
                       <p className="text-sm font-black">有一项值得补充</p>
                       <p className="mt-1 text-sm leading-6 text-[var(--ink-muted)]">你提到过德国市场项目，是否有可确认的语言使用场景？</p>
@@ -138,16 +138,16 @@ export default function Home() {
                   <span className="h-full flex-1 rounded-full border border-[var(--ink)] bg-white" />
                 </div>
                 <p className="mt-2 text-xs font-bold text-[var(--ink-muted)]">3 项要求 · 2 项有证据</p>
-                <button type="button" className="mt-6 w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--cream)] px-3 py-2.5 text-sm font-black shadow-[2px_2px_0_var(--ink)]">查看建议</button>
+                <button type="button" className="mt-6 w-full rounded-xl border-2 border-[var(--ink)] bg-[var(--surface-muted)] px-3 py-2.5 text-sm font-black">查看建议</button>
               </aside>
             </div>
           </div>
 
-          <div className="absolute -right-3 -top-5 rotate-3 rounded-lg border-2 border-[var(--ink)] bg-[var(--coral)] px-3 py-1.5 text-xs font-black text-white shadow-[2px_2px_0_var(--ink)] sm:right-8">AI 建议有证据 ↗</div>
+          <div className="absolute -right-3 -top-5 rotate-3 rounded-lg border-2 border-[var(--ink)] bg-[var(--sev-critical)] px-3 py-1.5 text-xs font-black text-white sm:right-8">AI 建议有证据 ↗</div>
         </div>
       </section>
 
-      <section id="how-it-works" className="border-y-2 border-[var(--ink)] bg-[var(--mint)]">
+      <section id="how-it-works" className="border-y-2 border-[var(--ink)] bg-[var(--sev-matched)]">
         <div className="mx-auto grid w-full max-w-[1180px] divide-y-2 divide-[var(--ink)] px-5 sm:px-8 md:grid-cols-3 md:divide-x-2 md:divide-y-0 lg:px-10">
           {workflow.map((item) => (
             <article key={item.index} className="grid grid-cols-[auto_1fr] gap-4 py-7 md:px-6 md:first:pl-0 md:last:pr-0">
