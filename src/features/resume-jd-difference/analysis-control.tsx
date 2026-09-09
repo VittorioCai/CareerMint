@@ -175,11 +175,11 @@ function AnalysisControlState({
             <h2 id="difference-control-title" className="heading-font mt-1 text-2xl font-bold">
               先确定这次要对照的简历
             </h2>
-            <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+            <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
               差异分析只比较当前 JD 与你选定的那一版简历，职业档案仅作为已确认补充。
             </p>
             {hasPreviousResult ? (
-              <p className="mt-2 max-w-2xl text-sm font-bold leading-6">
+              <p className="mt-2 type-body font-medium">
                 上一次的分析结果仍显示在下方，选定新的对照简历后可以重新分析。
               </p>
             ) : null}
@@ -367,7 +367,7 @@ function AnalysisControlState({
               <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-bold">
                 对照：{asset.originalName}
               </h2>
-              <p className="mt-2 max-w-3xl text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
+              <p className="mt-2 max-w-3xl type-caption font-medium text-[var(--ink-muted)]">
                 一次分析会同时生成岗位核心判断、完整差异和后续完善方向；不会修改简历。
               </p>
             </>
@@ -508,7 +508,7 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 type-meta font-semibold disabled:cursor-wait disabled:opacity-65"
+          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >

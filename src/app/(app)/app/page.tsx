@@ -39,7 +39,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-5 sm:p-7">
         <span className="status-chip severity-important">第一步</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">上传一份已有简历</h2>
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
           系统先在服务器提取 PDF 或 DOCX 文字；只有你授权后，才会将文字发送给 AI 分析。
         </p>
         <div className="mt-6 max-w-2xl">
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip severity-minor">处理中</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">正在整理你的职业事实</h2>
-        <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
           任务已经安全保存。你可以离开此页继续浏览，稍后回来查看结果。
         </p>
         <progress className="mt-6 h-2 w-full max-w-xl accent-[var(--ink)]" />
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">需要你判断</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">继续核对职业档案</h2>
-        <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
           还有 {pendingFacts.length} 条事实等待确认或补充。未确认内容不会被写进正式简历。
         </p>
         <div className="mt-5 h-3 max-w-xl overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -82,7 +82,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
         <span className="status-chip bg-[var(--paper)]">✓ 已完成核对</span>
         <h2 className="heading-font mt-4 text-3xl font-bold">职业档案已就绪</h2>
-        <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
           已确认 {confirmedCount} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。
         </p>
         <Link href="/applications/new" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
@@ -99,7 +99,7 @@ export default async function DashboardPage() {
         <h1 className="heading-font mt-2 break-words type-page-title">
           {profile.displayName ? `${profile.displayName}，继续推进` : "继续推进你的求职"}
         </h1>
-        <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
           当前目标：{profile.targetRole ?? "尚未填写目标岗位"}
         </p>
       </div>

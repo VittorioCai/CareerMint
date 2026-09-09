@@ -15,7 +15,7 @@ export default async function ProfilePage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">事实资料库</p>
           <h1 className="heading-font mt-2 type-page-title">职业档案</h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
             每条内容都保留来源和确认状态。只有你明确确认过的事实，才能被确定性写入求职材料。
           </p>
         </div>

@@ -103,7 +103,7 @@ function EmptyApplications() {
     <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
       <span className="status-chip bg-[var(--paper)]">从一个真实岗位开始</span>
       <h2 className="heading-font mt-4 text-2xl font-bold">还没有投递记录</h2>
-      <p className="mt-2 max-w-xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+      <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
         粘贴一份正在考虑的 JD，系统会先为它建立独立工作区。没有示例数据，也不会替你自动投递。
       </p>
       <Link

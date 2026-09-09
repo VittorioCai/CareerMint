@@ -226,7 +226,7 @@ export function BaselineSelector({
           <h2 id="baseline-selector-title" className="heading-font mt-1 text-2xl font-bold">
             {title}
           </h2>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+          <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
             先预览并选择本次对照版本，再进入差异分析；也可以暂时跳过。
           </p>
         </div>

@@ -13,13 +13,13 @@ export default function NewApplicationPage() {
           <h1 className="heading-font mt-2 type-page-title">
             先把岗位稳稳收进来
           </h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
             保存公司、职位和完整 JD，建立独立申请工作区。当前版本不会自动抓取招聘网站，也不会在输入时调用 AI。
           </p>
         </div>
         <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em]">数据边界</p>
-          <p className="mt-2 text-sm font-bold leading-6">
+          <p className="mt-2 type-body font-medium">
             JD 原文只保存在你的私有工作区，不写入普通应用日志。
           </p>
         </aside>

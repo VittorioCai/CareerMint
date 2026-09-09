@@ -102,7 +102,7 @@ function IssueDetails({
               three lines of grey English above the Chinese judgement it is
               supposed to support; the full text is in the panel below. */}
           <span
-            className="mt-1.5 line-clamp-2 max-w-[70ch] break-words type-meta italic text-[var(--ink-muted)]"
+            className="foreign mt-1.5 line-clamp-2 break-words type-caption"
             lang="und"
           >
             “{row.jdOriginal}”
@@ -124,7 +124,7 @@ function IssueDetails({
               岗位原文
             </dt>
             <dd
-              className="mt-2 break-words text-sm font-normal leading-[1.65] text-[var(--ink-muted)]"
+              className="mt-2 break-words type-caption text-[var(--ink-muted)]"
               lang="und"
             >
               {row.jdOriginal}
@@ -369,7 +369,7 @@ export function ResumeJDDifferencePanel({
           {counts.map((entry) => (
             <span
               key={entry.severity}
-              className="inline-flex items-center gap-2 type-meta text-[var(--ink-muted)]"
+              className="inline-flex items-center gap-2 type-caption text-[var(--ink-muted)]"
             >
               {entry.severity === "gate" || entry.severity === "matched" ? (
                 <span
@@ -398,7 +398,7 @@ export function ResumeJDDifferencePanel({
 
         <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--line)] pt-4">
           <a
-            className="press button-secondary inline-flex min-h-10 items-center px-4 type-meta font-medium"
+            className="press button-secondary inline-flex min-h-10 items-center px-4 text-sm font-medium"
             href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
             download
           >
@@ -414,14 +414,14 @@ export function ResumeJDDifferencePanel({
           这个岗位真正要什么
         </span>
         <div className="min-w-0">
-          <p className="max-w-[64ch] text-base font-semibold leading-[1.7]">
+          <p className="type-body font-medium">
             {safeCopy(result.jobCore.missionZh)}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {result.jobCore.coreCapabilities.map((capability) => (
               <span
                 key={capability}
-                className="type-meta rounded-full bg-[var(--sev-matched)] px-3 py-1.5 font-medium text-[var(--sev-matched-ink)]"
+                className="rounded-full bg-[var(--sev-matched)] px-3 py-1.5 text-sm font-medium text-[var(--sev-matched-ink)]"
               >
                 {capability}
               </span>
@@ -438,7 +438,7 @@ export function ResumeJDDifferencePanel({
           >
             {nothingToFix ? "岗位要求 · 全部已对上" : "逐条差异 · 按严重度排序"}
           </h2>
-          <span className="type-meta font-medium text-[var(--ink-muted)]">
+          <span className="type-caption font-medium text-[var(--ink-muted)]">
             {nothingToFix
               ? "点任意一行看简历里对应的原文"
               : "点任意一行展开依据 · 珊瑚色行是改简历前必须先看的"}
@@ -462,7 +462,7 @@ export function ResumeJDDifferencePanel({
           <h2 className="heading-font text-lg font-semibold">
             {nothingToFix ? "下一步：准备面试" : "下一步：查看完善建议"}
           </h2>
-          <p className="mt-1.5 max-w-[62ch] text-sm font-medium leading-[1.7] text-[var(--ink-muted)]">
+          <p className="mt-1.5 max-w-[62ch] type-caption font-medium text-[var(--ink-muted)]">
             {nothingToFix
               ? "这份简历没有需要补的地方，可以直接开始准备这个岗位可能问到的问题。"
               : "建议只告诉你该核对哪段经历、补足哪些真实信息，不会代写简历。"}

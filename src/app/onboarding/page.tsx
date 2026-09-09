@@ -39,7 +39,7 @@ export default async function OnboardingPage() {
         <section className="mt-9">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Career profile setup</p>
           <h1 className="heading-font mt-2 max-w-3xl type-page-title">先把真实经历整理清楚</h1>
-          <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
             大约 5 分钟。上传和 AI 分析都可以跳过，最后由你明确决定何时进入工作台。
           </p>
         </section>

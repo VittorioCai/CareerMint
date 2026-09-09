@@ -79,7 +79,7 @@ export default async function InterviewPage({
             <h1 className="heading-font mt-2 type-page-title">
               面试题库
             </h1>
-            <p className="mt-3 text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
+            <p className="mt-3 type-caption text-[var(--ink-muted)]">
               通用题只准备一次，每个岗位都会自动包含；职能、行业和岗位题作为增量加入。所有 AI 题都只表示“可能会问”。
             </p>
           </div>

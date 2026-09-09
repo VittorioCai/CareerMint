@@ -108,7 +108,7 @@ export function FactEditor({
 
       {!editing ? (
         <div className="mt-4 space-y-3">
-          <p className="whitespace-pre-wrap text-sm font-medium leading-6">
+          <p className="whitespace-pre-wrap type-body">
             {data.description}
           </p>
           {data.startDate || data.endDate ? (
@@ -244,7 +244,7 @@ export function FactEditor({
         <h2 className="heading-font mt-2 text-2xl font-bold">确认职业事实</h2>
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
           <p className="font-semibold">{data.title}</p>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-6">{data.description}</p>
+          <p className="mt-2 whitespace-pre-wrap type-body">{data.description}</p>
         </div>
         <label className="mt-5 flex cursor-pointer items-start gap-3 text-sm font-bold leading-6">
           <input

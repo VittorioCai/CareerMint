@@ -141,14 +141,14 @@ function ImprovementItem({
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
             对应差异
           </p>
-          <p className="mt-2 text-base font-semibold leading-7">
+          <p className="mt-2 type-body font-medium">
             {issue.jdTranslationZh}
           </p>
-          <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 text-sm font-bold leading-6">
+          <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 type-body font-medium">
             {gateDirection?.direction ?? direction?.directionZh ?? issue.problemZh}
           </p>
           {unsupported ? (
-            <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 text-sm font-semibold leading-6">
+            <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 type-body font-medium">
               当前材料没有可回查证据。如未实际做过，请不要加入简历。
             </p>
           ) : null}
@@ -230,7 +230,7 @@ function Prerequisite({
       <h2 className="heading-font text-2xl font-bold">
         {stale ? "材料已变化，请重新分析" : "请先完成差异分析"}
       </h2>
-      <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+      <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
         完善方向只会基于当前 JD、所选简历和可回查事实生成。
       </p>
       <Link
@@ -286,7 +286,7 @@ export function ResumeJDImprovementPanel({
         <h2 id="improvement-panel-title" className="heading-font mt-1 text-2xl font-bold sm:text-3xl">
           完善建议
         </h2>
-        <p className="mt-3 max-w-4xl text-sm font-bold leading-7">
+        <p className="mt-3 type-body font-medium">
           用岗位能够识别的语言重新表达真实经历，并把关键词放回动作、场景和结果中；这里不会替你编造经历或直接改写简历。
         </p>
       </header>
@@ -300,7 +300,7 @@ export function ResumeJDImprovementPanel({
               <h2 id={`improvement-group-${group}`} className="heading-font text-2xl font-bold">
                 {group}
               </h2>
-              <p className="mt-1 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+              <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">
                 {groupIntro[group]}
               </p>
             </div>
@@ -324,7 +324,7 @@ export function ResumeJDImprovementPanel({
             Optional next step
           </p>
           <h2 className="heading-font mt-1 text-xl font-semibold">下一步：准备面试</h2>
-          <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+          <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
             完善建议是独立参考。你可以继续核对简历，也可以进入面试准备。
           </p>
         </div>

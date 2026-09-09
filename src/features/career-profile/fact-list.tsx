@@ -68,7 +68,7 @@ export function FactList({ facts }: { facts: CareerFact[] }) {
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
             <p className="heading-font text-lg font-semibold">还没有职业事实</p>
-            <p className="mx-auto mt-2 max-w-[42ch] text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
+            <p className="mx-auto mt-2 max-w-[42ch] type-caption text-[var(--ink-muted)]">
               上传一份简历，系统会提取出可确认的经历；也可以先手动写下第一条。分类会在有内容之后出现。
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">

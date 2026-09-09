@@ -130,7 +130,7 @@ function Overview({ application }: { application: Application }) {
       </div>
       <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
-        <p className="mt-2 text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
           删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
         </p>
         <div className="mt-4">
@@ -162,7 +162,7 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
                 : `建立申请 · ${APPLICATION_STAGE_LABELS[event.toStage]}`}
             </p>
             {event.note ? (
-              <p className="mt-1 text-sm font-medium leading-6 text-[var(--ink-muted)]">{event.note}</p>
+              <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">{event.note}</p>
             ) : null}
           </div>
         </li>
@@ -221,7 +221,7 @@ function InterviewPanel({
         <div>
           <span className="status-chip bg-[var(--paper)]">可能问题，不是雇主承诺</span>
           <h2 className="heading-font mt-3 text-2xl font-bold">岗位面试准备</h2>
-          <p className="mt-2 max-w-2xl text-sm font-semibold leading-6 text-[var(--ink-muted)]">
+          <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
             已自动包含 {commonCount} 道通用题；岗位增量题不会复制通用问题，准备记录会回写全局题库。
           </p>
         </div>

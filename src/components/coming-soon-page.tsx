@@ -26,7 +26,7 @@ export function ComingSoonPage({
           <span className="flex size-11 shrink-0 items-center justify-center rounded-xl bg-[var(--surface-muted)] text-sm font-semibold">→</span>
           <div>
             <h2 className="heading-font text-xl font-semibold">当前先把可信资料基础建好</h2>
-            <p className="mt-2 text-sm font-medium leading-6 text-[var(--ink-muted)]">职业档案会成为 JD 匹配、简历改写和面试准备的共同事实来源。功能开放后，这里的数据会直接复用。</p>
+            <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">职业档案会成为 JD 匹配、简历改写和面试准备的共同事实来源。功能开放后，这里的数据会直接复用。</p>
             {nextStepHref ? (
               <Link href={nextStepHref} className="button-primary mt-5 inline-flex min-h-11 items-center px-4 text-sm font-semibold">{nextStepLabel} <span className="ml-2">→</span></Link>
             ) : null}

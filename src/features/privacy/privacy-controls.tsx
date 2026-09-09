@@ -58,7 +58,7 @@ export function PrivacyControls() {
       <section className="dense-surface p-5 sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">数据可携带</p>
         <h2 className="heading-font mt-2 text-2xl font-bold">下载全部数据</h2>
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
           ZIP 包含账户档案、职业事实、文件元数据和你上传的原始简历，不包含内部存储路径或系统密钥。
         </p>
         <a href="/api/account/export" className="button-primary mt-5 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
@@ -69,7 +69,7 @@ export function PrivacyControls() {
       <section className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5 sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--error)]">危险操作</p>
         <h2 className="heading-font mt-2 text-2xl font-bold">永久删除账户</h2>
-        <p className="mt-2 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
           将先删除全部私有文件，再删除登录账户；数据库中的档案、事实和任务随账户级联删除。此操作不可恢复。
         </p>
         <button type="button" className="button-secondary press mt-5 min-h-11 px-5 text-sm font-semibold text-[var(--danger)]" onClick={() => setDialogOpen(true)}>
@@ -83,7 +83,7 @@ export function PrivacyControls() {
         onClose={dismissDialog}
       >
         <h2 className="heading-font text-2xl font-bold">确认永久删除</h2>
-        <p className="mt-3 text-sm font-medium leading-6 text-[var(--ink-muted)]">
+        <p className="mt-3 type-caption font-medium text-[var(--ink-muted)]">
           输入 <strong className="text-[var(--ink)]">DELETE</strong> 才能继续。关闭窗口不会执行任何操作。
         </p>
         <label className="mt-5 block text-sm font-semibold">

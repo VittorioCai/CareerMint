@@ -183,7 +183,7 @@ export default function DevStatesPage() {
       <h1 className="heading-font mt-2 type-page-title">
         状态矩阵
       </h1>
-      <p className="mt-3 max-w-[62ch] text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
+      <p className="mt-3 max-w-[62ch] type-caption text-[var(--ink-muted)]">
         每个界面的每个状态并排渲染。做完一个界面之前，这一页上它的每一格都要有内容 ——
         「设计了每个状态」这句话，只有能指着看才算数。
       </p>

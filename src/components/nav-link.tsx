@@ -42,7 +42,7 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
         aria-current={selected ? "page" : undefined}
         // The whole cell is the target, so the thumb has 97px of width and
         // 56px of height rather than the label's own box.
-        className={`${shared} min-h-14 flex-col items-center justify-center gap-1 text-[11px] ${
+        className={`${shared} type-micro min-h-14 flex-col items-center justify-center gap-1 ${
           selected
             ? "font-semibold text-[var(--ink)]"
             : "font-medium text-[var(--ink-muted)]"

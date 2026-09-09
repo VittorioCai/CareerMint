@@ -274,12 +274,25 @@ button {
   box-shadow: var(--elevation-1);
 }
 
-/* The type ramp.
+/* ── Type ────────────────────────────────────────────────────────────────
  *
- * These are roles, not sizes. A page title was being written out by hand in
- * eight files as "text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl" —
- * one decision, copied, free to drift. Naming the role puts the decision in one
- * place; the utility scale still handles body text, which is already a scale.
+ * Seven roles. Every run of text in the app is one of them, and the role
+ * fixes size, weight, line-height and measure together, because those are one
+ * decision rather than four.
+ *
+ *   display     the landing headline. Once per site.
+ *   title       an auth or marketing page's own headline
+ *   page-title  the H1 of an app screen
+ *   section     an H2 within a screen
+ *   heading     a card's or a row's own title
+ *   body        prose — anything a person reads a whole sentence of
+ *   caption     secondary prose: metadata, helper text, a timestamp
+ *   micro       a label on a control or a chip. Never a sentence.
+ *
+ * Measure is in `em`, the only unit that satisfies both of this product's
+ * languages with one number: a CJK glyph is exactly 1em wide, so 40em is 40
+ * Chinese characters, and the same 40em is roughly 72 Latin ones. It is a
+ * maximum, so it never stretches a narrow column — only caps a wide one.
  */
 /* Display and title.
  *
@@ -332,9 +345,42 @@ button {
   line-height: 1.3;
 }
 
-/* Small, spaced, uppercase — the label above a title or beside a value. It
-   replaces five hand-written sizes between 9px and 11.5px that were all the
-   same intent. */
+/* A card's or a row's own title: the largest thing inside a container that is
+   not the page's subject. */
+.type-heading {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+/* Prose the reader is meant to read, as opposed to skim. 14px was carrying
+   every role in this app from a paragraph to a chip, and when one size does
+   everything nothing reads as primary. */
+.type-body {
+  max-width: 40em;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: 1.75;
+}
+
+/* Secondary prose — the sentence under a heading, a helper line, a timestamp.
+   It stays at 14px, which was right; what it lacked was a measure and a
+   line-height that did not depend on which of five spellings a file used. */
+.type-caption {
+  max-width: 40em;
+  font-size: 0.875rem;
+  font-weight: 400;
+  line-height: 1.65;
+}
+
+/* A label, not a sentence — so no measure, and no line-height worth the name. */
+.type-micro {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+/* Micro, spaced and uppercased: the label above a title or beside a value. */
 .type-eyebrow {
   font-size: 0.6875rem;
   font-weight: 600;
@@ -342,10 +388,20 @@ button {
   text-transform: uppercase;
 }
 
-.type-meta {
-  font-size: 0.8125rem;
-  font-weight: 400;
-  line-height: 1.6;
+/* Source text in the job's own language, quoted inside a Chinese interface.
+ *
+ * It was written out three different ways — italic with curly quotes in one
+ * place, upright and unquoted in another, at two different sizes — for the
+ * same string. The rules: never italic (CJK has no true italic, so an italic
+ * Latin run beside it reads as a different voice rather than a quotation),
+ * always muted so it is visibly evidence rather than the product's own words,
+ * and always paired with `lang` so a screen reader switches pronunciation.
+ */
+.foreign {
+  max-width: 46em;
+  color: var(--ink-muted);
+  font-style: normal;
+  overflow-wrap: anywhere;
 }
 
 /* The page keeps exactly one sticker — the one carrying the conclusion. Every

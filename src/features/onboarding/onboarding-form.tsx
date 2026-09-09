@@ -186,7 +186,7 @@ export function OnboardingForm({
           <section>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">03 · 你拥有最后决定权</p>
             <h3 className="heading-font mt-2 text-2xl font-bold">AI 结果仍然是未确认草稿</h3>
-            <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
+            <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
               系统不会因为你完成引导就自动确认任何经历、数字或技能。请在职业档案中逐条核对。
             </p>
             {factCount > 0 || uploaded ? (
