@@ -154,9 +154,34 @@ export function ApplicationList({
 }) {
   if (applications.length === 0) return <EmptyApplications />;
 
+  // Neither wide view survives a phone: the table is 820px of six columns and
+  // the board is 1780px of seven, so 390px of screen shows two and hides the
+  // rest behind a sideways swipe. Below `md` the records stack as cards — the
+  // same card the board already uses — and the board/table choice is a
+  // desktop one, which is why the toggle is hidden there too.
+  const phoneCards = (
+    <div
+      data-testid="application-cards"
+      className="flex flex-col gap-3 md:hidden"
+    >
+      {applications.map((application) => (
+        <ApplicationCard
+          key={application.id}
+          application={application}
+          deleteApplication={deleteApplication}
+        />
+      ))}
+    </div>
+  );
+
   if (view === "table") {
     return (
-      <div className="scroll-x-affordance overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
+      <>
+        {phoneCards}
+        <div
+          data-testid="application-table"
+          className="scroll-x-affordance overflow-x-auto rounded-2xl border border-[var(--line)] bg-[var(--paper)] max-md:hidden"
+        >
         <table className="w-full min-w-[820px] border-collapse text-left text-sm">
           <thead className="bg-[var(--canvas)] text-xs font-semibold text-[var(--ink-muted)]">
             <tr>
@@ -207,38 +232,53 @@ export function ApplicationList({
             ))}
           </tbody>
         </table>
-      </div>
+        </div>
+      </>
     );
   }
 
+  // The board needs no second copy of anything: below `md` the seven columns
+  // stack, which turns the sideways swipe into a vertical list still grouped
+  // by stage — a better phone layout than the board is a phone table.
   return (
-    <div className="scroll-x-affordance snap-columns overflow-x-auto pb-4">
-      <div className="grid min-w-[1780px] grid-cols-7 gap-4">
+    <div
+      data-testid="application-board"
+      className="pb-4 md:scroll-x-affordance md:snap-columns md:overflow-x-auto"
+    >
+      <div className="grid gap-4 md:min-w-[1780px] md:grid-cols-7">
         {APPLICATION_STAGES.map((stage) => {
           const grouped = applications.filter(
             (application) => application.stage === stage,
           );
+          if (grouped.length === 0) {
+            return (
+              <section key={stage} className="min-w-0 max-md:hidden">
+                <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
+                  <h2 className="text-sm font-semibold">{APPLICATION_STAGE_LABELS[stage]}</h2>
+                  <span className="text-xs font-semibold tabular-nums text-[var(--ink-muted)]">0</span>
+                </div>
+              </section>
+            );
+          }
           return (
             <section
               key={stage}
               className="min-w-0"
             >
-              <div className="flex items-center justify-between gap-2 border-b-2 border-[var(--ink)] pb-2">
+              <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
                 <h2 className="text-sm font-semibold">{APPLICATION_STAGE_LABELS[stage]}</h2>
                 <span className="text-xs font-semibold tabular-nums text-[var(--ink-muted)]">
                   {grouped.length}
                 </span>
               </div>
               <div className="mt-3 space-y-3">
-                {grouped.length > 0 ? (
-                  grouped.map((application) => (
-                    <ApplicationCard
-                      key={application.id}
-                      application={application}
-                      deleteApplication={deleteApplication}
-                    />
-                  ))
-                ) : null}
+                {grouped.map((application) => (
+                  <ApplicationCard
+                    key={application.id}
+                    application={application}
+                    deleteApplication={deleteApplication}
+                  />
+                ))}
               </div>
             </section>
           );
