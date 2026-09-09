@@ -180,7 +180,7 @@ export default function DevStatesPage() {
       <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
         Development only
       </p>
-      <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em]">
+      <h1 className="heading-font mt-2 type-page-title">
         状态矩阵
       </h1>
       <p className="mt-3 max-w-[62ch] text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">

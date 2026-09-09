@@ -104,7 +104,7 @@ function Overview({ application }: { application: Application }) {
               key={label}
               className="flex items-baseline justify-between gap-4 border-b border-[var(--line)] px-4 py-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
             >
-              <dt className="shrink-0 text-[11px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">
+              <dt className="shrink-0 type-eyebrow text-[var(--ink-muted)]">
                 {label}
               </dt>
               <dd className="min-w-0 break-words text-right text-sm font-black">
@@ -400,7 +400,7 @@ export default async function ApplicationDetailPage({
           </div>
           <h1
             className={`heading-font mt-3 break-words font-extrabold tracking-[-0.02em] ${
-              differenceWorkflow ? "text-xl sm:text-2xl" : "text-[26px] sm:text-3xl"
+              differenceWorkflow ? "text-xl sm:text-2xl" : "type-page-title"
             }`}
           >
             {application.roleTitle}

@@ -508,7 +508,7 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 text-[13px] font-bold disabled:cursor-wait disabled:opacity-65"
+          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 type-meta font-semibold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >

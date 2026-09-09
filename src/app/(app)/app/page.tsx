@@ -96,7 +96,7 @@ export default async function DashboardPage() {
     <section className="min-w-0">
       <div>
         <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">今天的工作台</p>
-        <h1 className="heading-font mt-2 break-words text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
+        <h1 className="heading-font mt-2 break-words type-page-title">
           {profile.displayName ? `${profile.displayName}，继续推进` : "继续推进你的求职"}
         </h1>
         <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
@@ -138,7 +138,7 @@ export default async function DashboardPage() {
               >
                 <p className="text-xs font-black text-[var(--ink-muted)]">{label}</p>
                 <p className="mt-2 text-3xl font-black tabular-nums">{value}</p>
-                <p className="mt-1 text-[10px] font-semibold text-[var(--ink-muted)]">{note}</p>
+                <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">{note}</p>
               </article>
             ))}
           </div>

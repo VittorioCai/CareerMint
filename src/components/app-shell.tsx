@@ -21,7 +21,7 @@ export function AppShell({ children, email }: AppShellProps) {
           <span aria-hidden="true" className="logo-mark size-10" />
           <div>
             <span className="heading-font block text-base font-extrabold leading-none tracking-[-0.02em]">求职搭子</span>
-            <span className="mt-1 block text-[9.5px] font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">Job desk</span>
+            <span className="mt-1 block type-eyebrow text-[var(--ink-muted)]">Job desk</span>
           </div>
         </Link>
 
@@ -36,8 +36,8 @@ export function AppShell({ children, email }: AppShellProps) {
         </nav>
 
         <div className="mt-auto shrink-0 border-t border-[var(--line)] px-3 pb-3 pt-3.5">
-          <p className="text-[11.5px] font-semibold">资料安全原则</p>
-          <p className="mt-1 text-[11.5px] font-normal leading-[1.55] text-[var(--ink-muted)]">AI 写入前会先让你确认，不会静默改档案。</p>
+          <p className="text-xs font-semibold">资料安全原则</p>
+          <p className="mt-1 text-xs font-normal leading-[1.55] text-[var(--ink-muted)]">AI 写入前会先让你确认，不会静默改档案。</p>
         </div>
       </aside>
 
@@ -63,7 +63,7 @@ export function AppShell({ children, email }: AppShellProps) {
                 </summary>
                 <div className="absolute right-0 top-[calc(100%+8px)] z-30 w-64 rounded-2xl border-2 border-[var(--ink)] bg-white p-2 shadow-[4px_4px_0_var(--ink)]">
                   <div className="border-b border-[var(--line)] px-3 py-2.5">
-                    <p className="text-[10px] font-black uppercase tracking-[0.12em] text-[var(--ink-muted)]">已验证账户</p>
+                    <p className="type-eyebrow text-[var(--ink-muted)]">已验证账户</p>
                     <p className="mt-1 truncate text-sm font-bold">{displayEmail}</p>
                   </div>
                   <Link href="/settings/account" className="mt-1 block rounded-lg px-3 py-2 text-sm font-bold hover:bg-[var(--canvas)]">账户设置</Link>

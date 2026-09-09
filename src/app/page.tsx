@@ -35,7 +35,7 @@ export default function Home() {
         <Link href="/" className="group flex items-center gap-3" aria-label="求职搭子首页">
           <span aria-hidden="true" className="logo-mark size-10" />
           <span className="heading-font text-xl font-black tracking-[-0.03em]">求职搭子</span>
-          <span className="hidden rounded-full border border-[color:var(--ink-soft)] bg-white px-2.5 py-1 text-[11px] font-bold uppercase tracking-[0.12em] sm:inline">Beta</span>
+          <span className="hidden rounded-full border border-[color:var(--ink-soft)] bg-white px-2.5 py-1 type-eyebrow sm:inline">Beta</span>
         </Link>
 
         <div className="flex items-center gap-3">

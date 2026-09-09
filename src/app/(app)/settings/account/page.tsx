@@ -21,7 +21,7 @@ export default async function AccountSettingsPage() {
   return (
     <section className="min-w-0">
       <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">账户菜单</p>
-      <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">账户设置</h1>
+      <h1 className="heading-font mt-2 type-page-title">账户设置</h1>
       <p className="mt-3 max-w-2xl text-sm font-medium leading-6 text-[var(--ink-muted)]">
         管理求职方向、界面偏好和 AI 文字处理授权。邮箱由登录系统维护，不能在此直接修改。
       </p>

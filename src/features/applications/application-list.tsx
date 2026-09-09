@@ -77,11 +77,11 @@ function ApplicationCard({
         <h3 className="mt-1 break-words text-sm font-black leading-5">
           {application.roleTitle}
         </h3>
-        <div className="mt-3 flex flex-wrap gap-1.5 text-[11px] font-semibold text-[var(--ink-muted)]">
+        <div className="mt-3 flex flex-wrap gap-1.5 text-xs font-semibold text-[var(--ink-muted)]">
           {application.location ? <span>{application.location}</span> : null}
           <span>· {WORKPLACE_MODE_LABELS[application.workplaceMode]}</span>
         </div>
-        <p className="mt-3 border-t border-[var(--line)] pt-2 text-[10px] font-bold text-[var(--ink-muted)]">
+        <p className="mt-3 border-t border-[var(--line)] pt-2 text-xs font-semibold text-[var(--ink-muted)]">
           更新于 {formatDate(application.updatedAt)}
         </p>
       </Link>

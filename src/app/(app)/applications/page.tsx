@@ -50,7 +50,7 @@ export default async function ApplicationsPage({
           <p className="text-xs font-black uppercase tracking-[0.15em] text-[var(--ink-muted)]">
             申请工作台
           </p>
-          <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
+          <h1 className="heading-font mt-2 type-page-title">
             我的投递
           </h1>
           <p className="mt-3 text-sm font-medium text-[var(--ink-muted)]">

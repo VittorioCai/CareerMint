@@ -292,7 +292,7 @@ export function QuestionPreparationCard({
             可能会问
           </span>
         ) : null}
-        <span className="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+        <span className="type-eyebrow text-[var(--ink-muted)]">
           {sourceLabels[question.source]}
         </span>
       </div>
@@ -310,7 +310,7 @@ export function QuestionPreparationCard({
           “{applicationLink.sourceExcerpt}”
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-black text-[var(--ink-muted)]">
+      <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
         <span>{question.variants.length} 个问法变体</span>
         <span aria-hidden="true">·</span>
         <span>{question.facts.length} 条已关联事实</span>

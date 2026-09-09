@@ -76,7 +76,7 @@ export default async function InterviewPage({
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
               面试准备
             </p>
-            <h1 className="heading-font mt-2 text-[26px] font-extrabold tracking-[-0.02em] sm:text-3xl">
+            <h1 className="heading-font mt-2 type-page-title">
               面试题库
             </h1>
             <p className="mt-3 text-sm font-normal leading-[1.7] text-[var(--ink-muted)]">
@@ -92,7 +92,7 @@ export default async function InterviewPage({
             ["已准备", readyCount],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl border border-[var(--ink)] bg-white/80 p-4">
-              <p className="text-[10px] font-black uppercase tracking-[0.1em] text-[var(--ink-muted)]">
+              <p className="type-eyebrow text-[var(--ink-muted)]">
                 {label}
               </p>
               <p className="heading-font mt-1 text-3xl font-black">{value}</p>

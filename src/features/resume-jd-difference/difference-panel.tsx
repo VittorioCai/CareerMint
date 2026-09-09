@@ -102,7 +102,7 @@ function IssueDetails({
               three lines of grey English above the Chinese judgement it is
               supposed to support; the full text is in the panel below. */}
           <span
-            className="mt-1.5 line-clamp-2 max-w-[70ch] break-words text-[13.5px] font-normal italic leading-[1.6] text-[var(--ink-muted)]"
+            className="mt-1.5 line-clamp-2 max-w-[70ch] break-words type-meta italic text-[var(--ink-muted)]"
             lang="und"
           >
             “{row.jdOriginal}”
@@ -355,7 +355,7 @@ export function ResumeJDDifferencePanel({
         </p>
         <h2
           id="resume-jd-difference-title"
-          className="heading-font mt-2.5 max-w-[34ch] text-xl font-extrabold leading-[1.4] tracking-[-0.02em] sm:text-[23px]"
+          className="heading-font mt-2.5 max-w-[34ch] text-xl font-extrabold leading-[1.4] tracking-[-0.02em] sm:text-2xl"
         >
           {safeCopy(result.overallDifference.summaryZh)}
         </h2>
@@ -369,11 +369,13 @@ export function ResumeJDDifferencePanel({
           {counts.map((entry) => (
             <span
               key={entry.severity}
-              className="inline-flex items-center gap-2 text-[13px] font-normal text-[var(--ink-muted)]"
+              className="inline-flex items-center gap-2 type-meta text-[var(--ink-muted)]"
             >
               {entry.severity === "gate" || entry.severity === "matched" ? (
                 <span
                   aria-hidden="true"
+                  // Outside the ramp on purpose: a glyph centred in a 14px
+                  // badge, not a size anyone reads.
                   className={`grid size-3.5 place-items-center rounded-full text-[9px] font-black leading-none ${
                     entry.severity === "gate" ? "bg-[var(--coral)]" : "bg-[var(--mint)]"
                   }`}
@@ -394,7 +396,7 @@ export function ResumeJDDifferencePanel({
 
         <div className="mt-4 flex flex-wrap items-center justify-end gap-3 border-t border-[color-mix(in_srgb,var(--ink)_14%,transparent)] pt-4">
           <a
-            className="press inline-flex min-h-10 items-center rounded-full border border-[var(--ink)] px-4 text-[13px] font-semibold hover:bg-[var(--paper)]"
+            className="press inline-flex min-h-10 items-center rounded-full border border-[var(--ink)] px-4 type-meta font-semibold hover:bg-[var(--paper)]"
             href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
             download
           >
@@ -417,7 +419,7 @@ export function ResumeJDDifferencePanel({
             {result.jobCore.coreCapabilities.map((capability) => (
               <span
                 key={capability}
-                className="rounded-full bg-[var(--mint)] px-3 py-1.5 text-[13px] font-semibold text-[#20372c]"
+                className="rounded-full bg-[var(--mint)] px-3 py-1.5 type-meta font-semibold text-[#20372c]"
               >
                 {capability}
               </span>
@@ -434,7 +436,7 @@ export function ResumeJDDifferencePanel({
           >
             {nothingToFix ? "岗位要求 · 全部已对上" : "逐条差异 · 按严重度排序"}
           </h2>
-          <span className="text-[13px] font-medium text-[var(--ink-muted)]">
+          <span className="type-meta font-medium text-[var(--ink-muted)]">
             {nothingToFix
               ? "点任意一行看简历里对应的原文"
               : "点任意一行展开依据 · 珊瑚色行是改简历前必须先看的"}
@@ -466,7 +468,7 @@ export function ResumeJDDifferencePanel({
         </div>
         <Link
           href={`/applications/${applicationId}?tab=${nothingToFix ? "interview" : "improvements"}`}
-          className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-[15px] font-extrabold"
+          className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-base font-bold"
         >
           {nothingToFix ? "进入面试准备 →" : "查看完善建议 →"}
         </Link>
