@@ -2,6 +2,9 @@ import { Inter, Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { HTML_LANG } from "@/i18n/locale";
+import { getLocale } from "@/i18n/server";
+
 import "./globals.css";
 
 /**
@@ -38,10 +41,17 @@ export const metadata: Metadata = {
   description: "用已确认的职业事实匹配岗位、定制简历、跟踪投递并准备面试。",
 };
 
-export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
+export default async function RootLayout({
+  children,
+}: Readonly<{ children: ReactNode }>) {
+  // `lang` is not decoration: it decides which voice a screen reader uses and
+  // which dictionary the browser hyphenates and spell-checks with. A page of
+  // English served as zh-CN is read aloud by a Chinese synthesiser.
+  const locale = await getLocale();
+
   return (
     <html
-      lang="zh-CN"
+      lang={HTML_LANG[locale]}
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${nunitoSans.variable}`}
     >

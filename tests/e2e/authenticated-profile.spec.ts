@@ -69,6 +69,12 @@ async function confirmFact(article: Locator) {
   await expect(article.getByText("已确认")).toBeVisible();
 }
 
+function requiredEnv(name: string) {
+  const value = process.env[name];
+  if (!value) throw new Error(`authenticated-profile-e2e-${name.toLowerCase()}-missing`);
+  return value;
+}
+
 async function createAccountAndReachOnboarding(
   page: Page,
   context: import("@playwright/test").BrowserContext,
@@ -83,6 +89,36 @@ async function createAccountAndReachOnboarding(
     email_confirm: true,
   });
   if (error || !data.user) throw error ?? new Error("e2e-user-create-failed");
+
+  // The interface is mid-translation: the shell is localized and the feature
+  // pages are not, so a spec asserting Chinese copy has to ask for the Chinese
+  // interface. New accounts default to English now. As each surface is
+  // translated its spec moves to English and this write goes with it.
+  //
+  // The user's own client writes it, signed in over the API rather than
+  // through the browser: service_role has no grant on public.profiles, and
+  // this has to be true before the first page renders.
+  const asUser = createClient(
+    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const signedIn = await asUser.auth.signInWithPassword({
+    email,
+    password: initialPassword,
+  });
+  if (signedIn.error) throw signedIn.error;
+  const localed = await asUser
+    .from("profiles")
+    .update({ interface_locale: "zh-CN" })
+    .eq("user_id", data.user.id)
+    .select("interface_locale");
+  if (localed.error) throw localed.error;
+  if (localed.data?.[0]?.interface_locale !== "zh-CN") {
+    throw new Error(
+      `e2e-locale-not-pinned: ${JSON.stringify(localed.data)}`,
+    );
+  }
 
   await context.clearCookies();
   await login(page, email, initialPassword);
@@ -178,9 +214,25 @@ test("complete private career-profile foundation flow", async ({
   await page.getByRole("button", { name: "进入工作台" }).click();
   await expect(page).toHaveURL(/\/app/);
 
-  for (const label of ["首页", "我的投递", "职业档案", "面试题库"]) {
+  // English, because this account signed itself up through the UI a minute
+  // ago and English is what a new account gets. The page headings below are
+  // still Chinese: only the shell is translated so far, and asserting what is
+  // actually on screen is the point of a test.
+  for (const label of ["Home", "Applications", "Career profile", "Interview prep"]) {
     await expect(page.getByRole("link", { name: label }).first()).toBeVisible();
   }
+
+  // And the switch works from where it lives: inside the account menu.
+  // A testid, because a <summary> is exposed as the disclosure group and its
+  // name comes from its content, which here is an email address.
+  await page.getByTestId("account-menu").click();
+  await page
+    .getByRole("group", { name: "Language" })
+    .getByRole("button", { name: "中文" })
+    .click();
+  await expect(
+    page.getByRole("link", { name: "我的投递" }).first(),
+  ).toBeVisible();
   // The sidebar is a plain container now — the landmark is the <nav> inside
   // it, since a sidebar holding the primary navigation is not a complementary
   // region.

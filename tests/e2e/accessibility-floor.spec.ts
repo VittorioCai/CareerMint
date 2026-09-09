@@ -289,7 +289,10 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
     }
     await account
       .from("profiles")
-      .update({ ai_processing_consent_at: new Date().toISOString() })
+      .update({
+      ai_processing_consent_at: new Date().toISOString(),
+      interface_locale: "zh-CN",
+    })
       .eq("user_id", userId);
 
     await page.goto("/applications/new");

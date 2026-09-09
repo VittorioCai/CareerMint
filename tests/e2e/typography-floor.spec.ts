@@ -62,6 +62,17 @@ async function createUser(admin: AdminClient) {
 async function prepareAccount(page: Page, account: SupabaseClient, email: string) {
   const signedIn = await account.auth.signInWithPassword({ email, password });
   if (signedIn.error) throw signedIn.error;
+  // The interface is mid-translation: the shell is localized and the feature
+  // pages are not, so a spec asserting Chinese copy has to ask for the Chinese
+  // interface. New accounts default to English now. As each surface is
+  // translated its spec moves to English and this write goes with it. The
+  // account client writes it, not the admin one — service_role has no grant on
+  // public.profiles, and this is the user's own row.
+  const localed = await account
+    .from("profiles")
+    .update({ interface_locale: "zh-CN" })
+    .eq("user_id", signedIn.data.user.id);
+  if (localed.error) throw localed.error;
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(password);

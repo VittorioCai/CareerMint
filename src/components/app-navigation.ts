@@ -1,6 +1,15 @@
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
+/**
+ * The four destinations. Labels live in the dictionary rather than here, so
+ * this stays a list of routes and the words stay in one place per language.
+ */
 export const appNavigation = [
-  { href: "/app", label: "首页" },
-  { href: "/applications", label: "我的投递" },
-  { href: "/profile", label: "职业档案" },
-  { href: "/interview", label: "面试题库" },
-] as const;
+  { href: "/app", key: "home" },
+  { href: "/applications", key: "applications" },
+  { href: "/profile", key: "profile" },
+  { href: "/interview", key: "interview" },
+] as const satisfies readonly {
+  href: string;
+  key: keyof Dictionary["shell"]["nav"];
+}[];

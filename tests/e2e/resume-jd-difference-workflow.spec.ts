@@ -72,7 +72,10 @@ async function prepareAccount(
   }
   const consented = await account
     .from("profiles")
-    .update({ ai_processing_consent_at: new Date().toISOString() })
+    .update({
+      ai_processing_consent_at: new Date().toISOString(),
+      interface_locale: "zh-CN",
+    })
     .eq("user_id", userId);
   if (consented.error) throw consented.error;
 }
