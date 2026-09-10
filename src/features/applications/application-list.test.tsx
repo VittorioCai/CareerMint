@@ -8,6 +8,7 @@ vi.mock("next/navigation", () => ({
 
 import type { Application } from "./schemas";
 import { ApplicationList, filterApplications } from "./application-list";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 function application(
   overrides: Partial<Application> & Pick<Application, "id" | "stage">,
@@ -55,7 +56,7 @@ const deleteApplication = vi.fn(async () => ({
 
 describe("ApplicationList", () => {
   it("shows an actionable empty state", () => {
-    render(<ApplicationList applications={[]} view="board" deleteApplication={deleteApplication} />);
+    render(<ApplicationList copy={zhCN.applications} common={zhCN.common} applications={[]} view="board" deleteApplication={deleteApplication} />);
 
     expect(screen.getByRole("heading", { name: "还没有投递记录" })).toBeVisible();
     expect(screen.getByRole("link", { name: "新建第一份申请" })).toHaveAttribute(
@@ -65,7 +66,7 @@ describe("ApplicationList", () => {
   });
 
   it("groups board cards under visible text stage labels", () => {
-    render(<ApplicationList applications={applications} view="board" deleteApplication={deleteApplication} />);
+    render(<ApplicationList copy={zhCN.applications} common={zhCN.common} applications={applications} view="board" deleteApplication={deleteApplication} />);
 
     expect(screen.getByRole("heading", { name: "准备中" })).toBeVisible();
     expect(screen.getByRole("heading", { name: "面试" })).toBeVisible();
@@ -84,13 +85,13 @@ describe("ApplicationList", () => {
     // Seven stages and two records meant five dashed "暂无记录" boxes, which is
     // five pieces of furniture saying nothing. The stage heading already
     // carries a count.
-    render(<ApplicationList applications={applications} view="board" deleteApplication={deleteApplication} />);
+    render(<ApplicationList copy={zhCN.applications} common={zhCN.common} applications={applications} view="board" deleteApplication={deleteApplication} />);
 
     expect(screen.queryAllByText("暂无记录")).toHaveLength(0);
   });
 
   it("renders an information-dense table with stage text", () => {
-    render(<ApplicationList applications={applications} view="table" deleteApplication={deleteApplication} />);
+    render(<ApplicationList copy={zhCN.applications} common={zhCN.common} applications={applications} view="table" deleteApplication={deleteApplication} />);
 
     // Scoped to the table, because a phone gets the same records as cards and
     // a global query cannot tell the two apart. Only one is ever displayed:
@@ -109,7 +110,7 @@ describe("ApplicationList", () => {
 
   it("expands the selected record warning without opening the detail link", async () => {
     const user = userEvent.setup();
-    render(<ApplicationList applications={applications} view="board" deleteApplication={deleteApplication} />);
+    render(<ApplicationList copy={zhCN.applications} common={zhCN.common} applications={applications} view="board" deleteApplication={deleteApplication} />);
 
     await user.click(screen.getAllByRole("button", { name: "删除记录" })[0]);
     expect(screen.getByRole("alert")).toHaveTextContent("Acme GmbH · Product Manager");
@@ -138,6 +139,8 @@ describe("ApplicationList on a phone", () => {
   it("stacks records as cards instead of a table that scrolls sideways", () => {
     render(
       <ApplicationList
+        copy={zhCN.applications}
+        common={zhCN.common}
         applications={[application({ id: "a", stage: "applied" })]}
         view="table"
         deleteApplication={vi.fn()}
@@ -158,6 +161,8 @@ describe("ApplicationList on a phone", () => {
   it("stacks the board's columns rather than duplicating its cards", () => {
     render(
       <ApplicationList
+        copy={zhCN.applications}
+        common={zhCN.common}
         applications={[application({ id: "a", stage: "applied" })]}
         view="board"
         deleteApplication={vi.fn()}
@@ -178,6 +183,8 @@ describe("ApplicationList on a phone", () => {
   it("hides the empty stage columns a phone has no room for", () => {
     render(
       <ApplicationList
+        copy={zhCN.applications}
+        common={zhCN.common}
         applications={[application({ id: "a", stage: "applied" })]}
         view="board"
         deleteApplication={vi.fn()}

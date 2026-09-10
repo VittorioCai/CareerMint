@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { applicationDeleteErrorCopy } from "./applications/application-delete-control";
+import { en } from "@/i18n/dictionaries/en";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
+import { applicationDeleteMessage } from "./applications/application-delete-control";
+import { draftErrorMessage } from "./applications/application-draft-form";
+import { stageUpdateMessage } from "./applications/stage-update-form";
 import { resumeFileDeleteErrorCopy } from "./resume-baseline/resume-file-delete-control";
 import { errorCopy as differenceErrorCopy } from "./resume-jd-difference/analysis-control";
 import { uploadErrorCopy } from "./source-assets/upload-form";
@@ -41,18 +46,89 @@ const transient = new Set([
   "409",
 ]);
 
-/** Phrases that point at something outside the retry button. */
+/**
+ * Phrases that point at something outside the retry button.
+ *
+ * Both languages, because the rule is about what the reader can do and every
+ * reader gets one language or the other. Writing it for Chinese only was the
+ * first version, and it passed every English message without reading it.
+ */
 const concreteAction =
-  /(上传|选择|检查|压缩|精简|刷新|登录|授权|预览|设置|更换|删除|补充|识别|连接|返回|联系)/u;
-const retry = /(重试|再试|重新)/u;
+  /(上传|选择|检查|压缩|精简|刷新|登录|授权|预览|设置|更换|删除|补充|识别|连接|返回|联系)|\b(upload|select|pick|check|compress|trim|reload|sign in|authoris|authoriz|preview|settings|replace|delete|add|recognis|recogniz|connection|back to|contact|confirm|save as|export|leave it out|fill in|entered|different)/iu;
+const retry = /(重试|再试|重新)|\b(try again|retry|again in a moment)/iu;
+
+/**
+ * The codes each resolver answers.
+ *
+ * Listed here rather than derived, because deriving them from the resolver
+ * would make this test agree with whatever the resolver happens to handle.
+ * A new code has to be added here, which is the prompt to decide whether a
+ * bare retry is honest advice for it.
+ */
+const APPLICATION_DELETE_CODES = [
+  "application-not-found",
+  "deletion-confirmation-required",
+  "invalid-input",
+  "application-storage-error",
+  "application-action-failed",
+] as const;
+
+const APPLICATION_DRAFT_CODES = [
+  "invalid-input",
+  "invalid-application-input",
+  "application-storage-error",
+  "application-action-failed",
+] as const;
+
+const STAGE_UPDATE_CODES = [
+  "application-stage-unchanged",
+  "application-not-found",
+  "invalid-input",
+  "invalid-application-input",
+  "application-storage-error",
+  "application-action-failed",
+] as const;
 
 const tables: [string, Record<string, string>][] = [
   ["difference", differenceErrorCopy],
   ["upload", uploadErrorCopy],
-  [
-    "application-delete",
-    applicationDeleteErrorCopy as Record<string, string>,
-  ],
+  // The localized tables are built by calling the resolver for every code it
+  // knows, once per language: a message that only reads well in one of them is
+  // still a message that fails this rule for half the readers.
+  ...(
+    [
+      ["en", en],
+      ["zh-CN", zhCN],
+    ] as const
+  ).flatMap(([language, dictionary]): [string, Record<string, string>][] => [
+    [
+      `application-delete (${language})`,
+      Object.fromEntries(
+        APPLICATION_DELETE_CODES.map((code) => [
+          code,
+          applicationDeleteMessage(code, dictionary.applications),
+        ]),
+      ),
+    ],
+    [
+      `application-draft (${language})`,
+      Object.fromEntries(
+        APPLICATION_DRAFT_CODES.map((code) => [
+          code,
+          draftErrorMessage(code, dictionary.applications.draft),
+        ]),
+      ),
+    ],
+    [
+      `stage-update (${language})`,
+      Object.fromEntries(
+        STAGE_UPDATE_CODES.map((code) => [
+          code,
+          stageUpdateMessage(code, dictionary.applications.stageUpdate),
+        ]),
+      ),
+    ],
+  ]),
   [
     "resume-file-delete",
     Object.fromEntries(

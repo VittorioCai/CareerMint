@@ -357,6 +357,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 空" note="新账号看到的第一屏">
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={[]}
             view="table"
             deleteApplication={noopDelete}
@@ -365,6 +367,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 一条（表格）" note="表格是默认，因为它撑得住一条">
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={[application(0)]}
             view="table"
             deleteApplication={noopDelete}
@@ -376,6 +380,8 @@ export default function DevStatesPage() {
           note="同样一条记录的看板：七列，六列是空的。这就是表格作默认的理由"
         >
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={[application(0)]}
             view="board"
             deleteApplication={noopDelete}
@@ -387,6 +393,8 @@ export default function DevStatesPage() {
           note="没有地点、没有来源、没有下一步 —— 占位符不该当内容渲染"
         >
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={[
               application(1, {
                 location: null,
@@ -407,6 +415,8 @@ export default function DevStatesPage() {
           note="68 个字符的真实德国公司名，看板列宽和表格单元格都要撑得住"
         >
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={[
               application(2, {
                 companyName: longCompany,
@@ -421,6 +431,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 二十条" note="密度上限：分组、排序和横向滚动">
           <ApplicationList
+            copy={zhCN.applications}
+            common={zhCN.common}
             applications={Array.from({ length: 20 }, (_, index) =>
               application(index + 3),
             )}

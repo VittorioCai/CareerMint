@@ -4,12 +4,12 @@ import { redirect } from "next/navigation";
 import { getOwnedProfile } from "@/features/account/repository";
 import { dashboardJDActionLabel } from "@/features/applications/dashboard-copy";
 import { applicationRepository } from "@/features/applications/repository";
-import { APPLICATION_STAGE_LABELS } from "@/features/applications/schemas";
 import { summarizeApplications } from "@/features/applications/summary";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { listOwnedJobs } from "@/features/jobs/repository";
 import { listAssets } from "@/features/source-assets/repository";
 import { DashboardUpload } from "@/features/source-assets/dashboard-upload";
+import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
 export default async function DashboardPage() {
@@ -32,15 +32,16 @@ export default async function DashboardPage() {
   );
   const confirmedCount = facts.length - pendingFacts.length;
   const applicationSummary = summarizeApplications(applications);
+  const { applications: appsCopy, home } = await getDictionary();
 
   let primaryState;
   if (assets.length === 0) {
     primaryState = (
       <article className="soft-surface bg-[var(--paper)] p-5 sm:p-7">
-        <span className="status-chip severity-important">第一步</span>
-        <h2 className="heading-font mt-4 text-2xl font-bold">上传一份已有简历</h2>
+        <span className="status-chip severity-important">{home.firstStep}</span>
+        <h2 className="heading-font mt-4 text-2xl font-bold">{home.uploadTitle}</h2>
         <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-          系统先在服务器提取 PDF 或 DOCX 文字；只有你授权后，才会将文字发送给 AI 分析。
+          {home.uploadBody}
         </p>
         <div className="mt-6 max-w-2xl">
           <DashboardUpload />
@@ -50,43 +51,43 @@ export default async function DashboardPage() {
   } else if (activeJob || assets.some((asset) => asset.status === "extracting")) {
     primaryState = (
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
-        <span className="status-chip severity-minor">处理中</span>
-        <h2 className="heading-font mt-4 text-2xl font-bold">正在整理你的职业事实</h2>
+        <span className="status-chip severity-minor">{home.processing}</span>
+        <h2 className="heading-font mt-4 text-2xl font-bold">{home.processingTitle}</h2>
         <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
-          任务已经安全保存。你可以离开此页继续浏览，稍后回来查看结果。
+          {home.processingBody}
         </p>
         <progress className="mt-6 h-2 w-full max-w-xl accent-[var(--ink)]" />
         <Link href="/applications" className="button-secondary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
-          先看看我的投递
+          {home.seeApplications}
         </Link>
       </article>
     );
   } else if (pendingFacts.length > 0) {
     primaryState = (
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
-        <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">需要你判断</span>
-        <h2 className="heading-font mt-4 text-2xl font-bold">继续核对职业档案</h2>
+        <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">{home.needsYou}</span>
+        <h2 className="heading-font mt-4 text-2xl font-bold">{home.reviewTitle}</h2>
         <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
-          还有 {pendingFacts.length} 条事实等待确认或补充。未确认内容不会被写进正式简历。
+          {home.reviewBody.replace("{count}", String(pendingFacts.length))}
         </p>
         <div className="mt-5 h-3 max-w-xl overflow-hidden rounded-full bg-[var(--surface-muted)]">
           <div className="h-full bg-[var(--sev-matched)]" style={{ width: `${facts.length ? (confirmedCount / facts.length) * 100 : 0}%` }} />
         </div>
         <Link href="/profile" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
-          继续核对职业档案 →
+          {home.reviewCta}
         </Link>
       </article>
     );
   } else {
     primaryState = (
       <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
-        <span className="status-chip bg-[var(--paper)]">✓ 已完成核对</span>
-        <h2 className="heading-font mt-4 text-3xl font-bold">职业档案已就绪</h2>
+        <span className="status-chip bg-[var(--paper)]">{home.checked}</span>
+        <h2 className="heading-font mt-4 text-3xl font-bold">{home.readyTitle}</h2>
         <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
-          已确认 {confirmedCount} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。
+          {home.readyBody.replace("{count}", String(confirmedCount))}
         </p>
         <Link href="/applications/new" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
-          {dashboardJDActionLabel(applications.length)} →
+          {dashboardJDActionLabel(applications.length, appsCopy)} →
         </Link>
       </article>
     );
@@ -95,14 +96,16 @@ export default async function DashboardPage() {
   return (
     <section className="min-w-0">
       <div>
-        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">今天的工作台</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">{home.eyebrow}</p>
         <h1 className="heading-font mt-2 break-words type-page-title">
-          {profile.displayName ? `${profile.displayName}，继续推进` : "继续推进你的求职"}
+          {profile.displayName
+            ? home.greeting.replace("{name}", profile.displayName)
+            : home.greetingNoName}
         </h1>
         <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
           {profile.targetRole
-            ? `当前目标：${profile.targetRole}`
-            : "还没有设定目标岗位，可以在账户设置里补上。"}
+            ? home.currentTarget.replace("{role}", profile.targetRole)
+            : home.noTarget}
         </p>
       </div>
       <div className="mt-8">{primaryState}</div>
@@ -111,24 +114,24 @@ export default async function DashboardPage() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-              真实申请记录
+              {home.recordsEyebrow}
             </p>
             <h2 id="application-progress-heading" className="heading-font mt-1 text-2xl font-bold">
-              投递进度一眼看清
+              {home.recordsTitle}
             </h2>
           </div>
           <Link href="/applications" className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4">
-            查看全部投递 →
+            {home.seeAll}
           </Link>
         </div>
 
           {applicationSummary.total > 0 ? (
           <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
             {[
-              ["总记录", applicationSummary.total, "包含全部历史"],
-              ["进行中", applicationSummary.active, "不含拒绝与撤回"],
-              ["面试中", applicationSummary.interviews, "当前阶段"],
-              ["Offer", applicationSummary.offers, "当前阶段"],
+              [home.stats.total, applicationSummary.total, home.stats.totalNote],
+              [home.stats.active, applicationSummary.active, home.stats.activeNote],
+              [home.stats.interviews, applicationSummary.interviews, home.stats.currentStage],
+              [home.stats.offers, applicationSummary.offers, home.stats.currentStage],
             ].map(([label, value, note], index) => (
               <article
                 key={label}
@@ -149,7 +152,7 @@ export default async function DashboardPage() {
         {applicationSummary.recent.length > 0 ? (
           <div className="mt-5 overflow-hidden rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
             <div className="border-b border-[var(--line)] px-4 py-3">
-              <h3 className="text-sm font-semibold">最近更新</h3>
+              <h3 className="text-sm font-semibold">{home.recent}</h3>
             </div>
             <ul className="divide-y divide-[var(--line)]">
               {applicationSummary.recent.map((application) => (
@@ -160,7 +163,7 @@ export default async function DashboardPage() {
                       <span className="mt-0.5 block truncate text-xs font-semibold text-[var(--ink-muted)]">{application.roleTitle}</span>
                     </span>
                     <span className="status-chip bg-[var(--sev-minor)]">
-                      {APPLICATION_STAGE_LABELS[application.stage]}
+                      {appsCopy.stages[application.stage]}
                     </span>
                   </Link>
                 </li>
@@ -169,16 +172,16 @@ export default async function DashboardPage() {
           </div>
         ) : (
           <article className="mt-5 rounded-2xl border border-dashed border-[var(--ink-soft)] bg-[var(--paper)] p-5">
-            <p className="text-sm font-bold">还没有真实申请记录。</p>
+            <p className="text-sm font-bold">{home.noRecords}</p>
             <Link href="/applications/new" className="mt-3 inline-flex text-sm font-semibold underline underline-offset-4">
-              新建申请工作区
+              {home.createWorkspace}
             </Link>
           </article>
         )}
       </section>
 
       <p className="mt-7 text-xs font-medium leading-5 text-[var(--ink-muted)]">
-        数据说明：页面只展示你的真实记录，不填充演示投递或虚构经历。
+        {home.dataNote}
       </p>
     </section>
   );

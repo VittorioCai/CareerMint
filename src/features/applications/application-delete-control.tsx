@@ -3,15 +3,31 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type { ApplicationActionState } from "./actions";
 
-export const applicationDeleteErrorCopy: Record<string, string> = {
-  "application-not-found": "记录不存在或已被删除。",
-  "deletion-confirmation-required": "请先确认删除这条记录。",
-  "invalid-input": "删除请求无效，请刷新页面后重试。",
-  "application-storage-error": "暂时无法删除记录，请稍后重试。",
-  "application-action-failed": "暂时无法删除记录，请稍后重试。",
-};
+/**
+ * Error codes to the dictionary path that explains them.
+ *
+ * The message is looked up at render time rather than stored here: the code
+ * comes from the server and does not change with the language, the sentence
+ * does. `src/features/error-copy.test.ts` walks this table and checks each
+ * entry names something the reader can act on.
+ */
+export function applicationDeleteMessage(
+  code: string,
+  copy: Dictionary["applications"],
+): string {
+  const messages: Record<string, string> = {
+    "application-not-found": copy.deleteErrors.notFound,
+    "deletion-confirmation-required": copy.deleteErrors.confirmationRequired,
+    "invalid-input": copy.deleteErrors.invalidInput,
+    "application-storage-error": copy.deleteErrors.storageError,
+    "application-action-failed": copy.deleteErrors.storageError,
+  };
+  return messages[code] ?? copy.deleteErrors.storageError;
+}
 
 export function ApplicationDeleteControl({
   applicationId,
@@ -20,6 +36,8 @@ export function ApplicationDeleteControl({
   redirectAfterDelete = false,
   compact = false,
   deleteApplication,
+  copy,
+  common,
 }: {
   applicationId: string;
   companyName: string;
@@ -27,6 +45,8 @@ export function ApplicationDeleteControl({
   redirectAfterDelete?: boolean;
   compact?: boolean;
   deleteApplication: (formData: FormData) => Promise<ApplicationActionState>;
+  copy: Dictionary["applications"];
+  common: Dictionary["common"];
 }) {
   const router = useRouter();
   const [expanded, setExpanded] = useState(false);
@@ -37,7 +57,7 @@ export function ApplicationDeleteControl({
   if (deleted) {
     return (
       <p role="status" className="text-xs font-bold text-[var(--ink-muted)]">
-        记录已删除
+        {copy.deleted}
       </p>
     );
   }
@@ -58,7 +78,7 @@ export function ApplicationDeleteControl({
           ? "text-action text-xs font-medium text-[var(--ink-muted)] underline decoration-transparent underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:text-[var(--danger)] hover:decoration-current focus-visible:text-[var(--danger)]"
           : "press text-action inline-flex min-h-10 items-center rounded-[10px] border border-[var(--line)] px-4 text-sm font-medium text-[var(--ink-muted)] hover:border-[var(--danger-line)] hover:text-[var(--danger)]"}
       >
-        删除记录
+        {copy.deleteRecord}
       </button>
     );
   }
@@ -78,7 +98,7 @@ export function ApplicationDeleteControl({
         return;
       }
       const code = "error" in result ? result.error : "application-action-failed";
-      setError(applicationDeleteErrorCopy[code] ?? applicationDeleteErrorCopy["application-action-failed"]);
+      setError(applicationDeleteMessage(code, copy));
     });
   }
 
@@ -88,10 +108,12 @@ export function ApplicationDeleteControl({
       className="rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] p-3 text-left"
     >
       <p className="text-xs font-semibold text-[var(--ink)]">
-        确定删除 {companyName} · {roleTitle}？
+        {copy.deleteWarningTitle
+          .replace("{company}", companyName)
+          .replace("{role}", roleTitle)}
       </p>
       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-        将删除这条投递及其工作区历史；不会删除职业档案或已上传简历。
+        {copy.deleteWarningBody}
       </p>
       {error ? (
         <p className="mt-2 text-xs font-semibold text-[var(--danger)]">{error}</p>
@@ -106,7 +128,7 @@ export function ApplicationDeleteControl({
           }}
           className="button-secondary px-3 py-2 text-xs font-medium disabled:opacity-60"
         >
-          取消
+          {common.cancel}
         </button>
         <button
           type="button"
@@ -114,7 +136,7 @@ export function ApplicationDeleteControl({
           onClick={submitDeletion}
           className="button-danger px-3 py-2 text-xs font-semibold disabled:opacity-60"
         >
-          {pending ? "正在删除…" : "确认删除记录"}
+          {pending ? copy.deleting : copy.confirmDelete}
         </button>
       </div>
     </div>

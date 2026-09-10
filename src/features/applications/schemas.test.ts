@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vitest";
 
+import { en } from "@/i18n/dictionaries/en";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import {
-  APPLICATION_STAGE_LABELS,
+  APPLICATION_STAGES,
   applicationFilterSchema,
   applicationResumeSourceSchema,
   canChangeApplicationStage,
@@ -124,14 +127,15 @@ describe("application schemas", () => {
       applicationFilterSchema.parse({ view: "table", q: "  acme ", stage: "hr" }),
     ).toEqual({ view: "table", q: "acme", stage: "hr" });
 
-    expect(Object.values(APPLICATION_STAGE_LABELS)).toEqual([
-      "准备中",
-      "已投递",
-      "HR 沟通",
-      "面试",
-      "Offer",
-      "已拒绝",
-      "已撤回",
-    ]);
+    // Labels moved to the dictionaries; what this file still owns is that the
+    // stage enum and the labels cannot drift apart, in either language.
+    for (const dictionary of [en, zhCN]) {
+      expect(Object.keys(dictionary.applications.stages)).toEqual([
+        ...APPLICATION_STAGES,
+      ]);
+      for (const stage of APPLICATION_STAGES) {
+        expect(dictionary.applications.stages[stage]).toBeTruthy();
+      }
+    }
   });
 });

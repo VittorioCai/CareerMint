@@ -9,8 +9,6 @@ import {
 import { ApplicationDeleteControl } from "@/features/applications/application-delete-control";
 import { applicationRepository } from "@/features/applications/repository";
 import {
-  APPLICATION_STAGE_LABELS,
-  WORKPLACE_MODE_LABELS,
   type Application,
   type ApplicationStageEvent,
 } from "@/features/applications/schemas";
@@ -57,6 +55,7 @@ import {
   resumeJDDifferenceRepository,
   type ResumeJDDifferenceRunView,
 } from "@/features/resume-jd-difference/repository";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { getServerEnv } from "@/lib/env/server";
@@ -84,7 +83,15 @@ function formatDate(value: string | null) {
   }).format(new Date(value));
 }
 
-function Overview({ application }: { application: Application }) {
+function Overview({
+  application,
+  appsCopy,
+  common,
+}: {
+  application: Application;
+  appsCopy: Dictionary["applications"];
+  common: Dictionary["common"];
+}) {
   return (
     <div className="space-y-5">
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
@@ -98,14 +105,14 @@ function Overview({ application }: { application: Application }) {
               from the row not being there. */}
           {(
             [
-              ["当前阶段", APPLICATION_STAGE_LABELS[application.stage]],
+              ["当前阶段", appsCopy.stages[application.stage]],
               ["阶段开始", formatDate(application.stageChangedAt)],
               ["首次投递", formatDate(application.appliedAt)],
               [
                 "办公方式",
                 application.workplaceMode === "unspecified"
                   ? null
-                  : WORKPLACE_MODE_LABELS[application.workplaceMode],
+                  : appsCopy.workplaceModes[application.workplaceMode],
               ],
               ["来源", application.source],
               ["下一步", application.nextAction],
@@ -134,6 +141,7 @@ function Overview({ application }: { application: Application }) {
         </p>
         <div className="mt-4 border-t border-[color:var(--ink-soft)] pt-4">
           <StageUpdateForm
+            copy={appsCopy}
             applicationId={application.id}
             currentStage={application.stage}
             changeStage={changeApplicationStageAction.bind(null, {})}
@@ -148,6 +156,8 @@ function Overview({ application }: { application: Application }) {
         </p>
         <div className="mt-4">
           <ApplicationDeleteControl
+            copy={appsCopy}
+            common={common}
             applicationId={application.id}
             companyName={application.companyName}
             roleTitle={application.roleTitle}
@@ -160,7 +170,13 @@ function Overview({ application }: { application: Application }) {
   );
 }
 
-function Timeline({ events }: { events: ApplicationStageEvent[] }) {
+function Timeline({
+  events,
+  appsCopy,
+}: {
+  events: ApplicationStageEvent[];
+  appsCopy: Dictionary["applications"];
+}) {
   return (
     <ol className="space-y-3">
       {events.map((event) => (
@@ -171,8 +187,8 @@ function Timeline({ events }: { events: ApplicationStageEvent[] }) {
           <div>
             <p className="text-sm font-semibold">
               {event.fromStage
-                ? `${APPLICATION_STAGE_LABELS[event.fromStage]} → ${APPLICATION_STAGE_LABELS[event.toStage]}`
-                : `建立申请 · ${APPLICATION_STAGE_LABELS[event.toStage]}`}
+                ? `${appsCopy.stages[event.fromStage]} → ${appsCopy.stages[event.toStage]}`
+                : `建立申请 · ${appsCopy.stages[event.toStage]}`}
             </p>
             {event.note ? (
               <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">{event.note}</p>
@@ -292,7 +308,12 @@ export default async function ApplicationDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  const { difference, improvements } = await getDictionary();
+  const {
+    applications: appsCopy,
+    common,
+    difference,
+    improvements,
+  } = await getDictionary();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = resolveApplicationDetailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
@@ -409,7 +430,7 @@ export default async function ApplicationDetailPage({
       <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <span className="status-chip bg-[var(--surface-muted)]">{APPLICATION_STAGE_LABELS[application.stage]}</span>
+            <span className="status-chip bg-[var(--surface-muted)]">{appsCopy.stages[application.stage]}</span>
             {application.location ? <span className="text-xs font-bold text-[var(--ink-muted)]">{application.location}</span> : null}
           </div>
           <h1
@@ -437,8 +458,8 @@ export default async function ApplicationDetailPage({
       </nav>
 
       <div className="mt-6">
-        {activeTab === "overview" ? <Overview application={application} /> : null}
-        {activeTab === "timeline" ? <Timeline events={events} /> : null}
+        {activeTab === "overview" ? <Overview application={application} appsCopy={appsCopy} common={common} /> : null}
+        {activeTab === "timeline" ? <Timeline events={events} appsCopy={appsCopy} /> : null}
         {activeTab === "resume" ? (
           <div className="space-y-6">
             {first(query.setup) === "1" ? <SetupProgress current="resume" /> : null}

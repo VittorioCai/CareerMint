@@ -3,6 +3,7 @@ import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApplicationDraftForm } from "./application-draft-form";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 const storageKey = "careermint:new-application-draft:v1";
 const completeJd =
@@ -30,7 +31,7 @@ describe("ApplicationDraftForm", () => {
     const user = userEvent.setup();
 
     render(
-      <ApplicationDraftForm createApplication={createApplication} />,
+      <ApplicationDraftForm copy={zhCN.applications} createApplication={createApplication} />,
     );
 
     expect(await screen.findByDisplayValue("Saved Company")).toBeVisible();
@@ -58,6 +59,7 @@ describe("ApplicationDraftForm", () => {
 
     render(
       <ApplicationDraftForm
+        copy={zhCN.applications}
         createApplication={createApplication}
         navigate={navigate}
       />,
@@ -89,7 +91,7 @@ describe("ApplicationDraftForm", () => {
     const user = userEvent.setup();
 
     render(
-      <ApplicationDraftForm createApplication={createApplication} />,
+      <ApplicationDraftForm copy={zhCN.applications} createApplication={createApplication} />,
     );
 
     await user.type(screen.getByLabelText("公司"), "Acme GmbH");

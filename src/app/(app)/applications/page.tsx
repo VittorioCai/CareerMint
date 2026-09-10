@@ -12,11 +12,11 @@ import {
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGES,
-  APPLICATION_STAGE_LABELS,
   APPLICATION_VIEW_COOKIE,
   applicationFilterSchema,
   resolveApplicationView,
 } from "@/features/applications/schemas";
+import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
 function first(value: string | string[] | undefined) {
@@ -29,6 +29,7 @@ export default async function ApplicationsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
+  const { applications: appsCopy, common } = await getDictionary();
   const raw = await searchParams;
   const store = await cookies();
   const filter = applicationFilterSchema.parse({
@@ -47,13 +48,15 @@ export default async function ApplicationsPage({
       <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">
-            申请工作台
+            {appsCopy.pageEyebrow}
           </p>
           <h1 className="heading-font mt-2 type-page-title">
-            我的投递
+            {appsCopy.pageTitle}
           </h1>
           <p className="mt-3 text-sm font-medium text-[var(--ink-muted)]">
-            共 {applications.length} 份真实记录，当前筛选显示 {visibleApplications.length} 份。
+            {appsCopy.countLine
+              .replace("{total}", String(applications.length))
+              .replace("{shown}", String(visibleApplications.length))}
           </p>
         </div>
       </div>
@@ -63,10 +66,10 @@ export default async function ApplicationsPage({
         open={Boolean(filter.q || filter.stage) || applications.length > 8}
       >
         <summary className="press text-action inline-flex min-h-10 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-3.5 text-sm font-medium text-[var(--ink-muted)] marker:hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--focus-ring)] [&::-webkit-details-marker]:hidden">
-          筛选与搜索
+          {appsCopy.filterAndSearch}
           {filter.q || filter.stage ? (
             <span className="rounded-full bg-[var(--surface-muted)] px-2 py-0.5 text-xs font-semibold text-[var(--ink)]">
-              已启用
+              {appsCopy.filterActive}
             </span>
           ) : null}
           <span
@@ -79,21 +82,21 @@ export default async function ApplicationsPage({
         <form method="get" className="soft-surface mt-3 grid gap-3 p-4 md:grid-cols-[minmax(0,1fr)_220px_auto]">
           <input type="hidden" name="view" value={filter.view} />
           <label className="text-xs font-semibold text-[var(--ink-muted)]">
-            搜索公司、职位、地点或来源
+            {appsCopy.keyword}
             <input
               name="q"
               defaultValue={filter.q}
               className="form-input mt-1.5"
-              placeholder="例如 Acme、Product、Berlin"
+              placeholder={appsCopy.keywordPlaceholder}
             />
           </label>
           <label className="text-xs font-semibold text-[var(--ink-muted)]">
-            阶段
+            {appsCopy.stage}
             <select name="stage" defaultValue={filter.stage ?? ""} className="form-input mt-1.5">
-              <option value="">全部阶段</option>
+              <option value="">{appsCopy.allStages}</option>
               {APPLICATION_STAGES.map((stage) => (
                 <option key={stage} value={stage}>
-                  {APPLICATION_STAGE_LABELS[stage]}
+                  {appsCopy.stages[stage]}
                 </option>
               ))}
             </select>
@@ -103,13 +106,13 @@ export default async function ApplicationsPage({
               type="submit"
               className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--ink)] bg-[var(--paper)] px-4 text-sm font-semibold"
             >
-              筛选
+              {appsCopy.filter}
             </button>
             <Link
               href={`/applications?view=${filter.view}`}
               className="press inline-flex min-h-11 items-center rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-4 text-sm font-medium text-[var(--ink-muted)]"
             >
-              清除
+              {appsCopy.clear}
             </Link>
           </div>
         </form>
@@ -122,7 +125,7 @@ export default async function ApplicationsPage({
       <form
         action={rememberApplicationViewAction}
         className="mt-5 inline-flex items-center gap-1 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] p-1"
-        aria-label="投递视图"
+        aria-label={appsCopy.viewLabel}
       >
         {(["board", "table"] as const).map((view) => (
           <button
@@ -137,13 +140,15 @@ export default async function ApplicationsPage({
                 : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"
             }`}
           >
-            {view === "board" ? "看板" : "表格"}
+            {view === "board" ? appsCopy.board : appsCopy.table}
           </button>
         ))}
       </form>
 
       <div className="mt-5">
         <ApplicationList
+          copy={appsCopy}
+          common={common}
           applications={visibleApplications}
           view={filter.view}
           deleteApplication={deleteApplicationAction.bind(null, {})}

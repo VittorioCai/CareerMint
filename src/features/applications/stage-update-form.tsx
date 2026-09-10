@@ -3,32 +3,42 @@
 import { useRouter } from "next/navigation";
 import { type FormEvent, useState } from "react";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type { ApplicationActionState } from "./actions";
 import {
   APPLICATION_STAGES,
-  APPLICATION_STAGE_LABELS,
   type ApplicationStage,
 } from "./schemas";
 
-const errorMessages: Record<string, string> = {
-  "application-stage-unchanged": "当前已经是这个阶段，请选择其他阶段。",
-  "application-not-found": "找不到这份申请，或你没有访问权限。",
-  "invalid-input": "请检查阶段和发生日期。",
-  "invalid-application-input": "发生日期不能晚于今天。",
-  "application-storage-error": "暂时无法更新阶段，请稍后重试。",
-  "application-action-failed": "暂时无法更新阶段，请稍后重试。",
-};
+/** Server error codes to the sentence that explains each one. */
+export function stageUpdateMessage(
+  code: string,
+  copy: Dictionary["applications"]["stageUpdate"],
+): string {
+  const messages: Record<string, string> = {
+    "application-stage-unchanged": copy.errors.unchanged,
+    "application-not-found": copy.errors.notFound,
+    "invalid-input": copy.errors.invalidInput,
+    "invalid-application-input": copy.errors.futureDate,
+    "application-storage-error": copy.errors.storageError,
+    "application-action-failed": copy.errors.storageError,
+  };
+  return messages[code] ?? copy.errors.storageError;
+}
 
 export function StageUpdateForm({
   applicationId,
   currentStage,
   changeStage,
   refresh,
+  copy,
 }: {
   applicationId: string;
   currentStage: ApplicationStage;
   changeStage(formData: FormData): Promise<ApplicationActionState>;
   refresh?: () => void;
+  copy: Dictionary["applications"];
 }) {
   const router = useRouter();
   const availableStages = APPLICATION_STAGES.filter(
@@ -63,13 +73,13 @@ export function StageUpdateForm({
       const result = await changeStage(formData);
       if (!("ok" in result) || !result.ok) {
         const code = "error" in result ? result.error : "application-action-failed";
-        setError(errorMessages[code] ?? errorMessages["application-action-failed"]);
+        setError(stageUpdateMessage(code, copy.stageUpdate));
         return;
       }
       setSuccess(true);
       (refresh ?? router.refresh)();
     } catch {
-      setError(errorMessages["application-action-failed"]);
+      setError(copy.stageUpdate.errors.storageError);
     } finally {
       setBusy(false);
     }
@@ -78,7 +88,7 @@ export function StageUpdateForm({
   return (
     <form onSubmit={submit} className="grid gap-4 sm:grid-cols-2">
       <label className="text-sm font-semibold">
-        新阶段
+        {copy.stageUpdate.newStage}
         <select
           className="form-input mt-2"
           value={selectedStage}
@@ -86,13 +96,13 @@ export function StageUpdateForm({
         >
           {availableStages.map((value) => (
             <option key={value} value={value}>
-              {APPLICATION_STAGE_LABELS[value]}
+              {copy.stages[value]}
             </option>
           ))}
         </select>
       </label>
       <label className="text-sm font-semibold">
-        发生日期
+        {copy.stageUpdate.occurredAt}
         <input
           type="date"
           className="form-input mt-2"
@@ -103,12 +113,12 @@ export function StageUpdateForm({
         />
       </label>
       <label className="text-sm font-semibold sm:col-span-2">
-        备注（可选）
+        {copy.stageUpdate.note}
         <textarea
           className="form-input mt-2 min-h-24 resize-y"
           value={note}
           onChange={(event) => setNote(event.target.value)}
-          placeholder="例如：通过公司官网提交，等待 HR 回复"
+          placeholder={copy.stageUpdate.notePlaceholder}
           maxLength={2_000}
         />
       </label>
@@ -118,7 +128,7 @@ export function StageUpdateForm({
           className="button-primary min-h-11 px-5 text-sm font-semibold"
           disabled={busy}
         >
-          {busy ? "正在更新…" : "确认更新阶段"}
+          {busy ? copy.stageUpdate.updating : copy.stageUpdate.submit}
         </button>
       </div>
       {error ? (
@@ -128,7 +138,7 @@ export function StageUpdateForm({
       ) : null}
       {success ? (
         <p role="status" className="text-sm font-bold text-[var(--mint-strong)] sm:col-span-2">
-          阶段已更新，时间线已记录。
+          {copy.stageUpdate.done}
         </p>
       ) : null}
     </form>

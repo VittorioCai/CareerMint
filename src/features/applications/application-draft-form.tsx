@@ -2,8 +2,10 @@
 
 import { type FormEvent, useEffect, useState } from "react";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type { ApplicationActionState } from "./actions";
-import { WORKPLACE_MODE_LABELS, type WorkplaceMode } from "./schemas";
+import { type WorkplaceMode } from "./schemas";
 
 const STORAGE_KEY = "careermint:new-application-draft:v1";
 
@@ -27,12 +29,19 @@ const emptyDraft: DraftValues = {
   jdText: "",
 };
 
-const actionErrorMessages: Record<string, string> = {
-  "invalid-input": "请检查必填信息、岗位链接和 JD 长度。",
-  "invalid-application-input": "部分岗位信息不符合保存要求，请检查后重试。",
-  "application-storage-error": "暂时无法建立申请工作区，草稿仍保存在当前浏览器。",
-  "application-action-failed": "暂时无法建立申请工作区，草稿仍保存在当前浏览器。",
-};
+/** Server error codes to the sentence that explains each one. */
+export function draftErrorMessage(
+  code: string,
+  copy: Dictionary["applications"]["draft"],
+): string {
+  const messages: Record<string, string> = {
+    "invalid-input": copy.errors.invalidInput,
+    "invalid-application-input": copy.errors.invalidApplication,
+    "application-storage-error": copy.errors.storageError,
+    "application-action-failed": copy.errors.storageError,
+  };
+  return messages[code] ?? copy.errors.storageError;
+}
 
 function recoverDraft(raw: string | null): DraftValues | null {
   if (!raw) return null;
@@ -61,9 +70,11 @@ function recoverDraft(raw: string | null): DraftValues | null {
 export function ApplicationDraftForm({
   createApplication,
   navigate = (href) => window.location.assign(href),
+  copy,
 }: {
   createApplication(formData: FormData): Promise<ApplicationActionState>;
   navigate?: (href: string) => void;
+  copy: Dictionary["applications"];
 }) {
   const [draft, setDraft] = useState<DraftValues>(emptyDraft);
   const [hydrated, setHydrated] = useState(false);
@@ -105,7 +116,7 @@ export function ApplicationDraftForm({
     setBusy(false);
     if (!("ok" in result) || !result.ok) {
       const code = "error" in result ? result.error : "application-action-failed";
-      setError(actionErrorMessages[code] ?? actionErrorMessages["application-action-failed"]);
+      setError(draftErrorMessage(code, copy.draft));
       return;
     }
 
@@ -117,13 +128,13 @@ export function ApplicationDraftForm({
     <form onSubmit={submit} className="min-w-0">
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="block text-sm font-semibold">
-          公司
+          {copy.draft.company}
           <input
             name="companyName"
             className="form-input mt-2"
             value={draft.companyName}
             onChange={(event) => setField("companyName", event.target.value)}
-            placeholder="例如 Acme GmbH"
+            placeholder={copy.draft.companyPlaceholder}
             autoComplete="organization"
             maxLength={160}
             required
@@ -131,20 +142,20 @@ export function ApplicationDraftForm({
         </label>
 
         <label className="block text-sm font-semibold">
-          职位
+          {copy.draft.role}
           <input
             name="roleTitle"
             className="form-input mt-2"
             value={draft.roleTitle}
             onChange={(event) => setField("roleTitle", event.target.value)}
-            placeholder="例如 Product Manager"
+            placeholder={copy.draft.rolePlaceholder}
             maxLength={160}
             required
           />
         </label>
 
         <label className="block text-sm font-semibold">
-          地点
+          {copy.draft.location}
           <input
             name="location"
             className="form-input mt-2"
@@ -156,7 +167,7 @@ export function ApplicationDraftForm({
         </label>
 
         <label className="block text-sm font-semibold">
-          办公方式
+          {copy.draft.workplaceMode}
           <select
             name="workplaceMode"
             className="form-input mt-2"
@@ -165,7 +176,7 @@ export function ApplicationDraftForm({
               setField("workplaceMode", event.target.value as WorkplaceMode)
             }
           >
-            {Object.entries(WORKPLACE_MODE_LABELS).map(([value, label]) => (
+            {Object.entries(copy.workplaceModes).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -174,19 +185,19 @@ export function ApplicationDraftForm({
         </label>
 
         <label className="block text-sm font-semibold">
-          来源
+          {copy.draft.source}
           <input
             name="source"
             className="form-input mt-2"
             value={draft.source}
             onChange={(event) => setField("source", event.target.value)}
-            placeholder="公司官网、LinkedIn、内推…"
+            placeholder={copy.draft.sourcePlaceholder}
             maxLength={120}
           />
         </label>
 
         <label className="block text-sm font-semibold">
-          岗位链接
+          {copy.draft.jobUrl}
           <input
             name="jobUrl"
             type="url"
@@ -202,7 +213,7 @@ export function ApplicationDraftForm({
       <div className="mt-5">
         <span className="flex flex-wrap items-center justify-between gap-2">
           <label htmlFor="application-jd-text" className="text-sm font-semibold">
-            JD 原文
+            {copy.draft.jdText}
           </label>
           <span className="text-xs font-semibold text-[var(--ink-muted)]">
             {draft.jdText.length.toLocaleString()} / 100,000
@@ -214,7 +225,7 @@ export function ApplicationDraftForm({
           className="form-input mt-2 min-h-72 resize-y leading-6"
           value={draft.jdText}
           onChange={(event) => setField("jdText", event.target.value)}
-          placeholder="粘贴完整岗位描述。当前步骤只保存原文，不会自动调用 AI。"
+          placeholder={copy.draft.jdPlaceholder}
           minLength={40}
           maxLength={100_000}
           required
@@ -223,9 +234,9 @@ export function ApplicationDraftForm({
 
       <div className="mt-5 flex flex-col gap-4 border-t border-[var(--line)] pt-5 sm:flex-row sm:items-center sm:justify-between">
         <div aria-live="polite" className="text-xs font-bold text-[var(--ink-muted)]">
-          {hydrated ? "草稿已保存在当前浏览器" : "正在恢复本地草稿…"}
+          {hydrated ? copy.draft.draftSaved : copy.draft.draftRestoring}
           <span className="mt-1 block font-medium">
-            只有点击建立工作区后，内容才会同步到你的私有账户。
+            {copy.draft.syncNote}
           </span>
         </div>
         <button
@@ -233,7 +244,7 @@ export function ApplicationDraftForm({
           className="button-primary min-h-12 shrink-0 px-6 text-sm font-semibold"
           disabled={busy}
         >
-          {busy ? "正在建立…" : "建立申请工作区"}
+          {busy ? copy.draft.creating : copy.draft.create}
         </button>
       </div>
 

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { describe, expect, it, vi } from "vitest";
 
 import { StageUpdateForm } from "./stage-update-form";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -15,6 +16,7 @@ describe("StageUpdateForm", () => {
   it("requires a new text-labelled stage and an occurrence date", () => {
     render(
       <StageUpdateForm
+        copy={zhCN.applications}
         applicationId={applicationId}
         currentStage="preparing"
         changeStage={vi.fn()}
@@ -49,6 +51,7 @@ describe("StageUpdateForm", () => {
     const user = userEvent.setup();
     render(
       <StageUpdateForm
+        copy={zhCN.applications}
         applicationId={applicationId}
         currentStage="preparing"
         changeStage={changeStage}
@@ -78,6 +81,7 @@ describe("StageUpdateForm", () => {
     const user = userEvent.setup();
     render(
       <StageUpdateForm
+        copy={zhCN.applications}
         applicationId={applicationId}
         currentStage="applied"
         changeStage={vi.fn().mockResolvedValue({
@@ -116,6 +120,7 @@ describe("StageUpdateForm", () => {
       setCurrentStageFromAction = setCurrentStage;
       return (
         <StageUpdateForm
+          copy={zhCN.applications}
           applicationId={applicationId}
           currentStage={currentStage}
           changeStage={changeStage}

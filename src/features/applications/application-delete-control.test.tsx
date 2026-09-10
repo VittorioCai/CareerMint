@@ -6,6 +6,7 @@ const router = { refresh: vi.fn() };
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { ApplicationDeleteControl } from "./application-delete-control";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 describe("ApplicationDeleteControl", () => {
   beforeEach(() => vi.clearAllMocks());
@@ -15,6 +16,8 @@ describe("ApplicationDeleteControl", () => {
     const action = vi.fn();
     render(
       <ApplicationDeleteControl
+        copy={zhCN.applications}
+        common={zhCN.common}
         applicationId="11111111-1111-4111-8111-111111111111"
         companyName="Acme"
         roleTitle="Product Lead"
@@ -38,6 +41,8 @@ describe("ApplicationDeleteControl", () => {
     });
     render(
       <ApplicationDeleteControl
+        copy={zhCN.applications}
+        common={zhCN.common}
         applicationId="11111111-1111-4111-8111-111111111111"
         companyName="Acme"
         roleTitle="Product Lead"

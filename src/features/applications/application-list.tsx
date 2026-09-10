@@ -1,12 +1,12 @@
 import Link from "next/link";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import { ApplicationDeleteControl } from "./application-delete-control";
 import type { ApplicationActionState } from "./actions";
 
 import {
   APPLICATION_STAGES,
-  APPLICATION_STAGE_LABELS,
-  WORKPLACE_MODE_LABELS,
   type Application,
   type ApplicationFilter,
   type ApplicationStage,
@@ -48,10 +48,16 @@ export function filterApplications(
   });
 }
 
-function StageChip({ stage }: { stage: ApplicationStage }) {
+function StageChip({
+  stage,
+  copy,
+}: {
+  stage: ApplicationStage;
+  copy: Dictionary["applications"];
+}) {
   return (
     <span className={`status-chip ${stageTone[stage]}`}>
-      {APPLICATION_STAGE_LABELS[stage]}
+      {copy.stages[stage]}
     </span>
   );
 }
@@ -78,9 +84,13 @@ function NoValue() {
 function ApplicationCard({
   application,
   deleteApplication,
+  copy,
+  common,
 }: {
   application: Application;
   deleteApplication: DeleteApplication;
+  copy: Dictionary["applications"];
+  common: Dictionary["common"];
 }) {
   return (
     <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)] transition-transform hover:-translate-y-0.5 hover:border-[var(--ink-soft)]">
@@ -94,7 +104,7 @@ function ApplicationCard({
         <h3 className="mt-1 break-words text-sm font-semibold leading-5">
           {application.roleTitle}
         </h3>
-        {/* Neither of these is guaranteed, and "未说明 · 未填写" is a line
+        {/* Neither of these is guaranteed, and a line reading "Not specified · Not filled in"
             that costs a row and says nothing. If there is no place and no
             arrangement, the card simply does not carry that line. */}
         {application.location || application.workplaceMode !== "unspecified" ? (
@@ -103,17 +113,19 @@ function ApplicationCard({
             {application.workplaceMode !== "unspecified" ? (
               <span>
                 {application.location ? "· " : null}
-                {WORKPLACE_MODE_LABELS[application.workplaceMode]}
+                {copy.workplaceModes[application.workplaceMode]}
               </span>
             ) : null}
           </div>
         ) : null}
         <p className="mt-3 border-t border-[var(--line)] pt-2 text-xs font-semibold text-[var(--ink-muted)]">
-          更新于 {formatDate(application.updatedAt)}
+          {copy.updatedOn.replace("{date}", formatDate(application.updatedAt))}
         </p>
       </Link>
       <div className="px-4 pb-3">
         <ApplicationDeleteControl
+          copy={copy}
+          common={common}
           compact
           applicationId={application.id}
           companyName={application.companyName}
@@ -125,19 +137,23 @@ function ApplicationCard({
   );
 }
 
-function EmptyApplications() {
+function EmptyApplications({
+  copy,
+}: {
+  copy: Dictionary["applications"];
+}) {
   return (
     <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
-      <span className="status-chip bg-[var(--paper)]">从一个真实岗位开始</span>
-      <h2 className="heading-font mt-4 text-2xl font-bold">还没有投递记录</h2>
+      <span className="status-chip bg-[var(--paper)]">{copy.emptyChip}</span>
+      <h2 className="heading-font mt-4 text-2xl font-bold">{copy.emptyTitle}</h2>
       <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
-        粘贴一份正在考虑的 JD，系统会先为它建立独立工作区。没有示例数据，也不会替你自动投递。
+        {copy.emptyBody}
       </p>
       <Link
         href="/applications/new"
         className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold"
       >
-        新建第一份申请
+        {copy.createFirst}
       </Link>
     </article>
   );
@@ -147,12 +163,16 @@ export function ApplicationList({
   applications,
   view,
   deleteApplication,
+  copy,
+  common,
 }: {
   applications: Application[];
   view: "board" | "table";
   deleteApplication: DeleteApplication;
+  copy: Dictionary["applications"];
+  common: Dictionary["common"];
 }) {
-  if (applications.length === 0) return <EmptyApplications />;
+  if (applications.length === 0) return <EmptyApplications copy={copy} />;
 
   // Neither wide view survives a phone: the table is 820px of six columns and
   // the board is 1780px of seven, so 390px of screen shows two and hides the
@@ -167,6 +187,8 @@ export function ApplicationList({
       {applications.map((application) => (
         <ApplicationCard
           key={application.id}
+          copy={copy}
+          common={common}
           application={application}
           deleteApplication={deleteApplication}
         />
@@ -186,12 +208,12 @@ export function ApplicationList({
           <thead className="bg-[var(--canvas)] text-xs font-semibold text-[var(--ink-muted)]">
             <tr>
               {[
-                "公司与职位",
-                "地点",
-                "阶段",
-                "来源",
-                "最后更新",
-                "操作",
+                copy.columns.role,
+                copy.columns.location,
+                copy.columns.stage,
+                copy.columns.source,
+                copy.columns.updated,
+                copy.columns.actions,
               ].map((heading) => (
                 <th key={heading} scope="col" className="border-b border-[var(--line)] px-4 py-3">
                   {heading}
@@ -211,7 +233,7 @@ export function ApplicationList({
                   {application.location ?? <NoValue />}
                 </td>
                 <td className="px-4 py-4">
-                  <StageChip stage={application.stage} />
+                  <StageChip stage={application.stage} copy={copy} />
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {application.source ?? <NoValue />}
@@ -221,6 +243,8 @@ export function ApplicationList({
                 </td>
                 <td className="min-w-56 px-4 py-4 align-top">
                   <ApplicationDeleteControl
+                    copy={copy}
+                    common={common}
                     compact
                     applicationId={application.id}
                     companyName={application.companyName}
@@ -254,7 +278,7 @@ export function ApplicationList({
             return (
               <section key={stage} className="min-w-0 max-md:hidden">
                 <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
-                  <h2 className="text-sm font-semibold">{APPLICATION_STAGE_LABELS[stage]}</h2>
+                  <h2 className="text-sm font-semibold">{copy.stages[stage]}</h2>
                   <span className="text-xs font-semibold tabular-nums text-[var(--ink-muted)]">0</span>
                 </div>
               </section>
@@ -266,7 +290,7 @@ export function ApplicationList({
               className="min-w-0"
             >
               <div className="flex items-center justify-between gap-2 border-b border-[var(--line)] pb-2">
-                <h2 className="text-sm font-semibold">{APPLICATION_STAGE_LABELS[stage]}</h2>
+                <h2 className="text-sm font-semibold">{copy.stages[stage]}</h2>
                 <span className="text-xs font-semibold tabular-nums text-[var(--ink-muted)]">
                   {grouped.length}
                 </span>
@@ -275,6 +299,8 @@ export function ApplicationList({
                 {grouped.map((application) => (
                   <ApplicationCard
                     key={application.id}
+                    copy={copy}
+                    common={common}
                     application={application}
                     deleteApplication={deleteApplication}
                   />

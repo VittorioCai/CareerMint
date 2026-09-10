@@ -44,23 +44,6 @@ export const applicationDeleteSchema = z
 export type ApplicationStage = z.infer<typeof applicationStageSchema>;
 export type WorkplaceMode = z.infer<typeof workplaceModeSchema>;
 
-export const APPLICATION_STAGE_LABELS: Record<ApplicationStage, string> = {
-  preparing: "准备中",
-  applied: "已投递",
-  hr: "HR 沟通",
-  interview: "面试",
-  offer: "Offer",
-  rejected: "已拒绝",
-  withdrawn: "已撤回",
-};
-
-export const WORKPLACE_MODE_LABELS: Record<WorkplaceMode, string> = {
-  unspecified: "未说明",
-  onsite: "现场办公",
-  hybrid: "混合办公",
-  remote: "远程办公",
-};
-
 function optionalTrimmedString(maxLength: number) {
   return z.preprocess(
     (value) => {
