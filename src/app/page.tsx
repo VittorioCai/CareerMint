@@ -1,7 +1,8 @@
-import { getDictionary } from "@/i18n/server";
+import { getDictionary, getLocale } from "@/i18n/server";
 
 import { HomeView } from "./home-view";
 
 export default async function Home() {
-  return <HomeView dictionary={await getDictionary()} />;
+  const [locale, dictionary] = await Promise.all([getLocale(), getDictionary()]);
+  return <HomeView locale={locale} dictionary={dictionary} />;
 }

@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
+import { LanguageSwitch } from "@/i18n/language-switch";
+import type { AppLocale } from "@/i18n/locale";
 
 function ArrowIcon() {
   return (
@@ -23,7 +25,13 @@ function CheckIcon() {
  * shell is: `@/i18n/server` is server-only, and a page that imports it cannot
  * be rendered by a component test.
  */
-export function HomeView({ dictionary }: { dictionary: Dictionary }) {
+export function HomeView({
+  locale,
+  dictionary,
+}: {
+  locale: AppLocale;
+  dictionary: Dictionary;
+}) {
   const { common, landing } = dictionary;
 
   const workflow = [
@@ -48,6 +56,13 @@ export function HomeView({ dictionary }: { dictionary: Dictionary }) {
         </Link>
 
         <div className="flex items-center gap-3">
+          {/* The front door needs it most: this is where a Chinese speaker
+              first meets the English default. */}
+          <LanguageSwitch
+            current={locale}
+            label={common.language}
+            onFailure={dictionary.shell.localeNotSaved}
+          />
           <span className="hidden text-sm font-medium text-[var(--ink-muted)] md:inline">{landing.navNote}</span>
           <Link href="/login" className="button-primary inline-flex min-h-11 items-center gap-2 px-4 text-sm font-semibold sm:px-5">
             {landing.signIn}

@@ -1,7 +1,12 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+
+// The language switch reaches for a Server Function.
+vi.mock("@/i18n/actions", () => ({
+  setInterfaceLocaleAction: vi.fn(),
+}));
 
 import { en } from "@/i18n/dictionaries/en";
 import { zhCN } from "@/i18n/dictionaries/zh-CN";
@@ -10,7 +15,7 @@ import { HomeView } from "./home-view";
 
 describe("public home", () => {
   it("introduces the workspace and links to account access", () => {
-    render(<HomeView dictionary={en} />);
+    render(<HomeView locale="en" dictionary={en} />);
 
     expect(
       screen.getByRole("heading", {
@@ -26,7 +31,7 @@ describe("public home", () => {
   });
 
   it("greets a Chinese reader in Chinese", () => {
-    render(<HomeView dictionary={zhCN} />);
+    render(<HomeView locale="zh-CN" dictionary={zhCN} />);
 
     expect(
       screen.getByRole("link", { name: zhCN.landing.signIn }),
