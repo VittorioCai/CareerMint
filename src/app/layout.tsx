@@ -19,17 +19,25 @@ const inter = Inter({
 });
 
 /**
- * Not preloaded. Every route's first paint in this app is Chinese, which no
- * Latin face covers — Nunito Sans is only reached by the Latin runs inside
- * headings ("Product Analyst", "Job desk"). Preloading it puts 30 KB on the
- * critical path of a login screen whose only Latin string is a placeholder
- * email. It still loads when something needs it, and the metric-matched
- * fallback means arriving late costs no layout shift.
+ * Preloaded, which it was not while this product had one language.
+ *
+ * The old reasoning was sound and is now wrong in every part: the first paint
+ * was Chinese, which no Latin face covers, so Nunito Sans was reached only by
+ * the Latin runs inside a Chinese heading — 30 KB on the critical path to set
+ * "Product Analyst". English is the default now, so this face carries the
+ * whole of every page's largest text.
+ *
+ * And "arriving late costs no layout shift" held only for the vertical
+ * metrics the fallback matches. It says nothing about advance widths, so a
+ * heading sitting near a wrap boundary changes line count when the real font
+ * lands: the English sign-in title measured 100px in the fallback and 150px
+ * in Nunito Sans, moving the form 50px down for a CLS of 0.021 against a
+ * budget of 0.001. Reserving space for the taller case would have been
+ * guessing at a number that changes with every string and every width.
  */
 const nunitoSans = Nunito_Sans({
   subsets: ["latin"],
   display: "swap",
-  preload: false,
   variable: "--font-nunito-sans",
 });
 
