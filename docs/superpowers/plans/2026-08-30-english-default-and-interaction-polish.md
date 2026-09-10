@@ -10,6 +10,73 @@
 
 ---
 
+## Outcome (2026-09-10)
+
+Shipped. What this plan got right, what it got wrong, and the two things it
+asked for that were deliberately not done.
+
+**Tasks 1–8 landed**, in twelve commits from `819f580` to `021d890`. The
+checkboxes below were never ticked as the work went; this section is the
+record instead.
+
+**Task 8's deepest premise was wrong in a useful way.** It listed six
+`_zh` database columns as the blocker. Five tables hold them
+(`application_requirements`, `jd_structure_runs`, `jd_structure_requirements`,
+`jd_structure_criteria`, `jd_gap_v3_criterion_assessments`) and since
+`b93d240` deleted the JD-analysis and resume-generation pipelines, nothing
+writes any of them; the only reader is the account data export. Renaming dead
+columns that exist to export historical rows buys nothing and costs a
+migration plus an RPC. That layer was left alone on purpose.
+
+The layer that did matter was the one the plan treated as mechanical: the
+`Zh` suffix on the TypeScript contract. `isPasteReadyRewrite` read "any
+Latin-script sentence" as "not in the output language" — correct while every
+direction was Chinese, and ruinous the moment the model answers in English,
+because then every legitimate direction is a Latin-script sentence and the
+whole paid run is discarded. Thirteen fields renamed, with
+`storedResumeJDDifferenceOutputSchema` renaming legacy keys on read so
+existing runs keep opening.
+
+**Task 6 is one column, not a scheme.** `output_locale` on
+`resume_jd_difference_runs`, defaulting to `zh-CN` because that is what every
+existing row is. The reader's language does not need storing anywhere else:
+it reaches the cache key through `prompt_version`, so a run in one language
+can never satisfy a request in the other. That is also why v6.0 invalidates
+every existing analysis — a second output language cannot be added without
+re-asking the model.
+
+**Task 8 step 3 was met late, and the gap it left was a real defect.** The
+plan said "a different interface locale does not hide the result". For a
+while it did exactly that: a language switch produced a new input hash, the
+page showed only the run matching it, and the previous analysis vanished
+behind a link the control rendered solely while busy or failed — which a
+language switch is neither. It also said "the material changed", which was
+false. Fixed in `b54e062`'s successor: the finished analysis stays on screen
+with its own language named on it, and the reason for staleness is stated
+once, next to the result.
+
+**Task 9 was already done by another plan**, except its step 4. The motion
+tokens and reduced-motion handling arrived with the Apple-bar plan's phase 5
+under different names (`--dur-*`, not `--motion-*`) and with a written
+rationale; see `globals.css`. Step 4's navigation feedback was missing and is
+now `LinkPending`.
+
+**Task 10 steps 6–8 are the user's to run.** Preview deployment, preview
+review and production release need decisions and credentials this work does
+not have. Everything before them — the nine end-to-end scenarios, the local
+gate, the database suite — is in the repository.
+
+**Two things this plan asked for that were not done, with reasons:**
+
+- **A language chip on the interview and profile panels.** Interview
+  questions are generated in English on purpose, in both interface
+  languages: they are the questions an English- or German-speaking
+  interviewer will ask, and translating them would be preparing for the
+  wrong interview. There is no output language to label.
+- **Renaming the `_zh` database columns.** See above.
+
+---
+
 ## Execution order and boundaries
 
 Tasks 1–5 form the interface-localization subsystem. Tasks 6–8 form the locale-aware AI subsystem and depend on the `AppLocale` contract from Task 1. Tasks 9–10 form the interaction-polish and release subsystem. Do not deploy a partial phase to production.
