@@ -36,12 +36,17 @@ export type FactFormField =
 export type FactFormValues = Partial<Record<FactFormField, string>>;
 export type FactType = CareerFactInput["factType"];
 
+/**
+ * A required field was left empty.
+ *
+ * It carries the field and nothing else. This module maps form values to a
+ * fact; it has no business knowing how to phrase a sentence, or in which
+ * language — the caller has the dictionary and composes the message from the
+ * same field labels the form itself is rendered with.
+ */
 export class FactFormMappingError extends Error {
-  constructor(
-    readonly field: FactFormField,
-    readonly label: string,
-  ) {
-    super(`请填写${label}`);
+  constructor(readonly field: FactFormField) {
+    super(`fact-form-field-required:${field}`);
     this.name = "FactFormMappingError";
   }
 }
@@ -50,13 +55,9 @@ function text(values: FactFormValues, field: FactFormField) {
   return values[field]?.trim() ?? "";
 }
 
-function required(
-  values: FactFormValues,
-  field: FactFormField,
-  label: string,
-) {
+function required(values: FactFormValues, field: FactFormField) {
   const value = text(values, field);
-  if (!value) throw new FactFormMappingError(field, label);
+  if (!value) throw new FactFormMappingError(field);
   return value;
 }
 
@@ -78,6 +79,30 @@ function normalized(
   return { factType, data };
 }
 
+/**
+ * Section markers written into `career_facts.data.description`.
+ *
+ * These are a storage format, not interface copy. A language fact is stored as
+ * "熟练程度：C1\n证书或证明：TestDaF", and `section()` below parses it back out
+ * by matching these exact strings. Translating them would make every fact
+ * written before the change unreadable — the parser would find no marker and
+ * return empty fields, silently emptying people's profiles.
+ *
+ * They stay in Chinese because that is what is already in the database.
+ * Replacing them with a language-independent format is a data migration, not a
+ * translation, and is out of scope here.
+ */
+const STORED_MARKERS = {
+  proficiency: "熟练程度",
+  certificate: "证书或证明",
+  metric: "指标",
+  context: "背景",
+  situation: "情境",
+  task: "任务",
+  action: "行动",
+  result: "结果",
+} as const;
+
 function labeledLine(label: string, value: string) {
   return `${label}：${value}`;
 }
@@ -89,68 +114,68 @@ export function mapFactFormValues(
   switch (factType) {
     case "summary":
       return normalized(factType, {
-        title: required(values, "headline", "标题"),
+        title: required(values, "headline"),
         organization: null,
         startDate: null,
         endDate: null,
-        description: required(values, "summary", "个人总结"),
+        description: required(values, "summary"),
         skills: [],
       });
     case "work_experience":
       return normalized(factType, {
-        title: required(values, "role", "职位"),
-        organization: required(values, "company", "公司"),
+        title: required(values, "role"),
+        organization: required(values, "company"),
         startDate: optional(values, "startDate"),
         endDate: optional(values, "endDate"),
-        description: required(values, "responsibilities", "职责与成果"),
+        description: required(values, "responsibilities"),
         skills: skillList(values),
       });
     case "education":
       return normalized(factType, {
-        title: required(values, "degree", "学位或专业"),
-        organization: required(values, "school", "学校"),
+        title: required(values, "degree"),
+        organization: required(values, "school"),
         startDate: optional(values, "startDate"),
         endDate: optional(values, "endDate"),
-        description: required(values, "educationDetails", "方向或成果"),
+        description: required(values, "educationDetails"),
         skills: [],
       });
     case "project":
       return normalized(factType, {
-        title: required(values, "projectName", "项目名称"),
+        title: required(values, "projectName"),
         organization: optional(values, "projectOrganization"),
         startDate: optional(values, "startDate"),
         endDate: optional(values, "endDate"),
-        description: required(values, "contribution", "贡献与结果"),
+        description: required(values, "contribution"),
         skills: skillList(values),
       });
     case "skill": {
-      const skillName = required(values, "skillName", "技能名称");
+      const skillName = required(values, "skillName");
       return normalized(factType, {
         title: skillName,
         organization: null,
         startDate: null,
         endDate: null,
-        description: required(values, "proficiencyContext", "熟练程度或使用场景"),
+        description: required(values, "proficiencyContext"),
         skills: [skillName],
       });
     }
     case "certification":
       return normalized(factType, {
-        title: required(values, "certificateName", "证书名称"),
-        organization: required(values, "issuer", "颁发机构"),
+        title: required(values, "certificateName"),
+        organization: required(values, "issuer"),
         startDate: optional(values, "obtainedDate"),
         endDate: null,
-        description: required(values, "credentialDetails", "证书详情"),
+        description: required(values, "credentialDetails"),
         skills: [],
       });
     case "language": {
       const lines = [
-        labeledLine("熟练程度", required(values, "proficiency", "熟练程度")),
+        labeledLine(STORED_MARKERS.proficiency, required(values, "proficiency")),
       ];
       const evidence = text(values, "languageEvidence");
-      if (evidence) lines.push(labeledLine("证书或证明", evidence));
+      if (evidence) lines.push(labeledLine(STORED_MARKERS.certificate, evidence));
       return normalized(factType, {
-        title: required(values, "language", "语言"),
+        title: required(values, "language"),
         organization: null,
         startDate: null,
         endDate: null,
@@ -160,27 +185,27 @@ export function mapFactFormValues(
     }
     case "achievement":
       return normalized(factType, {
-        title: required(values, "outcome", "成果"),
+        title: required(values, "outcome"),
         organization: null,
         startDate: null,
         endDate: null,
         description: [
-          labeledLine("指标", required(values, "metric", "指标")),
-          labeledLine("背景", required(values, "achievementContext", "背景")),
+          labeledLine(STORED_MARKERS.metric, required(values, "metric")),
+          labeledLine(STORED_MARKERS.context, required(values, "achievementContext")),
         ].join("\n"),
         skills: [],
       });
     case "story":
       return normalized(factType, {
-        title: required(values, "storyTitle", "故事标题"),
+        title: required(values, "storyTitle"),
         organization: null,
         startDate: null,
         endDate: null,
         description: [
-          labeledLine("情境", required(values, "situation", "情境")),
-          labeledLine("任务", required(values, "task", "任务")),
-          labeledLine("行动", required(values, "action", "行动")),
-          labeledLine("结果", required(values, "result", "结果")),
+          labeledLine(STORED_MARKERS.situation, required(values, "situation")),
+          labeledLine(STORED_MARKERS.task, required(values, "task")),
+          labeledLine(STORED_MARKERS.action, required(values, "action")),
+          labeledLine(STORED_MARKERS.result, required(values, "result")),
         ].join("\n"),
         skills: [],
       });
@@ -213,25 +238,25 @@ export function factDataToFormValues(
     case "certification":
       return { certificateName: data.title, issuer: data.organization ?? "", obtainedDate: data.startDate ?? "", credentialDetails: data.description };
     case "language": {
-      const proficiency = section(data.description, "熟练程度", ["证书或证明"]);
+      const proficiency = section(data.description, STORED_MARKERS.proficiency, [STORED_MARKERS.certificate]);
       return {
         language: data.title,
         proficiency: proficiency || data.description,
-        languageEvidence: section(data.description, "证书或证明", []),
+        languageEvidence: section(data.description, STORED_MARKERS.certificate, []),
       };
     }
     case "achievement": {
-      const metric = section(data.description, "指标", ["背景"]);
-      return { outcome: data.title, metric: metric || data.description, achievementContext: section(data.description, "背景", []) };
+      const metric = section(data.description, STORED_MARKERS.metric, [STORED_MARKERS.context]);
+      return { outcome: data.title, metric: metric || data.description, achievementContext: section(data.description, STORED_MARKERS.context, []) };
     }
     case "story": {
-      const situation = section(data.description, "情境", ["任务", "行动", "结果"]);
+      const situation = section(data.description, STORED_MARKERS.situation, [STORED_MARKERS.task, STORED_MARKERS.action, STORED_MARKERS.result]);
       return {
         storyTitle: data.title,
         situation: situation || data.description,
-        task: section(data.description, "任务", ["行动", "结果"]),
-        action: section(data.description, "行动", ["结果"]),
-        result: section(data.description, "结果", []),
+        task: section(data.description, STORED_MARKERS.task, [STORED_MARKERS.action, STORED_MARKERS.result]),
+        action: section(data.description, STORED_MARKERS.action, [STORED_MARKERS.result]),
+        result: section(data.description, STORED_MARKERS.result, []),
       };
     }
   }

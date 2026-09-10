@@ -9,6 +9,8 @@ import {
   type FactFormValues,
   type FactType,
 } from "./fact-form-mapping";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import { FactFields, pruneFactFormValues } from "./fact-fields";
 import type { CareerFactInput } from "./schemas";
 
@@ -16,9 +18,11 @@ type ActionResult = Promise<{ ok: true } | { ok: false; error: string }>;
 
 export function ManualFactForm({
   createFact,
+  copy,
   trigger = "button",
 }: {
   createFact(input: CareerFactInput): ActionResult;
+  copy: Dictionary["profile"];
   /**
    * On an empty profile the card below already offers the primary path, so the
    * manual route becomes a text link inside it rather than a second cream
@@ -43,10 +47,15 @@ export function ManualFactForm({
       input = mapFactFormValues(factType, values);
     } catch (mappingError) {
       if (mappingError instanceof FactFormMappingError) {
-        setFieldErrors({ [mappingError.field]: mappingError.message });
+        setFieldErrors({
+          [mappingError.field]: copy.fieldRequired.replace(
+            "{field}",
+            copy.fields[mappingError.field],
+          ),
+        });
         return;
       }
-      setError("内容没有保存，请检查必填项和日期格式。");
+      setError(copy.invalidInput);
       return;
     }
     setBusy(true);
@@ -60,8 +69,8 @@ export function ManualFactForm({
       setErrorCode(result.error);
       setError(
         result.error === "invalid-input"
-          ? "内容没有保存，请检查必填项和日期格式。"
-          : "暂时无法保存这条事实，请稍后重试。",
+          ? copy.invalidInput
+          : copy.saveFailed,
       );
     }
   }
@@ -73,7 +82,7 @@ export function ManualFactForm({
         className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 transition-colors duration-[var(--dur-fast)] hover:decoration-[var(--ink)]"
         onClick={() => setOpen(true)}
       >
-        手动写下第一条
+        {copy.writeFirst}
       </button>
     ) : (
       <button
@@ -81,7 +90,7 @@ export function ManualFactForm({
         className="press button-primary inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-bold"
         onClick={() => setOpen(true)}
       >
-        ＋ 手动添加事实
+        {copy.addFact}
       </button>
     );
   }
@@ -89,11 +98,11 @@ export function ManualFactForm({
   return (
     <form className="soft-surface mt-4 grid gap-4 p-5 sm:grid-cols-2" noValidate onSubmit={submit}>
       <div className="sm:col-span-2">
-        <h2 className="heading-font text-xl font-semibold">新增职业事实</h2>
-        <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">手动事实也从“待确认”开始。</p>
+        <h2 className="heading-font text-xl font-semibold">{copy.addTitle}</h2>
+        <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">{copy.addNote}</p>
       </div>
       <label className="block text-sm font-semibold">
-        类型
+        {copy.factType}
         <select
           name="factType"
           className="form-input mt-2"
@@ -106,21 +115,18 @@ export function ManualFactForm({
             setError(null);
           }}
         >
-          <option value="summary">个人总结</option>
-          <option value="work_experience">工作经历</option>
-          <option value="education">教育</option>
-          <option value="project">项目</option>
-          <option value="skill">技能</option>
-          <option value="certification">证书</option>
-          <option value="language">语言</option>
-          <option value="achievement">量化成果</option>
-          <option value="story">STAR 故事</option>
+          {(Object.keys(copy.types) as FactType[]).map((type) => (
+            <option key={type} value={type}>
+              {copy.types[type]}
+            </option>
+          ))}
         </select>
       </label>
       <FactFields
         factType={factType}
         values={values}
         errors={fieldErrors}
+        labels={copy.fields}
         idPrefix="new-fact"
         onChange={(field, value) => {
           setValues((current) => ({ ...current, [field]: value }));
@@ -129,7 +135,7 @@ export function ManualFactForm({
       />
       {error ? <p role="alert" data-error-code={errorCode ?? undefined} className="text-sm font-bold text-[var(--error)] sm:col-span-2">{error}</p> : null}
       <div className="flex flex-wrap gap-2 sm:col-span-2">
-        <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>{busy ? "保存中…" : "保存为待确认"}</button>
+        <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>{busy ? copy.saving : copy.saveAsPending}</button>
         <button
           type="button"
           className="button-secondary min-h-10 px-4 text-sm font-semibold"

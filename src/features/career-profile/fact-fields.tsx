@@ -1,74 +1,81 @@
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type {
   FactFormField,
   FactFormValues,
   FactType,
 } from "./fact-form-mapping";
 
+type FieldLabels = Dictionary["profile"]["fields"];
+
+/**
+ * A field definition names its label rather than spelling it, so the same
+ * table serves both languages. `placeholder` is a key too — "YYYY or YYYY-MM"
+ * differs between them, and "leave empty for present" is a sentence.
+ */
 type FieldDefinition = {
   name: FactFormField;
-  label: string;
+  label: keyof FieldLabels;
   kind?: "text" | "textarea";
-  placeholder?: string;
+  placeholder?: keyof FieldLabels;
   required?: boolean;
   wide?: boolean;
 };
 
-const datePlaceholder = "YYYY 或 YYYY-MM";
-
 export const FACT_FIELDS: Record<FactType, FieldDefinition[]> = {
   summary: [
-    { name: "headline", label: "标题", required: true },
-    { name: "summary", label: "个人总结", kind: "textarea", required: true, wide: true },
+    { name: "headline", label: "headline", required: true },
+    { name: "summary", label: "summary", kind: "textarea", required: true, wide: true },
   ],
   work_experience: [
-    { name: "role", label: "职位", required: true },
-    { name: "company", label: "公司", required: true },
-    { name: "startDate", label: "开始时间", placeholder: datePlaceholder },
-    { name: "endDate", label: "结束时间", placeholder: "留空代表至今" },
-    { name: "responsibilities", label: "职责与成果", kind: "textarea", required: true, wide: true },
-    { name: "skills", label: "相关技能（逗号分隔）", wide: true },
+    { name: "role", label: "role", required: true },
+    { name: "company", label: "company", required: true },
+    { name: "startDate", label: "startDate", placeholder: "datePlaceholder" },
+    { name: "endDate", label: "endDate", placeholder: "endDateOpen" },
+    { name: "responsibilities", label: "responsibilities", kind: "textarea", required: true, wide: true },
+    { name: "skills", label: "skills", wide: true },
   ],
   education: [
-    { name: "degree", label: "学位或专业", required: true },
-    { name: "school", label: "学校", required: true },
-    { name: "startDate", label: "开始时间", placeholder: datePlaceholder },
-    { name: "endDate", label: "结束时间", placeholder: datePlaceholder },
-    { name: "educationDetails", label: "方向或成果", kind: "textarea", required: true, wide: true },
+    { name: "degree", label: "degree", required: true },
+    { name: "school", label: "school", required: true },
+    { name: "startDate", label: "startDate", placeholder: "datePlaceholder" },
+    { name: "endDate", label: "endDate", placeholder: "datePlaceholder" },
+    { name: "educationDetails", label: "educationDetails", kind: "textarea", required: true, wide: true },
   ],
   project: [
-    { name: "projectName", label: "项目名称", required: true },
-    { name: "projectOrganization", label: "组织（可选）" },
-    { name: "startDate", label: "开始时间", placeholder: datePlaceholder },
-    { name: "endDate", label: "结束时间", placeholder: datePlaceholder },
-    { name: "contribution", label: "贡献与结果", kind: "textarea", required: true, wide: true },
-    { name: "skills", label: "相关技能（逗号分隔）", wide: true },
+    { name: "projectName", label: "projectName", required: true },
+    { name: "projectOrganization", label: "projectOrganization" },
+    { name: "startDate", label: "startDate", placeholder: "datePlaceholder" },
+    { name: "endDate", label: "endDate", placeholder: "datePlaceholder" },
+    { name: "contribution", label: "contribution", kind: "textarea", required: true, wide: true },
+    { name: "skills", label: "skills", wide: true },
   ],
   skill: [
-    { name: "skillName", label: "技能名称", required: true },
-    { name: "proficiencyContext", label: "熟练程度或使用场景", kind: "textarea", required: true, wide: true },
+    { name: "skillName", label: "skillName", required: true },
+    { name: "proficiencyContext", label: "proficiencyContext", kind: "textarea", required: true, wide: true },
   ],
   certification: [
-    { name: "certificateName", label: "证书名称", required: true },
-    { name: "issuer", label: "颁发机构", required: true },
-    { name: "obtainedDate", label: "获得时间", placeholder: datePlaceholder },
-    { name: "credentialDetails", label: "证书详情", kind: "textarea", required: true, wide: true },
+    { name: "certificateName", label: "certificateName", required: true },
+    { name: "issuer", label: "issuer", required: true },
+    { name: "obtainedDate", label: "obtainedDate", placeholder: "datePlaceholder" },
+    { name: "credentialDetails", label: "credentialDetails", kind: "textarea", required: true, wide: true },
   ],
   language: [
-    { name: "language", label: "语言", required: true },
-    { name: "proficiency", label: "熟练程度", required: true },
-    { name: "languageEvidence", label: "证书或证明（可选）", wide: true },
+    { name: "language", label: "language", required: true },
+    { name: "proficiency", label: "proficiency", required: true },
+    { name: "languageEvidence", label: "languageEvidence", wide: true },
   ],
   achievement: [
-    { name: "outcome", label: "成果", required: true },
-    { name: "metric", label: "指标", required: true },
-    { name: "achievementContext", label: "背景", kind: "textarea", required: true, wide: true },
+    { name: "outcome", label: "outcome", required: true },
+    { name: "metric", label: "metric", required: true },
+    { name: "achievementContext", label: "achievementContext", kind: "textarea", required: true, wide: true },
   ],
   story: [
-    { name: "storyTitle", label: "故事标题", required: true, wide: true },
-    { name: "situation", label: "情境", kind: "textarea", required: true },
-    { name: "task", label: "任务", kind: "textarea", required: true },
-    { name: "action", label: "行动", kind: "textarea", required: true },
-    { name: "result", label: "结果", kind: "textarea", required: true },
+    { name: "storyTitle", label: "storyTitle", required: true, wide: true },
+    { name: "situation", label: "situation", kind: "textarea", required: true },
+    { name: "task", label: "task", kind: "textarea", required: true },
+    { name: "action", label: "action", kind: "textarea", required: true },
+    { name: "result", label: "result", kind: "textarea", required: true },
   ],
 };
 
@@ -87,12 +94,14 @@ export function FactFields({
   values,
   errors = {},
   idPrefix,
+  labels,
   onChange,
 }: {
   factType: FactType;
   values: FactFormValues;
   errors?: Partial<Record<FactFormField, string>>;
   idPrefix: string;
+  labels: FieldLabels;
   onChange(field: FactFormField, value: string): void;
 }) {
   return FACT_FIELDS[factType].map((field) => {
@@ -103,7 +112,7 @@ export function FactFields({
       id,
       name: field.name,
       value: values[field.name] ?? "",
-      placeholder: field.placeholder,
+      placeholder: field.placeholder ? labels[field.placeholder] : undefined,
       required: field.required,
       "aria-invalid": error ? (true as const) : undefined,
       "aria-describedby": error ? errorId : undefined,
@@ -115,7 +124,7 @@ export function FactFields({
     return (
       <div key={field.name} className={field.wide ? "sm:col-span-2" : ""}>
         <label htmlFor={id} className="block text-sm font-semibold">
-          {field.label}
+          {labels[field.label]}
         </label>
         {field.kind === "textarea" ? (
           <textarea {...inputProps} />

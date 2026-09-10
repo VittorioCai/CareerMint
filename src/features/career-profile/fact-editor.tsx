@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { Modal } from "@/components/modal";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import { FactFields } from "./fact-fields";
 import {
@@ -25,19 +26,18 @@ type FactEditorActions = {
   remove(input: { factId: string }): ActionResult;
 };
 
-const statusCopy = {
-  pending: "待确认",
-  confirmed: "已确认",
-  needs_detail: "需要补充",
-} as const;
-
 export function FactEditor({
   fact,
   actions,
+  copy,
+  common,
 }: {
   fact: CareerFact;
   actions: FactEditorActions;
+  copy: Dictionary["profile"];
+  common: Dictionary["common"];
 }) {
+  const statusCopy = copy.status;
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [explicit, setExplicit] = useState(false);
@@ -58,7 +58,7 @@ export function FactEditor({
     const result = await action();
     setBusy(false);
     if (!result.ok) {
-      setError("操作没有保存，请稍后重试。");
+      setError(copy.actionFailed);
       return;
     }
     after?.();
@@ -91,7 +91,7 @@ export function FactEditor({
             className="button-secondary min-h-10 px-3 text-xs font-semibold"
             onClick={() => setEditing((value) => !value)}
           >
-            编辑事实
+            {copy.editFact}
           </button>
           <button
             type="button"
@@ -101,7 +101,7 @@ export function FactEditor({
               void run(() => actions.remove({ factId: fact.id }))
             }
           >
-            删除事实
+            {copy.deleteFact}
           </button>
         </div>
       </div>
@@ -116,8 +116,8 @@ export function FactEditor({
               {data.startDate && data.endDate
                 ? `${data.startDate} — ${data.endDate}`
                 : data.startDate
-                  ? `${data.startDate} 至今`
-                  : `截至 ${data.endDate}`}
+                  ? copy.dateOpenEnded.replace("{start}", data.startDate)
+                  : copy.dateUntil.replace("{end}", data.endDate ?? "")}
             </p>
           ) : null}
           {data.skills.length > 0 ? (
@@ -131,13 +131,13 @@ export function FactEditor({
           ) : null}
           {fact.sourceExcerpt ? (
             <details className="reveal rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
-              <summary className="cursor-pointer text-xs font-semibold">查看原始证据</summary>
+              <summary className="text-action cursor-pointer text-xs font-semibold">{copy.viewEvidence}</summary>
               <p className="mt-2 whitespace-pre-wrap break-words text-xs font-medium leading-5 text-[var(--ink-muted)]">
                 {fact.sourceExcerpt}
               </p>
             </details>
           ) : (
-            <p className="text-xs font-bold text-[var(--ink-muted)]">手动添加 · 无原始文件证据</p>
+            <p className="text-xs font-bold text-[var(--ink-muted)]">{copy.manualNoEvidence}</p>
           )}
         </div>
       ) : (
@@ -152,9 +152,14 @@ export function FactEditor({
               setFieldErrors({});
             } catch (mappingError) {
               if (mappingError instanceof FactFormMappingError) {
-                setFieldErrors({ [mappingError.field]: mappingError.message });
+                setFieldErrors({
+                  [mappingError.field]: copy.fieldRequired.replace(
+                    "{field}",
+                    copy.fields[mappingError.field],
+                  ),
+                });
               } else {
-                setError("内容没有保存，请检查必填项和日期格式。");
+                setError(copy.invalidInput);
               }
               return;
             }
@@ -175,6 +180,7 @@ export function FactEditor({
         >
           <FactFields
             factType={fact.factType}
+            labels={copy.fields}
             values={formValues}
             errors={fieldErrors}
             idPrefix={`fact-${fact.id}`}
@@ -185,7 +191,7 @@ export function FactEditor({
           />
           <div className="flex flex-wrap gap-2 sm:col-span-2">
             <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>
-              {busy ? "保存中…" : "保存修改"}
+              {busy ? copy.saving : copy.saveEdits}
             </button>
             <button
               type="button"
@@ -196,7 +202,7 @@ export function FactEditor({
                 setEditing(false);
               }}
             >
-              取消
+              {common.cancel}
             </button>
           </div>
         </form>
@@ -213,7 +219,7 @@ export function FactEditor({
               setConfirming(true);
             }}
           >
-            确认真实
+            {copy.confirmTrue}
           </button>
           <button
             type="button"
@@ -226,7 +232,7 @@ export function FactEditor({
               )
             }
           >
-            需要补充
+            {copy.needsDetail}
           </button>
         </div>
       ) : null}
@@ -239,13 +245,13 @@ export function FactEditor({
 
       <Modal
         open={confirming}
-        label="确认职业事实"
+        label={copy.confirmTitle}
         onClose={() => {
           if (!busy) setConfirming(false);
         }}
       >
-        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">最后核对</p>
-        <h2 className="heading-font mt-2 text-2xl font-bold">确认职业事实</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">{copy.confirmEyebrow}</p>
+        <h2 className="heading-font mt-2 text-2xl font-bold">{copy.confirmTitle}</h2>
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
           <p className="font-semibold">{data.title}</p>
           <p className="mt-2 whitespace-pre-wrap type-body">{data.description}</p>
@@ -257,11 +263,11 @@ export function FactEditor({
             checked={explicit}
             onChange={(event) => setExplicit(event.target.checked)}
           />
-          <span>我确认这条内容真实、准确，并同意用于后续求职材料</span>
+          <span>{copy.confirmCheckbox}</span>
         </label>
         <div className="mt-6 flex flex-wrap justify-end gap-2">
           <button type="button" className="button-secondary min-h-10 px-4 text-sm font-semibold" onClick={() => setConfirming(false)}>
-            返回检查
+            {copy.backToReview}
           </button>
           <button
             type="button"
@@ -281,7 +287,7 @@ export function FactEditor({
               )
             }
           >
-            确认并保存
+            {copy.confirmAndSave}
           </button>
         </div>
       </Modal>

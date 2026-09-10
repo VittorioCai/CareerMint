@@ -14,6 +14,7 @@ vi.mock("./actions", () => ({
 
 import { FactList } from "./fact-list";
 import type { CareerFact } from "./schemas";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
   return {
@@ -38,7 +39,7 @@ function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
 
 describe("FactList", () => {
   it("only shows the categories that have something in them", () => {
-    render(<FactList facts={[fact(1)]} />);
+    render(<FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(1)]} />);
 
     expect(
       screen.getByRole("heading", { name: "工作经历", level: 2 }),
@@ -55,7 +56,7 @@ describe("FactList", () => {
   });
 
   it("hides the index until there is somewhere to jump to", () => {
-    render(<FactList facts={[fact(1)]} />);
+    render(<FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(1)]} />);
 
     // A table of contents with one entry is not a table of contents; it is a
     // second copy of the heading below it.
@@ -64,8 +65,7 @@ describe("FactList", () => {
 
   it("indexes every category that has facts, and no others", () => {
     render(
-      <FactList
-        facts={[
+      <FactList copy={zhCN.profile} common={zhCN.common} facts={[
           fact(1),
           fact(2, { factType: "education" }),
           fact(3, { factType: "skill" }),
@@ -84,7 +84,7 @@ describe("FactList", () => {
   });
 
   it("keeps the empty state as one path rather than a wall of headings", () => {
-    render(<FactList facts={[]} />);
+    render(<FactList copy={zhCN.profile} common={zhCN.common} facts={[]} />);
 
     expect(screen.getByText("还没有职业事实")).toBeVisible();
     expect(screen.queryAllByRole("heading", { level: 2 })).toHaveLength(0);

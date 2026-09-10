@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 
 import { FactEditor } from "./fact-editor";
 import type { CareerFact } from "./schemas";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 const pendingFact: CareerFact = {
   id: "22222222-2222-4222-8222-222222222222",
@@ -36,7 +37,7 @@ describe("FactEditor", () => {
   it("requires an explicit checkbox in a dialog that repeats the exact fact", async () => {
     const user = userEvent.setup();
     const factActions = actions();
-    render(<FactEditor fact={pendingFact} actions={factActions} />);
+    render(<FactEditor copy={zhCN.profile} common={zhCN.common} fact={pendingFact} actions={factActions} />);
 
     expect(screen.getByRole("button", { name: "确认真实" })).toBeVisible();
     expect(screen.getByRole("button", { name: "需要补充" })).toBeVisible();
@@ -64,8 +65,7 @@ describe("FactEditor", () => {
 
   it("shows confirmed status while retaining edit and delete controls", () => {
     render(
-      <FactEditor
-        fact={{
+      <FactEditor copy={zhCN.profile} common={zhCN.common} fact={{
           ...pendingFact,
           confirmationStatus: "confirmed",
           confirmedAt: "2026-08-14T00:00:00.000Z",
@@ -82,8 +82,7 @@ describe("FactEditor", () => {
   it("uses the same category-specific language fields when editing", async () => {
     const user = userEvent.setup();
     render(
-      <FactEditor
-        fact={{
+      <FactEditor copy={zhCN.profile} common={zhCN.common} fact={{
           ...pendingFact,
           factType: "language",
           data: {

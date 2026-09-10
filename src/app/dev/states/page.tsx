@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ApplicationList } from "@/features/applications/application-list";
 import type { Application } from "@/features/applications/schemas";
 import { FactList } from "@/features/career-profile/fact-list";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 import type { CareerFact } from "@/features/career-profile/schemas";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
 import type { ResumeJDDifferenceRun } from "@/features/resume-jd-difference/repository";
@@ -423,18 +424,18 @@ export default function DevStatesPage() {
         </State>
 
         <State name="职业档案 · 空" note="一条路径，不是两个并列的主按钮">
-          <FactList facts={[]} />
+          <FactList copy={zhCN.profile} common={zhCN.common} facts={[]} />
         </State>
 
         <State name="职业档案 · 一条" note="分类只在有内容之后出现">
-          <FactList facts={[fact(0)]} />
+          <FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(0)]} />
         </State>
 
         <State
           name="职业档案 · 单类五十条"
           note="全在一个分类里：计数、折叠和滚动是否还站得住"
         >
-          <FactList facts={Array.from({ length: 50 }, (_, index) => fact(index))} />
+          <FactList copy={zhCN.profile} common={zhCN.common} facts={Array.from({ length: 50 }, (_, index) => fact(index))} />
         </State>
 
         <State
@@ -442,6 +443,8 @@ export default function DevStatesPage() {
           note="三种确认状态并排，颜色是否还分得开"
         >
           <FactList
+            copy={zhCN.profile}
+            common={zhCN.common}
             facts={[
               fact(0, { confirmationStatus: "confirmed" }),
               fact(1, { confirmationStatus: "pending", confirmedAt: null }),

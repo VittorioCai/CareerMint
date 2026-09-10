@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import { mapFactFormValues } from "./fact-form-mapping";
+import {
+  factDataToFormValues,
+  mapFactFormValues,
+} from "./fact-form-mapping";
 import type { CareerFactInput } from "./schemas";
 
 describe("mapFactFormValues", () => {
@@ -58,5 +61,86 @@ describe("mapFactFormValues", () => {
     expect(() => mapFactFormValues("language", { language: "德语" })).toThrowError(
       expect.objectContaining({ field: "proficiency" }),
     );
+  });
+});
+
+describe("stored section markers", () => {
+  /**
+   * These strings are a storage format, not interface copy.
+   *
+   * A language fact lives in `career_facts.data.description` as
+   * "熟练程度：C1\n证书或证明：TestDaF", and reading it back matches those exact
+   * characters. Translating them — which is the obvious thing to do when
+   * localizing the file they sit in — makes every fact written before the
+   * change parse to empty strings. Nothing throws; profiles just quietly lose
+   * their content.
+   *
+   * So the round trip is pinned to the literal bytes, and to the shape of the
+   * stored value, rather than to whatever the code currently produces.
+   */
+  it("writes a language fact in the format already in the database", () => {
+    const input = mapFactFormValues("language", {
+      language: "German",
+      proficiency: "C1",
+      languageEvidence: "TestDaF",
+    });
+
+    expect(input.data.description).toBe("熟练程度：C1\n证书或证明：TestDaF");
+  });
+
+  it("reads that exact format back, whoever wrote it", () => {
+    // Not round-tripped through mapFactFormValues: this is a row as it exists
+    // today, typed out, so the test fails if the parser stops understanding it.
+    expect(
+      factDataToFormValues("language", {
+        title: "German",
+        organization: null,
+        startDate: null,
+        endDate: null,
+        description: "熟练程度：C1\n证书或证明：TestDaF",
+        skills: [],
+      }),
+    ).toEqual({
+      language: "German",
+      proficiency: "C1",
+      languageEvidence: "TestDaF",
+    });
+  });
+
+  it("reads a STAR story stored under its four markers", () => {
+    expect(
+      factDataToFormValues("story", {
+        title: "Recovered a stalled migration",
+        organization: null,
+        startDate: null,
+        endDate: null,
+        description:
+          "情境：The migration had stalled\n任务：Unblock it\n行动：Rewrote the batching\n结果：Shipped in two weeks",
+        skills: [],
+      }),
+    ).toEqual({
+      storyTitle: "Recovered a stalled migration",
+      situation: "The migration had stalled",
+      task: "Unblock it",
+      action: "Rewrote the batching",
+      result: "Shipped in two weeks",
+    });
+  });
+
+  it("reads a measured outcome stored under its two markers", () => {
+    expect(
+      factDataToFormValues("achievement", {
+        title: "Checkout conversion up 18%",
+        organization: null,
+        startDate: null,
+        endDate: null,
+        description: "指标：+18% conversion\n背景：Q3 funnel work",
+        skills: [],
+      }),
+    ).toEqual({
+      outcome: "Checkout conversion up 18%",
+      metric: "+18% conversion",
+      achievementContext: "Q3 funnel work",
+    });
   });
 });

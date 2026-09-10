@@ -3,12 +3,13 @@ import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 import { ManualFactForm } from "./manual-fact-form";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 describe("ManualFactForm", () => {
   it("shows only language-specific fields and submits a pending-ready normalized fact", async () => {
     const user = userEvent.setup();
     const createFact = vi.fn().mockResolvedValue({ ok: true });
-    render(<ManualFactForm createFact={createFact} />);
+    render(<ManualFactForm copy={zhCN.profile} createFact={createFact} />);
 
     await user.click(screen.getByRole("button", { name: "＋ 手动添加事实" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "类型" }), "language");
@@ -39,7 +40,7 @@ describe("ManualFactForm", () => {
 
   it("shows validation beside the missing category-specific field", async () => {
     const user = userEvent.setup();
-    render(<ManualFactForm createFact={vi.fn()} />);
+    render(<ManualFactForm copy={zhCN.profile} createFact={vi.fn()} />);
     await user.click(screen.getByRole("button", { name: "＋ 手动添加事实" }));
     await user.selectOptions(screen.getByRole("combobox", { name: "类型" }), "language");
     await user.type(screen.getByRole("textbox", { name: "语言" }), "德语");
