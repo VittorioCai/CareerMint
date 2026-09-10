@@ -12,7 +12,11 @@ describe("parseServerEnv", () => {
     ).toThrow("SUPABASE_SECRET_KEY");
   });
 
-  it("defaults the isolated text provider to DeepSeek V4 Flash", () => {
+  it("defaults the isolated text provider to DeepSeek V4.1 Flash", () => {
+    // `deepseek-flash` is that model's own identifier. The old default,
+    // `deepseek-v4-flash`, is a legacy alias the API still accepts and routes
+    // to the same model — so this pins the canonical name rather than a
+    // spelling the provider can retire.
     expect(
       parseServerEnv({
         NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
@@ -21,7 +25,7 @@ describe("parseServerEnv", () => {
       }),
     ).toMatchObject({
       AI_TEXT_PROVIDER: "deepseek",
-      AI_TEXT_MODEL: "deepseek-v4-flash",
+      AI_TEXT_MODEL: "deepseek-flash",
       JD_GAP_MATCH_PROMPT_VARIANT: "p2",
       RESUME_JD_DIFFERENCE_PROMPT_VARIANT: "p1",
     });

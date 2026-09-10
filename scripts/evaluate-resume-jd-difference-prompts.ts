@@ -395,7 +395,7 @@ export async function runResumeJDDifferenceEvaluationCli(
   loadEnvironment();
   const apiKey = env.DEEPSEEK_API_KEY?.trim();
   if (!apiKey) throw new Error("deepseek-api-key-missing");
-  const model = env.AI_TEXT_MODEL?.trim() || "deepseek-v4-flash";
+  const model = env.AI_TEXT_MODEL?.trim() || "deepseek-flash";
   const rawSchedule = env.AI_PRICE_SCHEDULE_JSON;
   if (!rawSchedule) {
     throw new Error("resume-jd-difference-eval-price-schedule-missing");

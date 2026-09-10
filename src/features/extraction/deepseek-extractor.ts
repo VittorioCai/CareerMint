@@ -371,7 +371,7 @@ export function createDeepSeekAIProvider(
 ): AIProvider {
   const apiKey = options.apiKey ?? process.env.DEEPSEEK_API_KEY;
   const model =
-    options.model ?? process.env.AI_TEXT_MODEL ?? "deepseek-v4-flash";
+    options.model ?? process.env.AI_TEXT_MODEL ?? "deepseek-flash";
   const fetchImpl = options.fetchImpl ?? globalThis.fetch;
   const logger = options.logger ?? noOpLogger;
   const configuredResumeJDDifferenceMaxTokens =
