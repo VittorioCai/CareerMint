@@ -32,7 +32,7 @@ vi.mock("@/features/account/repository", () => ({
 vi.mock("@/features/applications/repository", () => ({
   applicationRepository: { get: mocks.getApplication },
 }));
-vi.mock("@/features/jd-analysis/repository", () => ({
+vi.mock("@/features/career-profile/confirmed-facts", () => ({
   jdAnalysisRepository: { listRequirements: mocks.listRequirements },
 }));
 vi.mock("@/features/interview-preparation/repository", () => ({

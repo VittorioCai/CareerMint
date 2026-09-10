@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { ResumeJDDifferenceOutput } from "./schemas";

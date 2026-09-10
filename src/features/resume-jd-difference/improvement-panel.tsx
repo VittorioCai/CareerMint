@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 import type { ResumeJDDifferenceRun } from "./repository";
 import type {

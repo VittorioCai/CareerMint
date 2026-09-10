@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import { normalizeForMatching } from "@/features/extraction/evidence";
 
 import {

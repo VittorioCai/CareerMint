@@ -4,6 +4,10 @@ import type { Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
 import {
+  toConfirmedFactForAnalysis,
+  type ConfirmedFactForAnalysis,
+} from "./confirmed-facts";
+import {
   buildCareerFactUpdate,
   careerFactDataSchema,
   factStatusSchema,
@@ -173,3 +177,20 @@ export const careerFactRepository: CareerFactRepository = {
   setStatus,
   remove,
 };
+
+/**
+ * The confirmed facts the AI features are allowed to reason from.
+ *
+ * A repository read, so it lives here rather than beside the schema it
+ * returns. `toConfirmedFactForAnalysis` drops anything unconfirmed and
+ * anything malformed, so a single bad row narrows the input instead of
+ * failing the whole analysis.
+ */
+export async function listConfirmedFactsForAnalysis(
+  userId: string,
+): Promise<ConfirmedFactForAnalysis[]> {
+  const facts = await list(userId);
+  return facts
+    .map(toConfirmedFactForAnalysis)
+    .filter((fact): fact is ConfirmedFactForAnalysis => fact !== null);
+}

@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 const sha256Pattern = /^[0-9a-f]{64}$/u;
 

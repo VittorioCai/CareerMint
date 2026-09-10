@@ -13,7 +13,7 @@ import {
   interviewQuestionFilterSchema,
   type InterviewQuestionCategory,
 } from "@/features/interview-preparation/schemas";
-import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
+import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 

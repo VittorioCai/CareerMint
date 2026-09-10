@@ -3,7 +3,7 @@ import "server-only";
 import type { AIPriceSchedule } from "@/features/ai/pricing";
 import { estimateAITextCost } from "@/features/ai/pricing";
 import type { AIProvider, AIUsage } from "@/features/extraction/provider";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import { extractResumeText, normalizeResumeText } from "@/features/source-assets/parsers";
 import type { SourceAsset } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";

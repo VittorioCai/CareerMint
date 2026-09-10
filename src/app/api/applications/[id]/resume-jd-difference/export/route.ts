@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { applicationRepository } from "@/features/applications/repository";
-import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
+import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
 import {
   buildResumeJDDifferenceMarkdown,
   markdownCopyFromDictionary,

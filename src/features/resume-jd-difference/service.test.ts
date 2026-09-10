@@ -6,7 +6,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({ createClient: vi.fn() }));
 
 import type { AIPriceSchedule } from "@/features/ai/pricing";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import type { SourceAsset } from "@/features/source-assets/repository";
 
 import { createResumeJDDifferenceService } from "./service";

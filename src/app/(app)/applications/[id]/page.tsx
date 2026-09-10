@@ -39,8 +39,8 @@ import type {
   InterviewQuestionGenerationCandidateRecord,
   InterviewQuestionGenerationRun,
 } from "@/features/interview-preparation/generation-service";
-import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { ResumeJDDifferenceAnalysisControl } from "@/features/resume-jd-difference/analysis-control";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";

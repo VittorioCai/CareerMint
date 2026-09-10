@@ -8,7 +8,7 @@ import type { CareerFact } from "@/features/career-profile/schemas";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
 import type { ResumeJDDifferenceRun } from "@/features/resume-jd-difference/repository";
 import type { ResumeJDDifferenceOutput } from "@/features/resume-jd-difference/schemas";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 /**
  * Every state of every surface, side by side.

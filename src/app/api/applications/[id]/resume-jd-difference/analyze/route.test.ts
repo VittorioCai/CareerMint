@@ -40,7 +40,7 @@ vi.mock("@/features/account/repository", () => ({
 vi.mock("@/features/applications/repository", () => ({
   applicationRepository: { get: mocks.getApplication },
 }));
-vi.mock("@/features/jd-analysis/repository", () => ({
+vi.mock("@/features/career-profile/repository", () => ({
   listConfirmedFactsForAnalysis: mocks.listConfirmedFacts,
 }));
 vi.mock("@/features/source-assets/repository", () => ({

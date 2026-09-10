@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import { type FormEvent, useMemo, useState } from "react";
 
 import type { Application } from "@/features/applications/schemas";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 import type { InterviewActionState } from "./actions";
 import type { Dictionary } from "@/i18n/dictionaries/en";

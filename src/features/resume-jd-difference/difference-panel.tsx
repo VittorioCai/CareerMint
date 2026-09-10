@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { LOCALE_LABEL, type AppLocale } from "@/i18n/locale";
 

@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import { normalizeForMatching } from "@/features/extraction/evidence";
-import { confirmedFactForAnalysisSchema } from "@/features/jd-analysis/schemas";
+import { confirmedFactForAnalysisSchema } from "@/features/career-profile/confirmed-facts";
 
 import { isPasteReadyRewrite } from "./policy";
 import type { DifferencePromptVariant } from "./prompts";

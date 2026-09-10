@@ -1,4 +1,4 @@
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import type {

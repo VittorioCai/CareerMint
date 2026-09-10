@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 import type { Application } from "@/features/applications/schemas";
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import type { SourceAsset } from "@/features/source-assets/repository";
 import type { AppLocale } from "@/i18n/locale";
 

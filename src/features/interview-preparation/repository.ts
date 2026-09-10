@@ -2,7 +2,7 @@ import "server-only";
 
 import type { Database } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
-import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
+import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
 
 import {
   interviewPreparationStatusSchema,

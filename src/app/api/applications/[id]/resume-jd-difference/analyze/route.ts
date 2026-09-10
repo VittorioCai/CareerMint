@@ -4,7 +4,7 @@ import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { applicationRepository } from "@/features/applications/repository";
 import { createDeepSeekAIProvider } from "@/features/extraction/deepseek-extractor";
 import type { AIProvider } from "@/features/extraction/provider";
-import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
+import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
 import { createResumeJDDifferencePostHandler } from "@/features/resume-jd-difference/http";
 import { resumeJDDifferenceRepository } from "@/features/resume-jd-difference/repository";
 import { noEvidenceWording } from "@/features/resume-jd-difference/prompts";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
 import {
   STRICT_EVIDENCE_KINDS,

@@ -10,7 +10,7 @@ vi.mock("server-only", () => ({}));
 vi.mock("@/lib/supabase/server", () => ({
   createClient: mocks.createClient,
 }));
-vi.mock("@/features/jd-analysis/repository", () => ({
+vi.mock("@/features/career-profile/repository", () => ({
   listConfirmedFactsForAnalysis: mocks.listConfirmedFactsForAnalysis,
 }));
 

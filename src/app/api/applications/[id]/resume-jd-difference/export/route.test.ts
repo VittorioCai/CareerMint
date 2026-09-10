@@ -26,7 +26,7 @@ vi.mock("@/features/applications/repository", () => ({
 vi.mock("@/features/resume-jd-difference/repository", () => ({
   resumeJDDifferenceRepository: { getOwned: mocks.getOwnedRun },
 }));
-vi.mock("@/features/jd-analysis/repository", () => ({
+vi.mock("@/features/career-profile/repository", () => ({
   listConfirmedFactsForAnalysis: mocks.listConfirmedFacts,
 }));
 
