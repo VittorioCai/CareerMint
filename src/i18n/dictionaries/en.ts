@@ -754,6 +754,56 @@ export const en = {
       deleteFailed: "The file was not deleted. Try again.",
     },
   },
+  settings: {
+    eyebrow: "Account menu",
+    accountTitle: "Account settings",
+    accountBody:
+      "Your job-search direction, interface preferences and AI text-processing permission. The email address belongs to the sign-in system and cannot be changed here.",
+    privacyTitle: "Data and privacy",
+    privacyBody:
+      "You can export or delete your data at any time. Ordinary logs never record a full resume, job description or model response.",
+    loginEmail: "Sign-in email (verified)",
+    name: "Name",
+    targetRole: "Target role",
+    targetCountries: "Target countries (comma separated)",
+    interfaceLanguage: "Interface language",
+    timezone: "Time zone",
+    aiLegend: "AI data permission",
+    aiLabel: "Allow resume text extracted on this device to be sent to DeepSeek for analysis",
+    aiNote:
+      "Turning this off stops future AI analysis immediately. What you have already confirmed stays until you delete it yourself.",
+    saved: "Account preferences saved",
+    saveFailed: "That did not save. Check the fields and try again.",
+    saving: "Saving…",
+    save: "Save settings",
+    changePassword: "Change your password",
+    dataExportAndDelete: "Export or delete your data",
+    portabilityEyebrow: "Data portability",
+    downloadTitle: "Download everything",
+    downloadBody:
+      "The ZIP holds your account profile, career facts, file metadata and the original resumes you uploaded. It holds no internal storage paths or system keys.",
+    downloadCta: "Download everything",
+    dangerEyebrow: "Irreversible",
+    deleteTitle: "Delete the account permanently",
+    deleteBody:
+      "Every private file goes first, then the sign-in account; the profile, facts and jobs in the database go with it. This cannot be undone.",
+    deleteCta: "Delete my account",
+    confirmLabel: "Confirm deleting the account",
+    confirmTitle: "Confirm permanent deletion",
+    // {word} is the literal string the button waits for. It stays in English
+    // in both languages because it is compared character by character, and
+    // translating it would leave the button unreachable in one of them.
+    confirmBody: "Type {word} to continue. Closing this window does nothing.",
+    confirmField: "Confirmation text",
+    deleting: "Deleting…",
+    confirmDeleteCta: "Delete the account permanently",
+    errors: {
+      storageIncomplete:
+        "Some private files were not deleted, so the account is still there. Try again in a moment.",
+      deleteFailed: "The account was not deleted. Try again in a moment.",
+      networkLost: "The connection dropped. The account was not deleted.",
+    },
+  },
   shell: {
     homeLink: "CareerMint home",
     newApplication: "New application",

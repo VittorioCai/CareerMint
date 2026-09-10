@@ -2,10 +2,12 @@ import { saveAccountPreferencesAction } from "@/features/account/actions";
 import { getOwnedProfile } from "@/features/account/repository";
 import { AccountPreferencesForm } from "@/features/account/preferences-form";
 import type { AccountPreferences } from "@/features/account/schemas";
+import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
 export default async function AccountSettingsPage() {
   const user = await requireUser();
+  const { common, settings } = await getDictionary();
   const profile = await getOwnedProfile(user.id);
   if (!profile) throw new Error("profile-not-found");
   const preferences: AccountPreferences = {
@@ -20,16 +22,17 @@ export default async function AccountSettingsPage() {
 
   return (
     <section className="min-w-0">
-      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">账户菜单</p>
-      <h1 className="heading-font mt-2 type-page-title">账户设置</h1>
+      <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">{settings.eyebrow}</p>
+      <h1 className="heading-font mt-2 type-page-title">{settings.accountTitle}</h1>
       <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-        管理求职方向、界面偏好和 AI 文字处理授权。邮箱由登录系统维护，不能在此直接修改。
+        {settings.accountBody}
       </p>
       <div className="mt-7 max-w-3xl">
         <AccountPreferencesForm
-          email={user.email ?? "已验证账户"}
+          email={user.email ?? common.verifiedAccount}
           initialPreferences={preferences}
           savePreferences={saveAccountPreferencesAction}
+          copy={settings}
         />
       </div>
     </section>

@@ -7,6 +7,7 @@ import { applicationDeleteMessage } from "./applications/application-delete-cont
 import { draftErrorMessage } from "./applications/application-draft-form";
 import { stageUpdateMessage } from "./applications/stage-update-form";
 import { resumeFileDeleteErrorCopy } from "./resume-baseline/resume-file-delete-control";
+import { accountDeleteErrorCopy } from "./privacy/privacy-controls";
 import { errorCopy as differenceErrorCopy } from "./resume-jd-difference/analysis-control";
 import { uploadErrorMessage } from "./source-assets/upload-form";
 
@@ -42,6 +43,12 @@ const transient = new Set([
   "upload-failed",
   "application-storage-error",
   "application-action-failed",
+  // Both account-deletion failures are genuinely "try again": the request
+  // reached the server and something downstream did not finish. Listed here
+  // rather than left to the phrase check, which would have passed them on the
+  // word "deleted" — a word about what failed, not about what to do.
+  "storage-delete-incomplete",
+  "account-delete-failed",
   "AbortError",
   "409",
 ]);
@@ -140,6 +147,10 @@ const tables: [string, Record<string, string>][] = [
     [
       `resume-file-delete (${language})`,
       resumeFileDeleteErrorCopy(dictionary.resume.errors),
+    ],
+    [
+      `account-delete (${language})`,
+      accountDeleteErrorCopy(dictionary.settings.errors),
     ],
     [
       `application-delete (${language})`,
