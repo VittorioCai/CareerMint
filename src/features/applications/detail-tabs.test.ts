@@ -3,6 +3,9 @@ import { resolve } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
+import { en } from "@/i18n/dictionaries/en";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import {
   applicationDetailTabs,
   resolveApplicationDetailTab,
@@ -10,14 +13,24 @@ import {
 
 describe("application detail workflow tabs", () => {
   it("uses the approved soft workflow in the exact order", () => {
+    // Ids, not labels: the id is in the URL and shared links carry it, so it
+    // cannot change with the language.
     expect(applicationDetailTabs).toEqual([
-      { id: "overview", label: "概览" },
-      { id: "resume", label: "简历" },
-      { id: "difference", label: "差异分析" },
-      { id: "improvements", label: "完善建议" },
-      { id: "interview", label: "面试准备" },
-      { id: "timeline", label: "时间线" },
+      "overview",
+      "resume",
+      "difference",
+      "improvements",
+      "interview",
+      "timeline",
     ]);
+
+    // Each one is named in both languages. The type guarantees the key exists;
+    // it cannot guarantee somebody left the string empty.
+    for (const dictionary of [en, zhCN]) {
+      for (const tab of applicationDetailTabs) {
+        expect(dictionary.detail.tabs[tab]).toBeTruthy();
+      }
+    }
   });
 
   it("keeps saved JD links compatible with the difference tab", () => {

@@ -87,10 +87,12 @@ function Overview({
   application,
   appsCopy,
   common,
+  detail,
 }: {
   application: Application;
   appsCopy: Dictionary["applications"];
   common: Dictionary["common"];
+  detail: Dictionary["detail"];
 }) {
   return (
     <div className="space-y-5">
@@ -105,17 +107,17 @@ function Overview({
               from the row not being there. */}
           {(
             [
-              ["当前阶段", appsCopy.stages[application.stage]],
-              ["阶段开始", formatDate(application.stageChangedAt)],
-              ["首次投递", formatDate(application.appliedAt)],
+              [detail.fields.currentStage, appsCopy.stages[application.stage]],
+              [detail.fields.stageSince, formatDate(application.stageChangedAt)],
+              [detail.fields.appliedAt, formatDate(application.appliedAt)],
               [
-                "办公方式",
+                detail.fields.workplaceMode,
                 application.workplaceMode === "unspecified"
                   ? null
                   : appsCopy.workplaceModes[application.workplaceMode],
               ],
-              ["来源", application.source],
-              ["下一步", application.nextAction],
+              [detail.fields.source, application.source],
+              [detail.fields.nextAction, application.nextAction],
             ] satisfies [string, string | null][]
           )
             .filter((entry): entry is [string, string] => Boolean(entry[1]))
@@ -134,10 +136,10 @@ function Overview({
             ))}
         </dl>
         <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em]">更新进度</p>
-        <h2 className="heading-font mt-2 text-xl font-semibold">发生了什么？记下来</h2>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em]">{detail.updateEyebrow}</p>
+        <h2 className="heading-font mt-2 text-xl font-semibold">{detail.updateTitle}</h2>
         <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-          每次更新都会保留发生日期和阶段事件，不会静默覆盖历史。
+          {detail.updateBody}
         </p>
         <div className="mt-4 border-t border-[color:var(--ink-soft)] pt-4">
           <StageUpdateForm
@@ -150,9 +152,9 @@ function Overview({
         </aside>
       </div>
       <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
-        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">删除投递记录</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">{detail.deleteEyebrow}</p>
         <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
-          删除后无法恢复这条投递及其工作区历史，但职业档案和已上传简历会保留。
+          {detail.deleteBody}
         </p>
         <div className="mt-4">
           <ApplicationDeleteControl
@@ -188,7 +190,10 @@ function Timeline({
             <p className="text-sm font-semibold">
               {event.fromStage
                 ? `${appsCopy.stages[event.fromStage]} → ${appsCopy.stages[event.toStage]}`
-                : `建立申请 · ${appsCopy.stages[event.toStage]}`}
+                : appsCopy.createdEvent.replace(
+                    "{stage}",
+                    appsCopy.stages[event.toStage],
+                  )}
             </p>
             {event.note ? (
               <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">{event.note}</p>
@@ -233,6 +238,8 @@ function InterviewPanel({
   generationRun,
   generationCandidates,
   consentRequired,
+  detail,
+  interview,
 }: {
   application: Application;
   questions: InterviewQuestion[];
@@ -240,6 +247,8 @@ function InterviewPanel({
   generationRun: InterviewQuestionGenerationRun | null;
   generationCandidates: InterviewQuestionGenerationCandidateRecord[];
   consentRequired: boolean;
+  detail: Dictionary["detail"];
+  interview: Dictionary["interview"];
 }) {
   const commonCount = questions.filter(
     (question) => question.category === "common",
@@ -248,18 +257,19 @@ function InterviewPanel({
     <div className="space-y-6">
       <article className="soft-surface p-5 sm:flex sm:items-center sm:justify-between sm:gap-5">
         <div>
-          <span className="status-chip bg-[var(--paper)]">可能问题，不是雇主承诺</span>
-          <h2 className="heading-font mt-3 text-2xl font-bold">岗位面试准备</h2>
+          <span className="status-chip bg-[var(--paper)]">{detail.interviewChip}</span>
+          <h2 className="heading-font mt-3 text-2xl font-bold">{detail.interviewTitle}</h2>
           <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-            已自动包含 {commonCount} 道通用题；岗位增量题不会复制通用问题，准备记录会回写全局题库。
+            {detail.interviewBody.replace("{count}", String(commonCount))}
           </p>
         </div>
         <Link href="/interview" className="button-secondary mt-4 inline-flex min-h-11 items-center px-4 text-sm font-semibold sm:mt-0">
-          打开完整题库 →
+          {detail.openLibrary}
         </Link>
       </article>
 
       <InterviewQuestionGenerationControl
+        copy={interview}
         applicationId={application.id}
         initialRun={generationRun}
         initialCandidates={generationCandidates}
@@ -270,6 +280,7 @@ function InterviewPanel({
 
       <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
         <NewInterviewQuestionForm
+          copy={interview}
           applications={[]}
           fixedApplicationId={application.id}
           addQuestion={addInterviewQuestionAction.bind(null, {})}
@@ -278,13 +289,14 @@ function InterviewPanel({
           <div className="flex items-end justify-between gap-4">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
-              <h2 className="heading-font mt-1 text-2xl font-bold">本岗位准备清单</h2>
+              <h2 className="heading-font mt-1 text-2xl font-bold">{detail.checklistTitle}</h2>
             </div>
-            <span className="status-chip bg-[var(--paper)]">{questions.length} 道</span>
+            <span className="status-chip bg-[var(--paper)]">{questions.length} {interview.countSuffix}</span>
           </div>
           <div className="mt-4 space-y-3">
             {questions.map((question) => (
               <QuestionPreparationCard
+                copy={interview}
                 key={question.id}
                 question={question}
                 applicationId={application.id}
@@ -313,6 +325,8 @@ export default async function ApplicationDetailPage({
     common,
     difference,
     improvements,
+    detail,
+    interview,
   } = await getDictionary();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = resolveApplicationDetailTab(first(query.tab));
@@ -425,7 +439,7 @@ export default async function ApplicationDetailPage({
   return (
     <section className="min-w-0">
       <Link href="/applications" className="text-xs font-semibold underline underline-offset-4">
-        ← 返回我的投递
+        {detail.backToApplications}
       </Link>
       <div className="mt-5 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
         <div className="min-w-0">
@@ -444,21 +458,26 @@ export default async function ApplicationDetailPage({
         </div>
       </div>
 
-      <nav className="mt-7 flex w-fit flex-wrap gap-1 rounded-[10px] bg-[var(--surface-muted)] p-1" aria-label="申请详情">
+      <nav className="mt-7 flex w-fit flex-wrap gap-1 rounded-[10px] bg-[var(--surface-muted)] p-1" aria-label={detail.tabsLabel}>
         {applicationDetailTabs.map((tab) => (
           <Link
-            key={tab.id}
-            href={`/applications/${application.id}?tab=${tab.id}`}
-            aria-current={activeTab === tab.id ? "page" : undefined}
-            className={`segment shrink-0 ${activeTab === tab.id ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+            key={tab}
+            href={`/applications/${application.id}?tab=${tab}`}
+            aria-current={activeTab === tab ? "page" : undefined}
+            className={`segment shrink-0 ${activeTab === tab ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
           >
-            {tab.label}
+            {detail.tabs[tab]}
           </Link>
         ))}
       </nav>
 
       <div className="mt-6">
-        {activeTab === "overview" ? <Overview application={application} appsCopy={appsCopy} common={common} /> : null}
+        {activeTab === "overview" ? <Overview
+              application={application}
+              appsCopy={appsCopy}
+              common={common}
+              detail={detail}
+            /> : null}
         {activeTab === "timeline" ? <Timeline events={events} appsCopy={appsCopy} /> : null}
         {activeTab === "resume" ? (
           <div className="space-y-6">
@@ -514,6 +533,8 @@ export default async function ApplicationDetailPage({
         ) : null}
         {activeTab === "interview" ? (
           <InterviewPanel
+            detail={detail}
+            interview={interview}
             application={application}
             questions={interviewQuestions}
             facts={interviewFacts}

@@ -9,6 +9,7 @@ import {
   QuestionPreparationCard,
 } from "./components";
 import type { InterviewQuestion } from "./schemas";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -57,6 +58,7 @@ describe("interview preparation components", () => {
     const user = userEvent.setup();
     render(
       <QuestionPreparationCard
+        copy={zhCN.interview}
         question={question}
         applicationId={applicationId}
         availableFacts={facts}
@@ -86,6 +88,7 @@ describe("interview preparation components", () => {
     const user = userEvent.setup();
     render(
       <QuestionPreparationCard
+        copy={zhCN.interview}
         question={question}
         applicationId={applicationId}
         availableFacts={facts}
@@ -121,6 +124,7 @@ describe("interview preparation components", () => {
     const user = userEvent.setup();
     render(
       <NewInterviewQuestionForm
+        copy={zhCN.interview}
         applications={[]}
         fixedApplicationId={applicationId}
         addQuestion={addQuestion}

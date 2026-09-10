@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+
+import type { Dictionary } from "@/i18n/dictionaries/en";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
@@ -9,7 +11,6 @@ import type {
   InterviewQuestionGenerationCandidateRecord,
   InterviewQuestionGenerationRun,
 } from "./generation-service";
-import { INTERVIEW_CATEGORY_LABELS } from "./schemas";
 
 type BoundAction = (
   formData: FormData,
@@ -19,18 +20,7 @@ type CandidateOverride = Partial<
   Pick<InterviewQuestionGenerationCandidateRecord, "status" | "questionId">
 >;
 
-const failureMessages: Record<string, string> = {
-  "interview-question-generation-unavailable": "AI 暂未配置，岗位资料已保留。",
-  "interview-question-generation-invalid-output": "AI 返回内容未通过安全校验，请重新尝试。",
-  "interview-question-generation-provider-error": "岗位增量题暂未完成，请稍后重试。",
-  "interview-question-generation-request-failed": "连接暂时失败，岗位资料已保留，请重试。",
-};
 
-const candidateStatusLabels = {
-  pending: "待决定",
-  accepted: "已加入题库",
-  rejected: "已跳过",
-} as const;
 
 async function responseBody(response: Response) {
   try {
@@ -43,15 +33,44 @@ async function responseBody(response: Response) {
   }
 }
 
-function safeFailure(code: unknown) {
-  return typeof code === "string"
-    ? failureMessages[code] ?? failureMessages["interview-question-generation-provider-error"]
-    : failureMessages["interview-question-generation-provider-error"];
+/**
+ * Server error codes to the sentence that explains each one.
+ *
+ * The fallback is the caller's, because the two call sites mean different
+ * things by an unrecognised code: a live request that failed is a connection
+ * problem, while a stored run carrying a code this version does not know is
+ * the provider having not finished.
+ */
+export function generationErrorMessage(
+  code: string,
+  copy: Dictionary["interview"],
+  fallback: string,
+): string {
+  const messages: Record<string, string> = {
+    "interview-question-generation-unavailable": copy.errors.unavailable,
+    "interview-question-generation-invalid-output": copy.errors.invalidOutput,
+    "interview-question-generation-provider-error": copy.errors.providerError,
+    "interview-question-generation-request-failed": copy.errors.requestFailed,
+  };
+  return messages[code] ?? fallback;
 }
 
-function costLabel(run: InterviewQuestionGenerationRun | null) {
+function safeFailure(code: unknown, copy: Dictionary["interview"]) {
+  return typeof code === "string"
+    ? generationErrorMessage(code, copy, copy.errors.providerError)
+    : copy.errors.providerError;
+}
+
+function costLabel(
+  run: InterviewQuestionGenerationRun | null,
+  copy: Dictionary["interview"],
+) {
   const cost = run?.result?.estimatedCost;
-  return cost ? `预计成本 ${cost.amount} ${cost.currency}` : null;
+    return cost
+    ? copy.estimatedCost
+        .replace("{amount}", String(cost.amount))
+        .replace("{currency}", cost.currency)
+    : null;
 }
 
 export function InterviewQuestionGenerationControl({
@@ -63,6 +82,7 @@ export function InterviewQuestionGenerationControl({
   request = fetch,
   refresh,
   consentRequired = false,
+  copy,
 }: {
   applicationId: string;
   initialRun: InterviewQuestionGenerationRun | null;
@@ -72,6 +92,7 @@ export function InterviewQuestionGenerationControl({
   request?: typeof fetch;
   refresh?: () => void;
   consentRequired?: boolean;
+  copy: Dictionary["interview"];
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState<"generate" | "accept" | "reject" | null>(null);
@@ -99,26 +120,26 @@ export function InterviewQuestionGenerationControl({
       );
       const body = await responseBody(response);
       if (response.status === 403 && body.error === "ai-processing-consent-required") {
-        setError("先在账户设置中允许 AI 数据处理，再回来生成岗位增量题。");
+        setError(copy.consentFirst);
         return;
       }
       if (!response.ok) throw new Error("interview-question-generation-request-failed");
       if (body.status === "succeeded") {
-        setSuccess(body.reused ? "已复用相同资料的生成结果，请先预览，再决定。" : "生成完成，请先预览，再决定是否加入题库。");
+        setSuccess(body.reused ? copy.reused : copy.generated);
         (refresh ?? router.refresh)();
         return;
       }
       if (body.status === "running" || body.status === "queued") {
-        setSuccess("生成任务正在进行，稍后刷新即可查看候选题。");
+        setSuccess(copy.inProgress);
         return;
       }
       if (body.status === "failed") {
-        setError(safeFailure(body.errorCode));
+        setError(safeFailure(body.errorCode, copy));
         return;
       }
       throw new Error("interview-question-generation-request-failed");
     } catch {
-      setError("连接暂时失败，岗位资料已保留，请重试。");
+      setError(copy.errors.requestFailed);
     } finally {
       setBusy(null);
     }
@@ -144,7 +165,7 @@ export function InterviewQuestionGenerationControl({
     try {
       const result = await acceptCandidates(formData);
       if (!result.ok || !("accepted" in result)) {
-        setError("暂时无法加入题库，请稍后重试。");
+        setError(copy.addFailed);
         return;
       }
       const newCount = result.accepted.filter((item) => item.disposition === "new").length;
@@ -165,10 +186,16 @@ export function InterviewQuestionGenerationControl({
         return next;
       });
       setSelected(new Set());
-      setSuccess(`已处理 ${result.accepted.length} 道：新增 ${newCount}，复用 ${reusedCount}，通用题重复 ${duplicateCount}。`);
+      setSuccess(
+        copy.processed
+          .replace("{total}", String(result.accepted.length))
+          .replace("{added}", String(newCount))
+          .replace("{reused}", String(reusedCount))
+          .replace("{duplicate}", String(duplicateCount)),
+      );
       (refresh ?? router.refresh)();
     } catch {
-      setError("暂时无法加入题库，请稍后重试。");
+      setError(copy.addFailed);
     } finally {
       setBusy(null);
     }
@@ -186,12 +213,12 @@ export function InterviewQuestionGenerationControl({
     try {
       const result = await rejectCandidates(formData);
       if (!result.ok || !("rejectedCount" in result)) {
-        setError("暂时无法跳过候选题，请稍后重试。");
+        setError(copy.rejectFailed);
         return;
       }
       if (result.rejectedCount !== selected.size) {
         setSelected(new Set());
-        setSuccess("候选状态已刷新，请重新确认当前列表。");
+        setSuccess(copy.candidatesRefreshed);
         (refresh ?? router.refresh)();
         return;
       }
@@ -206,10 +233,10 @@ export function InterviewQuestionGenerationControl({
         return next;
       });
       setSelected(new Set());
-      setSuccess(`已跳过 ${result.rejectedCount} 道候选题。`);
+      setSuccess(copy.rejected.replace("{count}", String(result.rejectedCount)));
       (refresh ?? router.refresh)();
     } catch {
-      setError("暂时无法跳过候选题，请稍后重试。");
+      setError(copy.rejectFailed);
     } finally {
       setBusy(null);
     }
@@ -217,21 +244,21 @@ export function InterviewQuestionGenerationControl({
 
   const buttonLabel =
     busy === "generate"
-      ? "正在生成…"
+      ? copy.generating
       : run?.status === "failed"
-        ? "重新生成岗位增量题"
-        : "生成岗位增量题";
-  const cost = costLabel(run);
-  const initialFailure = run?.status === "failed" ? safeFailure(run.errorCode) : null;
+        ? copy.regenerate
+        : copy.generate;
+  const cost = costLabel(run, copy);
+  const initialFailure = run?.status === "failed" ? safeFailure(run.errorCode, copy) : null;
 
   return (
     <section className="soft-surface p-4 sm:p-5">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em]">AI 岗位增量题</p>
-          <h2 className="heading-font mt-2 text-2xl font-bold">先预览，再决定</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.12em]">{copy.generateEyebrow}</p>
+          <h2 className="heading-font mt-2 text-2xl font-bold">{copy.generateTitle}</h2>
           <p className="mt-2 max-w-2xl text-xs font-semibold leading-5 text-[var(--ink)]">
-            仅使用当前 JD 原文和通用题提示。候选不会自动写入题库，最多生成 6 道；每道都只是基于 JD 的准备建议。
+            {copy.generateBody}
           </p>
         </div>
         <button
@@ -246,9 +273,9 @@ export function InterviewQuestionGenerationControl({
 
       {consentRequired ? (
         <p role="alert" className="mt-3 text-sm font-bold text-[var(--ink)]">
-          生成岗位增量题前，需要先允许 AI 数据处理。{" "}
+          {copy.consentNeeded}{" "}
           <Link href="/settings/account" className="underline underline-offset-4">
-            前往账户设置
+            {copy.goToSettings}
           </Link>
         </p>
       ) : null}
@@ -264,7 +291,7 @@ export function InterviewQuestionGenerationControl({
       </div>
 
       {candidates.length ? (
-        <div className="mt-5 space-y-3" aria-label="岗位增量题候选">
+        <div className="mt-5 space-y-3" aria-label={copy.candidatesLabel}>
           {candidates.map((candidate) => {
             const pending = candidate.status === "pending";
             return (
@@ -280,16 +307,16 @@ export function InterviewQuestionGenerationControl({
                   />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="status-chip bg-[var(--sev-minor)]">{INTERVIEW_CATEGORY_LABELS[candidate.category]}</span>
-                      <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">可能会问</span>
-                      <span className="status-chip bg-[var(--paper)]">{candidateStatusLabels[candidate.status]}</span>
+                      <span className="status-chip bg-[var(--sev-minor)]">{copy.categories[candidate.category]}</span>
+                      <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">{copy.mightAsk}</span>
+                      <span className="status-chip bg-[var(--paper)]">{copy.candidateStatuses[candidate.status]}</span>
                     </div>
                     <h3 className="heading-font mt-3 text-lg font-semibold leading-7">{candidate.prompt}</h3>
                     <p className="mt-3 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                      <span className="font-semibold text-[var(--ink)]">JD 依据：</span>“{candidate.sourceExcerpt}”
+                      <span className="font-semibold text-[var(--ink)]">{copy.jdBasis}</span>“{candidate.sourceExcerpt}”
                     </p>
                     <p className="mt-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                      <span className="font-semibold text-[var(--ink)]">为什么相关：</span>{candidate.relevanceReason}
+                      <span className="font-semibold text-[var(--ink)]">{copy.whyRelevant}</span>{candidate.relevanceReason}
                     </p>
                   </div>
                 </div>
@@ -303,7 +330,7 @@ export function InterviewQuestionGenerationControl({
               disabled={selected.size === 0 || busy !== null}
               onClick={() => void acceptSelected()}
             >
-              {busy === "accept" ? "正在加入…" : "加入所选题库"}
+              {busy === "accept" ? copy.accepting : copy.acceptSelected}
             </button>
             <button
               type="button"
@@ -311,13 +338,13 @@ export function InterviewQuestionGenerationControl({
               disabled={selected.size === 0 || busy !== null}
               onClick={() => void rejectSelected()}
             >
-              {busy === "reject" ? "正在跳过…" : "暂不加入"}
+              {busy === "reject" ? copy.rejecting : copy.rejectAll}
             </button>
           </div>
         </div>
       ) : run?.status === "succeeded" && candidates.length === 0 ? (
         <p className="mt-5 rounded-xl border border-[var(--line)] bg-[var(--paper)] p-4 text-sm font-bold text-[var(--ink-muted)]">
-          这次没有留下可预览的岗位增量题。
+          {copy.noCandidates}
         </p>
       ) : null}
     </section>

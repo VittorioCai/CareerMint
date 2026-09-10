@@ -7,10 +7,10 @@ import type { Application } from "@/features/applications/schemas";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 
 import type { InterviewActionState } from "./actions";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import {
-  INTERVIEW_CATEGORY_LABELS,
   INTERVIEW_PREPARATION_STATUSES,
-  INTERVIEW_STATUS_LABELS,
   type InterviewPreparationStatus,
   type InterviewQuestion,
   type InterviewQuestionCategory,
@@ -18,17 +18,27 @@ import {
 
 type BoundAction = (formData: FormData) => Promise<InterviewActionState>;
 
-const errorMessages: Record<string, string> = {
-  "invalid-input": "请检查填写内容和关联岗位。",
-  "invalid-interview-operation": "这项修改不符合题库规则。",
-  "interview-resource-not-found": "找不到这道题，或你没有访问权限。",
-  "interview-storage-error": "暂时无法保存，请稍后重试。",
-  "interview-action-failed": "暂时无法保存，请稍后重试。",
-};
+/** Server error codes to the sentence that explains each one. */
+export function interviewErrorMessage(
+  code: string,
+  copy: Dictionary["interview"],
+): string {
+  const messages: Record<string, string> = {
+    "invalid-input": copy.errors.invalidInput,
+    "invalid-interview-operation": copy.errors.invalidOperation,
+    "interview-resource-not-found": copy.errors.notFound,
+    "interview-storage-error": copy.errors.storageError,
+    "interview-action-failed": copy.errors.storageError,
+  };
+  return messages[code] ?? copy.errors.storageError;
+}
 
-function resultError(result: InterviewActionState) {
+function resultError(
+  result: InterviewActionState,
+  copy: Dictionary["interview"],
+) {
   if ("ok" in result && !result.ok) {
-    return errorMessages[result.error] ?? errorMessages["interview-action-failed"];
+    return interviewErrorMessage(result.error, copy);
   }
   return null;
 }
@@ -38,11 +48,13 @@ export function NewInterviewQuestionForm({
   fixedApplicationId = null,
   addQuestion,
   refresh,
+  copy,
 }: {
   applications: Array<Pick<Application, "id" | "companyName" | "roleTitle">>;
   fixedApplicationId?: string | null;
   addQuestion: BoundAction;
   refresh?: () => void;
+  copy: Dictionary["interview"];
 }) {
   const router = useRouter();
   const [prompt, setPrompt] = useState("");
@@ -68,7 +80,7 @@ export function NewInterviewQuestionForm({
     formData.set("applicationId", fixedApplicationId ?? applicationId);
     try {
       const result = await addQuestion(formData);
-      const message = resultError(result);
+      const message = resultError(result, copy);
       if (message) {
         setError(message);
         return;
@@ -77,7 +89,7 @@ export function NewInterviewQuestionForm({
       setSuccess(true);
       (refresh ?? router.refresh)();
     } catch {
-      setError(errorMessages["interview-action-failed"]);
+      setError(copy.errors.storageError);
     } finally {
       setBusy(false);
     }
@@ -93,17 +105,17 @@ export function NewInterviewQuestionForm({
           <p className="text-xs font-semibold uppercase tracking-[0.12em]">
             Add one question
           </p>
-          <h2 className="heading-font mt-1 text-xl font-semibold">手动加入题库</h2>
+          <h2 className="heading-font mt-1 text-xl font-semibold">{copy.addTitle}</h2>
         </div>
-        <span className="status-chip bg-[var(--paper)]">零 AI 费用</span>
+        <span className="status-chip bg-[var(--paper)]">{copy.noAiCost}</span>
       </div>
       <label className="mt-4 block text-sm font-semibold">
-        核心问题
+        {copy.coreQuestion}
         <textarea
           className="form-input mt-2 min-h-24 resize-y"
           value={prompt}
           onChange={(event) => setPrompt(event.target.value)}
-          placeholder="例如：How would you prioritize this roadmap?"
+          placeholder={copy.coreQuestionPlaceholder}
           minLength={8}
           maxLength={500}
           required
@@ -111,7 +123,7 @@ export function NewInterviewQuestionForm({
       </label>
       <div className="mt-3 grid gap-3 sm:grid-cols-2">
         <label className="text-sm font-semibold">
-          分类
+          {copy.category}
           <select
             className="form-input mt-2"
             value={category}
@@ -119,7 +131,7 @@ export function NewInterviewQuestionForm({
               setCategory(event.target.value as InterviewQuestionCategory)
             }
           >
-            {Object.entries(INTERVIEW_CATEGORY_LABELS).map(([value, label]) => (
+            {Object.entries(copy.categories).map(([value, label]) => (
               <option key={value} value={value}>
                 {label}
               </option>
@@ -130,14 +142,14 @@ export function NewInterviewQuestionForm({
           <input type="hidden" value={fixedApplicationId} readOnly />
         ) : (
           <label className="text-sm font-semibold">
-            关联岗位
+            {copy.linkedJob}
             <select
               className="form-input mt-2"
               value={applicationId}
               onChange={(event) => setApplicationId(event.target.value)}
               required={category === "job_specific"}
             >
-              <option value="">不关联岗位</option>
+              <option value="">{copy.noLinkedJob}</option>
               {applications.map((application) => (
                 <option key={application.id} value={application.id}>
                   {application.roleTitle} · {application.companyName}
@@ -152,7 +164,7 @@ export function NewInterviewQuestionForm({
         className="button-primary mt-4 min-h-11 px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
         disabled={busy}
       >
-        {busy ? "正在加入…" : "加入题库"}
+        {busy ? copy.adding : copy.add}
       </button>
       {error ? (
         <p role="alert" className="mt-3 text-sm font-bold text-[var(--error)]">
@@ -164,18 +176,14 @@ export function NewInterviewQuestionForm({
           role="status"
           className="mt-3 text-sm font-bold text-[var(--mint-strong)]"
         >
-          问题已加入，通用准备记录可继续复用。
+          {copy.added}
         </p>
       ) : null}
     </form>
   );
 }
 
-const sourceLabels = {
-  builtin: "内置通用题",
-  manual: "手动加入",
-  ai: "AI 建议",
-} as const;
+
 
 const statusColors: Record<InterviewPreparationStatus, string> = {
   not_started: "bg-[var(--paper)]",
@@ -191,6 +199,7 @@ export function QuestionPreparationCard({
   updateQuestion,
   addVariant,
   refresh,
+  copy,
 }: {
   question: InterviewQuestion;
   applicationId?: string | null;
@@ -198,6 +207,7 @@ export function QuestionPreparationCard({
   updateQuestion: BoundAction;
   addVariant: BoundAction;
   refresh?: () => void;
+  copy: Dictionary["interview"];
 }) {
   const router = useRouter();
   const applicationLink = question.applicationLinks.find(
@@ -237,15 +247,15 @@ export function QuestionPreparationCard({
     for (const factId of selectedFacts) formData.append("factIds", factId);
     try {
       const result = await updateQuestion(formData);
-      const failure = resultError(result);
+      const failure = resultError(result, copy);
       if (failure) {
         setError(failure);
         return;
       }
-      setMessage("准备记录已保存。");
+      setMessage(copy.preparationSaved);
       (refresh ?? router.refresh)();
     } catch {
-      setError(errorMessages["interview-action-failed"]);
+      setError(copy.errors.storageError);
     } finally {
       setBusy(null);
     }
@@ -263,16 +273,16 @@ export function QuestionPreparationCard({
     formData.set("wording", variant);
     try {
       const result = await addVariant(formData);
-      const failure = resultError(result);
+      const failure = resultError(result, copy);
       if (failure) {
         setError(failure);
         return;
       }
       setVariant("");
-      setMessage("问法变体已保存，核心问题没有重复创建。");
+      setMessage(copy.variantSaved);
       (refresh ?? router.refresh)();
     } catch {
-      setError(errorMessages["interview-action-failed"]);
+      setError(copy.errors.storageError);
     } finally {
       setBusy(null);
     }
@@ -282,18 +292,18 @@ export function QuestionPreparationCard({
     <article className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="status-chip bg-[var(--sev-minor)]">
-          {INTERVIEW_CATEGORY_LABELS[question.category]}
+          {copy.categories[question.category]}
         </span>
         <span className={`status-chip ${statusColors[question.preparationStatus]}`}>
-          {INTERVIEW_STATUS_LABELS[question.preparationStatus]}
+          {copy.statuses[question.preparationStatus]}
         </span>
         {applicationLink?.predicted || question.source === "ai" ? (
           <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">
-            可能会问
+            {copy.mightAsk}
           </span>
         ) : null}
         <span className="type-eyebrow text-[var(--ink-muted)]">
-          {sourceLabels[question.source]}
+          {copy.sources[question.source]}
         </span>
       </div>
       <h3 className="heading-font mt-3 text-xl font-semibold leading-7">
@@ -306,34 +316,34 @@ export function QuestionPreparationCard({
       ) : null}
       {applicationLink?.sourceExcerpt ? (
         <p className="mt-2 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-          <span className="font-semibold text-[var(--ink)]">JD 依据：</span>
+          <span className="font-semibold text-[var(--ink)]">{copy.jdBasis}</span>
           “{applicationLink.sourceExcerpt}”
         </p>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2 text-xs font-semibold text-[var(--ink-muted)]">
-        <span>{question.variants.length} 个问法变体</span>
+        <span>{copy.variantCount.replace("{count}", String(question.variants.length))}</span>
         <span aria-hidden="true">·</span>
-        <span>{question.facts.length} 条已关联事实</span>
+        <span>{copy.factCount.replace("{count}", String(question.facts.length))}</span>
         {question.applicationLinks.length ? (
           <>
             <span aria-hidden="true">·</span>
-            <span>用于 {question.applicationLinks.length} 个岗位</span>
+            <span>{copy.usedInJobs.replace("{count}", String(question.applicationLinks.length))}</span>
           </>
         ) : null}
       </div>
       {question.variants.length ? (
         <ul className="mt-3 space-y-1 rounded-lg bg-[var(--canvas)] px-3 py-2 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
           {question.variants.map((item) => (
-            <li key={item.id}>也可能问：{item.wording}</li>
+            <li key={item.id}>{copy.alsoAsked.replace("{wording}", item.wording)}</li>
           ))}
         </ul>
       ) : null}
 
       <details className="reveal mt-4 rounded-xl bg-[var(--canvas)] p-3">
-        <summary className="text-action cursor-pointer text-sm font-semibold">准备回答</summary>
+        <summary className="text-action cursor-pointer text-sm font-semibold">{copy.prepareAnswer}</summary>
         <form onSubmit={savePreparation} className="mt-4 space-y-4">
           <label className="block text-sm font-semibold">
-            准备状态
+            {copy.prepStatus}
             <select
               className="form-input mt-2"
               value={status}
@@ -343,33 +353,33 @@ export function QuestionPreparationCard({
             >
               {INTERVIEW_PREPARATION_STATUSES.map((value) => (
                 <option key={value} value={value}>
-                  {INTERVIEW_STATUS_LABELS[value]}
+                  {copy.statuses[value]}
                 </option>
               ))}
             </select>
           </label>
           <label className="block text-sm font-semibold">
-            回答提纲
+            {copy.outline}
             <textarea
               className="form-input mt-2 min-h-32 resize-y"
               value={outline}
               onChange={(event) => setOutline(event.target.value)}
-              placeholder="先写要点；涉及经历、数字和结果时只使用已确认事实。"
+              placeholder={copy.outlinePlaceholder}
               maxLength={10_000}
             />
           </label>
           <label className="block text-sm font-semibold">
-            练习笔记
+            {copy.practiceNotes}
             <textarea
               className="form-input mt-2 min-h-24 resize-y"
               value={notes}
               onChange={(event) => setNotes(event.target.value)}
-              placeholder="例如：控制在 90 秒，先讲结论。"
+              placeholder={copy.practiceNotesPlaceholder}
               maxLength={10_000}
             />
           </label>
           <fieldset>
-            <legend className="text-sm font-semibold">关联已确认事实 / STAR</legend>
+            <legend className="text-sm font-semibold">{copy.linkedFacts}</legend>
             {sortedFacts.length ? (
               <div className="mt-2 max-h-52 space-y-2 overflow-y-auto rounded-xl border border-[var(--line)] bg-[var(--paper)] p-3">
                 {sortedFacts.map((fact) => (
@@ -401,7 +411,7 @@ export function QuestionPreparationCard({
               </div>
             ) : (
               <p className="mt-2 text-xs font-semibold text-[var(--ink-muted)]">
-                还没有已确认事实，先去职业档案确认经历或 STAR 故事。
+                {copy.noFactsYet}
               </p>
             )}
           </fieldset>
@@ -410,7 +420,7 @@ export function QuestionPreparationCard({
             className="button-primary min-h-10 px-4 text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
             disabled={busy !== null}
           >
-            {busy === "preparation" ? "正在保存…" : "保存准备记录"}
+            {busy === "preparation" ? copy.savingPreparation : copy.savePreparation}
           </button>
         </form>
 
@@ -419,12 +429,12 @@ export function QuestionPreparationCard({
           className="mt-5 border-t border-[var(--line)] pt-4"
         >
           <label className="block text-sm font-semibold">
-            新增问法变体
+            {copy.addVariant}
             <input
               className="form-input mt-2"
               value={variant}
               onChange={(event) => setVariant(event.target.value)}
-              placeholder="同一个核心问题的另一种问法"
+              placeholder={copy.variantPlaceholder}
               minLength={8}
               maxLength={500}
               required
@@ -435,7 +445,7 @@ export function QuestionPreparationCard({
             className="button-secondary mt-3 min-h-10 px-4 text-xs font-semibold disabled:cursor-wait disabled:opacity-60"
             disabled={busy !== null}
           >
-            {busy === "variant" ? "正在保存…" : "保存为变体"}
+            {busy === "variant" ? copy.savingVariant : copy.saveVariant}
           </button>
         </form>
       </details>

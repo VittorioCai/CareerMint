@@ -37,26 +37,6 @@ export type InterviewQuestionSource = z.infer<
   typeof interviewQuestionSourceSchema
 >;
 
-export const INTERVIEW_CATEGORY_LABELS: Record<
-  InterviewQuestionCategory,
-  string
-> = {
-  common: "通用",
-  function: "职能",
-  industry: "行业",
-  job_specific: "岗位特定",
-};
-
-export const INTERVIEW_STATUS_LABELS: Record<
-  InterviewPreparationStatus,
-  string
-> = {
-  not_started: "未开始",
-  outlined: "已列提纲",
-  practiced: "已练习",
-  ready: "已准备",
-};
-
 function optionalUuid(value: unknown) {
   return value == null || (typeof value === "string" && value.trim() === "")
     ? null

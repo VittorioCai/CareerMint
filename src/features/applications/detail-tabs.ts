@@ -1,20 +1,27 @@
-export const applicationDetailTabs = [
-  { id: "overview", label: "概览" },
-  { id: "resume", label: "简历" },
-  { id: "difference", label: "差异分析" },
-  { id: "improvements", label: "完善建议" },
-  { id: "interview", label: "面试准备" },
-  { id: "timeline", label: "时间线" },
-] as const;
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
-export type ApplicationDetailTab =
-  (typeof applicationDetailTabs)[number]["id"];
+/**
+ * The six tabs of an application, in order.
+ *
+ * Ids, not labels — the id is in the URL and shared links carry it, so it
+ * cannot change with the language. The words come from the dictionary.
+ */
+export const applicationDetailTabs = [
+  "overview",
+  "resume",
+  "difference",
+  "improvements",
+  "interview",
+  "timeline",
+] as const satisfies readonly (keyof Dictionary["detail"]["tabs"])[];
+
+export type ApplicationDetailTab = (typeof applicationDetailTabs)[number];
 
 export function resolveApplicationDetailTab(
   value: string | undefined,
 ): ApplicationDetailTab {
   if (value === "jd") return "difference";
-  return applicationDetailTabs.some((tab) => tab.id === value)
+  return applicationDetailTabs.some((tab) => tab === value)
     ? (value as ApplicationDetailTab)
     : "overview";
 }

@@ -9,6 +9,7 @@ import type {
   InterviewQuestionGenerationCandidateRecord,
   InterviewQuestionGenerationRun,
 } from "./generation-service";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 vi.mock("next/navigation", () => ({
   useRouter: () => ({ refresh: vi.fn() }),
@@ -83,6 +84,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={null}
         initialCandidates={[]}
@@ -100,6 +102,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={null}
         initialCandidates={[]}
@@ -121,6 +124,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -153,6 +157,7 @@ describe("InterviewQuestionGenerationControl", () => {
     const user = userEvent.setup();
     const { rerender } = render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={null}
         initialCandidates={[]}
@@ -169,6 +174,7 @@ describe("InterviewQuestionGenerationControl", () => {
 
     rerender(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -189,6 +195,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -211,6 +218,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -231,6 +239,7 @@ describe("InterviewQuestionGenerationControl", () => {
     const partialReject = vi.fn().mockResolvedValue({ ok: true, rejectedCount: 0 });
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -260,6 +269,7 @@ describe("InterviewQuestionGenerationControl", () => {
       );
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -281,6 +291,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={run}
         initialCandidates={[candidate]}
@@ -296,6 +307,7 @@ describe("InterviewQuestionGenerationControl", () => {
     cleanup();
     render(
       <InterviewQuestionGenerationControl
+        copy={zhCN.interview}
         applicationId={applicationId}
         initialRun={{ ...run, status: "failed", errorCode: "secret-provider-detail", result: null }}
         initialCandidates={[]}
