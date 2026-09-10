@@ -66,17 +66,26 @@ async function createUser(admin: AdminClient) {
 async function prepareAccount(page: Page, account: SupabaseClient, email: string) {
   const signedIn = await account.auth.signInWithPassword({ email, password });
   if (signedIn.error) throw signedIn.error;
-  // The interface is mid-translation: the shell is localized and the feature
-  // pages are not, so a spec asserting Chinese copy has to ask for the Chinese
-  // interface. New accounts default to English now. As each surface is
-  // translated its spec moves to English and this write goes with it. The
-  // account client writes it, not the admin one — service_role has no grant on
-  // public.profiles, and this is the user's own row.
+  // Before the browser loads anything: the profile outranks the cookie, so a
+  // spec asserting Chinese copy has to set it ahead of the first render rather
+  // than after onboarding. Goes away per spec as its surfaces are translated.
   const localed = await account
     .from("profiles")
     .update({ interface_locale: "zh-CN" })
     .eq("user_id", signedIn.data.user.id);
   if (localed.error) throw localed.error;
+  // A signed-out visitor now gets English, so the login page a spec asserting
+  // Chinese copy has to walk is Chinese only if this browser says so. The
+  // profile write after sign-in covers the pages behind it; this covers the
+  // ones in front. Both disappear per spec as its surfaces are translated.
+  await page.context().addCookies([
+    {
+      name: "interface-locale",
+      value: "zh-CN",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(password);

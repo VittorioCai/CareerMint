@@ -55,6 +55,12 @@ async function recoveryLink(
 }
 
 async function login(page: Page, email: string, password: string) {
+  // Re-applied on every visit, not once at the top: this spec clears cookies
+  // between the sign-up, the reset link and the final login, and a signed-out
+  // visitor without this cookie now gets an English login page.
+  await page.context().addCookies([
+    { name: "interface-locale", value: "zh-CN", domain: "127.0.0.1", path: "/" },
+  ]);
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(password);
@@ -90,14 +96,9 @@ async function createAccountAndReachOnboarding(
   });
   if (error || !data.user) throw error ?? new Error("e2e-user-create-failed");
 
-  // The interface is mid-translation: the shell is localized and the feature
-  // pages are not, so a spec asserting Chinese copy has to ask for the Chinese
-  // interface. New accounts default to English now. As each surface is
-  // translated its spec moves to English and this write goes with it.
-  //
-  // The user's own client writes it, signed in over the API rather than
-  // through the browser: service_role has no grant on public.profiles, and
-  // this has to be true before the first page renders.
+  // Before the browser loads anything: the profile outranks the cookie, so a
+  // spec asserting Chinese copy has to set it ahead of the first render. The
+  // user's own client writes it — service_role has no grant on public.profiles.
   const asUser = createClient(
     requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
     requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
@@ -115,9 +116,7 @@ async function createAccountAndReachOnboarding(
     .select("interface_locale");
   if (localed.error) throw localed.error;
   if (localed.data?.[0]?.interface_locale !== "zh-CN") {
-    throw new Error(
-      `e2e-locale-not-pinned: ${JSON.stringify(localed.data)}`,
-    );
+    throw new Error(`e2e-locale-not-pinned: ${JSON.stringify(localed.data)}`);
   }
 
   await context.clearCookies();
@@ -156,6 +155,9 @@ test("complete private career-profile foundation flow", async ({
     await expect(page).toHaveURL(/\/login(?:\?|$)/);
   }
 
+  await page.context().addCookies([
+    { name: "interface-locale", value: "zh-CN", domain: "127.0.0.1", path: "/" },
+  ]);
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(initialPassword);
@@ -163,6 +165,9 @@ test("complete private career-profile foundation flow", async ({
   await expect(page.getByText("请检查邮箱并完成确认")).toBeVisible();
 
   await context.clearCookies();
+  await page.context().addCookies([
+    { name: "interface-locale", value: "zh-CN", domain: "127.0.0.1", path: "/" },
+  ]);
   await page.goto("/forgot-password");
   await page.getByLabel("账户邮箱").fill(email);
   await page.getByRole("button", { name: "发送重设链接" }).click();
@@ -178,6 +183,33 @@ test("complete private career-profile foundation flow", async ({
     .getByRole("button", { name: "更新密码并进入工作台" })
     .click();
   await expect(page).toHaveURL(/\/onboarding/);
+
+  // This account signed itself up through the UI, so it carries the new
+  // English default while the pages it is about to walk are still Chinese.
+  // Pinned through the user's own client — service_role has no grant on
+  // public.profiles. The English default is covered by the pgTAP test; the
+  // switch is exercised further down this journey.
+  const journeyUser = createClient(
+    requiredEnv("NEXT_PUBLIC_SUPABASE_URL"),
+    requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
+    { auth: { persistSession: false, autoRefreshToken: false } },
+  );
+  const journeySignIn = await journeyUser.auth.signInWithPassword({
+    email,
+    password: newPassword,
+  });
+  if (journeySignIn.error) throw journeySignIn.error;
+  const journeyLocale = await journeyUser
+    .from("profiles")
+    .update({ interface_locale: "zh-CN" })
+    .eq("user_id", journeySignIn.data.user.id)
+    .select("interface_locale");
+  if (journeyLocale.error) throw journeyLocale.error;
+  if (journeyLocale.data?.[0]?.interface_locale !== "zh-CN") {
+    throw new Error(
+      `e2e-locale-not-pinned: ${JSON.stringify(journeyLocale.data)}`,
+    );
+  }
 
   await context.clearCookies();
   await login(page, email, newPassword);
@@ -214,22 +246,30 @@ test("complete private career-profile foundation flow", async ({
   await page.getByRole("button", { name: "进入工作台" }).click();
   await expect(page).toHaveURL(/\/app/);
 
-  // English, because this account signed itself up through the UI a minute
-  // ago and English is what a new account gets. The page headings below are
-  // still Chinese: only the shell is translated so far, and asserting what is
-  // actually on screen is the point of a test.
-  for (const label of ["Home", "Applications", "Career profile", "Interview prep"]) {
+  for (const label of ["首页", "我的投递", "职业档案", "面试题库"]) {
     await expect(page.getByRole("link", { name: label }).first()).toBeVisible();
   }
 
-  // And the switch works from where it lives: inside the account menu.
-  // A testid, because a <summary> is exposed as the disclosure group and its
-  // name comes from its content, which here is an email address.
-  await page.getByTestId("account-menu").click();
-  await page
-    .getByRole("group", { name: "Language" })
-    .getByRole("button", { name: "中文" })
-    .click();
+  // The switch, from where it lives: inside the account menu. The menu is a
+  // <details>, and switching re-renders the layout around it without closing
+  // it, so clicking the summary unconditionally would toggle it shut.
+  async function switchLanguage(group: string, button: string) {
+    const menu = page.getByRole("group", { name: group });
+    if (!(await menu.isVisible())) {
+      // A testid because a <summary> is exposed as the disclosure group and
+      // its name comes from its content, which here is an email address.
+      await page.getByTestId("account-menu").click();
+    }
+    await menu.getByRole("button", { name: button }).click();
+  }
+
+  await switchLanguage("语言", "English");
+  await expect(
+    page.getByRole("link", { name: "Applications" }).first(),
+  ).toBeVisible();
+  // Back again, so the rest of this journey reads the Chinese pages it was
+  // written against.
+  await switchLanguage("Language", "中文");
   await expect(
     page.getByRole("link", { name: "我的投递" }).first(),
   ).toBeVisible();

@@ -1,6 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { getDictionary } from "@/i18n/server";
+
 type AuthShellProps = {
   eyebrow: string;
   title: string;
@@ -8,24 +11,30 @@ type AuthShellProps = {
   children: ReactNode;
 };
 
-const principles = [
-  ["01", "事实先确认", "AI 不会把猜测写进你的档案"],
-  ["02", "申请可追溯", "简历版本和岗位要求放在一起"],
-  ["03", "数据由你掌控", "随时导出，也可以删除账户数据"],
-] as const;
+export async function AuthShell(props: AuthShellProps) {
+  return <AuthShellView {...props} dictionary={await getDictionary()} />;
+}
 
-export function AuthShell({
+export function AuthShellView({
   eyebrow,
   title,
   description,
   children,
-}: AuthShellProps) {
+  dictionary,
+}: AuthShellProps & { dictionary: Dictionary }) {
+  const { auth, common } = dictionary;
+  const principles = [
+    ["01", auth.principles.oneTitle, auth.principles.oneBody],
+    ["02", auth.principles.twoTitle, auth.principles.twoBody],
+    ["03", auth.principles.threeTitle, auth.principles.threeBody],
+  ] as const;
+
   return (
     <main className="grid min-h-screen bg-[var(--canvas)] lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
       <section className="flex min-h-screen flex-col px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
-        <Link href="/" className="group flex w-fit items-center gap-3" aria-label="返回求职搭子首页">
+        <Link href="/" className="group flex w-fit items-center gap-3" aria-label={auth.backToHome}>
           <span aria-hidden="true" className="logo-mark size-10" />
-          <span className="heading-font text-xl font-semibold">求职搭子</span>
+          <span className="heading-font text-xl font-semibold">{common.productName}</span>
         </Link>
 
         <div className="mx-auto my-auto w-full max-w-[480px] py-12">
@@ -35,13 +44,13 @@ export function AuthShell({
           <div className="mt-8">{children}</div>
         </div>
 
-        <p className="text-xs font-semibold text-[var(--ink-muted)]">© 2026 求职搭子 · 先确认事实，再交给 AI</p>
+        <p className="text-xs font-semibold text-[var(--ink-muted)]">{auth.footer}</p>
       </section>
 
-      <aside className="relative hidden overflow-hidden border-l border-[var(--line)] bg-[var(--surface-muted)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label="产品原则">
+      <aside className="relative hidden overflow-hidden border-l border-[var(--line)] bg-[var(--surface-muted)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label={auth.productPrinciples}>
         <div className="relative mx-auto w-full max-w-lg">
-          <div className="mb-8 inline-flex rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold">你的海外求职工作台 ↗</div>
-          <h2 className="type-title heading-font max-w-md">一份可信档案，复用到每次申请。</h2>
+          <div className="mb-8 inline-flex rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold">{auth.sidePanelBadge}</div>
+          <h2 className="type-title heading-font max-w-md">{auth.sidePanelTitle}</h2>
           <div className="mt-9 border-y border-[var(--line)]">
             {principles.map(([index, heading, detail]) => (
               <div key={index} className="grid grid-cols-[48px_1fr] border-b border-[var(--line)] py-5 last:border-b-0">

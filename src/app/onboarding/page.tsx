@@ -9,6 +9,7 @@ import { getOwnedProfile } from "@/features/account/repository";
 import type { AccountPreferences } from "@/features/account/schemas";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { OnboardingForm } from "@/features/onboarding/onboarding-form";
+import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
 export default async function OnboardingPage() {
@@ -16,9 +17,10 @@ export default async function OnboardingPage() {
   const profile = await getOwnedProfile(user.id);
   if (profile?.onboardingCompletedAt) redirect("/app");
   const facts = await careerFactRepository.list(user.id);
+  const { common, onboarding } = await getDictionary();
   const initialPreferences: AccountPreferences = {
     displayName: profile?.displayName ?? "",
-    interfaceLocale: profile?.interfaceLocale === "en" ? "en" : "zh-CN",
+    interfaceLocale: profile?.interfaceLocale === "zh-CN" ? "zh-CN" : "en",
     timezone: profile?.timezone ?? "UTC",
     targetRole: profile?.targetRole ?? "",
     targetCountries: profile?.targetCountries ?? [],
@@ -32,15 +34,15 @@ export default async function OnboardingPage() {
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
             <span aria-hidden="true" className="logo-mark size-10" />
-            <span className="heading-font text-lg font-semibold">求职搭子</span>
+            <span className="heading-font text-lg font-semibold">{common.productName}</span>
           </Link>
-          <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold">私密建档</span>
+          <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold">{onboarding.privateBadge}</span>
         </header>
         <section className="mt-9">
-          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">Career profile setup</p>
-          <h1 className="heading-font mt-2 max-w-3xl type-page-title">先把真实经历整理清楚</h1>
+          <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">{onboarding.pageEyebrow}</p>
+          <h1 className="heading-font mt-2 max-w-3xl type-page-title">{onboarding.pageTitle}</h1>
           <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-            大约 5 分钟。上传和 AI 分析都可以跳过，最后由你明确决定何时进入工作台。
+            {onboarding.pageBody}
           </p>
         </section>
         <div className="mt-7">
@@ -49,6 +51,7 @@ export default async function OnboardingPage() {
             factCount={facts.length}
             savePreferences={saveAccountPreferencesAction}
             completeOnboarding={completeOnboardingAction}
+            copy={onboarding}
           />
         </div>
       </div>

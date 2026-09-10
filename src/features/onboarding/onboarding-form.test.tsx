@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { OnboardingForm } from "./onboarding-form";
 
 describe("OnboardingForm", () => {
@@ -11,6 +13,7 @@ describe("OnboardingForm", () => {
     const completeOnboarding = vi.fn().mockResolvedValue({ ok: true });
     render(
       <OnboardingForm
+        copy={zhCN.onboarding}
         initialPreferences={{
           displayName: "",
           interfaceLocale: "zh-CN",
@@ -26,14 +29,14 @@ describe("OnboardingForm", () => {
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "求职目标" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "上传简历" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "核对事实" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: zhCN.onboarding.steps.goals })).toBeVisible();
+    expect(screen.getByRole("heading", { name: zhCN.onboarding.steps.resume })).toBeVisible();
+    expect(screen.getByRole("heading", { name: zhCN.onboarding.steps.facts })).toBeVisible();
 
     await user.type(screen.getByLabelText("姓名"), "Lin Chen");
     await user.type(screen.getByLabelText("目标岗位"), "Product Analyst");
     await user.type(screen.getByLabelText("目标国家"), "Germany, Netherlands");
-    await user.click(screen.getByRole("button", { name: "保存求职目标" }));
+    await user.click(screen.getByRole("button", { name: zhCN.onboarding.saveGoals }));
     expect(savePreferences).toHaveBeenCalledWith(
       expect.objectContaining({
         displayName: "Lin Chen",
@@ -45,7 +48,7 @@ describe("OnboardingForm", () => {
 
     await user.click(screen.getByRole("button", { name: "暂时跳过" }));
     expect(completeOnboarding).not.toHaveBeenCalled();
-    await user.click(screen.getByRole("button", { name: "进入工作台" }));
+    await user.click(screen.getByRole("button", { name: zhCN.onboarding.enterWorkspace }));
     expect(completeOnboarding).toHaveBeenCalledOnce();
 
     expect(savePreferences).toHaveBeenCalledTimes(1);

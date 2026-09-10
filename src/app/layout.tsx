@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
 import { HTML_LANG } from "@/i18n/locale";
-import { getLocale } from "@/i18n/server";
+import { getDictionary, getLocale } from "@/i18n/server";
 
 import "./globals.css";
 
@@ -33,13 +33,17 @@ const nunitoSans = Nunito_Sans({
   variable: "--font-nunito-sans",
 });
 
-export const metadata: Metadata = {
-  title: {
-    default: "求职搭子｜有依据的海外求职工作台",
-    template: "%s｜求职搭子",
-  },
-  description: "用已确认的职业事实匹配岗位、定制简历、跟踪投递并准备面试。",
-};
+/**
+ * Metadata is resolved per request like everything else, so a tab title and a
+ * search snippet are in the reader's language rather than the author's.
+ */
+export async function generateMetadata(): Promise<Metadata> {
+  const { meta } = await getDictionary();
+  return {
+    title: { default: meta.title, template: meta.titleTemplate },
+    description: meta.description,
+  };
+}
 
 export default async function RootLayout({
   children,

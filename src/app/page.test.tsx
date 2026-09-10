@@ -3,19 +3,35 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
-import Home from "./page";
+import { en } from "@/i18n/dictionaries/en";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
+import { HomeView } from "./home-view";
 
 describe("public home", () => {
   it("introduces the workspace and links to account access", () => {
-    render(<Home />);
+    render(<HomeView dictionary={en} />);
 
     expect(
-      screen.getByRole("heading", { name: /让每次申请都有依据/ }),
+      screen.getByRole("heading", {
+        name: new RegExp(
+          `${en.landing.headlineTop}\\s*${en.landing.headlineBottom}`,
+          "u",
+        ),
+      }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: "登录或注册" })).toHaveAttribute(
-      "href",
-      "/login",
-    );
+    expect(
+      screen.getByRole("link", { name: en.landing.signIn }),
+    ).toHaveAttribute("href", "/login");
+  });
+
+  it("greets a Chinese reader in Chinese", () => {
+    render(<HomeView dictionary={zhCN} />);
+
+    expect(
+      screen.getByRole("link", { name: zhCN.landing.signIn }),
+    ).toHaveAttribute("href", "/login");
+    expect(zhCN.landing.signIn).not.toBe(en.landing.signIn);
   });
 
   it("keeps severity monotonic in lightness so the order survives greyscale", async () => {

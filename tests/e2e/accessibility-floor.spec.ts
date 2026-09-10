@@ -239,6 +239,18 @@ function contrastFor(png: PNG, node: TextNode) {
 }
 
 async function login(page: Page, email: string) {
+  // A signed-out visitor now gets English, so the login page a spec asserting
+  // Chinese copy has to walk is Chinese only if this browser says so. The
+  // profile write after sign-in covers the pages behind it; this covers the
+  // ones in front. Both disappear per spec as its surfaces are translated.
+  await page.context().addCookies([
+    {
+      name: "interface-locale",
+      value: "zh-CN",
+      domain: "127.0.0.1",
+      path: "/",
+    },
+  ]);
   await page.goto("/login");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(password);
@@ -278,7 +290,16 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
   const { email, userId } = await createUser(admin);
 
   try {
-    await account.auth.signInWithPassword({ email, password });
+    const signedIn = await account.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw signedIn.error;
+    // Before the browser loads anything: the profile outranks the cookie, so a
+    // spec asserting Chinese copy has to set it ahead of the first render
+    // rather than after onboarding. Goes away as these surfaces are translated.
+    const localed = await account
+      .from("profiles")
+      .update({ interface_locale: "zh-CN" })
+      .eq("user_id", signedIn.data.user.id);
+    if (localed.error) throw localed.error;
     await login(page, email);
     if (/\/onboarding/u.test(page.url())) {
       await page.getByLabel("姓名").fill("无障碍检查");
@@ -289,10 +310,7 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
     }
     await account
       .from("profiles")
-      .update({
-      ai_processing_consent_at: new Date().toISOString(),
-      interface_locale: "zh-CN",
-    })
+      .update({ ai_processing_consent_at: new Date().toISOString() })
       .eq("user_id", userId);
 
     await page.goto("/applications/new");
@@ -367,7 +385,16 @@ test("every focusable control shows a focus ring that is not clipped", async ({
   const { email, userId } = await createUser(admin);
 
   try {
-    await account.auth.signInWithPassword({ email, password });
+    const signedIn = await account.auth.signInWithPassword({ email, password });
+    if (signedIn.error) throw signedIn.error;
+    // Before the browser loads anything: the profile outranks the cookie, so a
+    // spec asserting Chinese copy has to set it ahead of the first render
+    // rather than after onboarding. Goes away as these surfaces are translated.
+    const localed = await account
+      .from("profiles")
+      .update({ interface_locale: "zh-CN" })
+      .eq("user_id", signedIn.data.user.id);
+    if (localed.error) throw localed.error;
     await login(page, email);
     if (/\/onboarding/u.test(page.url())) {
       await page.getByLabel("姓名").fill("无障碍检查");
