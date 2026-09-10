@@ -347,3 +347,36 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
     );
   });
 });
+
+describe("a stale run with a result still on screen", () => {
+  /**
+   * The panel's headline carries the state, the language and why it is out of
+   * date. The control repeating any of it would be one sticker saying the
+   * same thing twice — and its only reason for staleness was "the material
+   * changed", which is false after a language switch and sends the reader to
+   * check inputs they never touched.
+   */
+  it("leaves the explaining to the panel and offers only the rerun", () => {
+    renderControl({
+      initialRun: { status: "succeeded", errorCode: null },
+      freshness: "stale",
+      hasPreviousResult: true,
+    });
+
+    expect(screen.queryByText(/材料已变化/u)).toBeNull();
+    expect(screen.getByRole("button", { name: "重新分析" })).toBeEnabled();
+    // The route back to the result is open, not gated on a busy state a
+    // language switch never enters.
+    expect(screen.getByRole("link", { name: "查看上次结果" })).toBeVisible();
+  });
+
+  it("still explains itself when no result is on screen", () => {
+    renderControl({
+      initialRun: { status: "succeeded", errorCode: null },
+      freshness: "stale",
+      hasPreviousResult: false,
+    });
+
+    expect(screen.getByText(/材料已变化，请重新分析/u)).toBeVisible();
+  });
+});

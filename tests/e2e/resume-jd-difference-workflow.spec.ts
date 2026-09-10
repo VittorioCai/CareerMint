@@ -254,8 +254,18 @@ test("marks old analysis stale and keeps previous results explicit during retry 
     ).toBeVisible();
 
     await page.goto(`${application.detailUrl}?tab=difference`);
+    // The finished analysis stays on screen, marked out of date and saying
+    // why. It used to be replaced by an empty page whose only route back was
+    // a link the control offered solely while busy or failed — so a reader
+    // who had simply swapped resumes lost the work with no way to reach it.
     await expect(page.getByText(/材料已变化，请重新分析/u)).toBeVisible();
-    await expect(page.getByRole("heading", { name: "逐条差异 · 按严重度排序" })).toHaveCount(0);
+    await expect(
+      page.getByRole("heading", { name: "逐条差异 · 按严重度排序" }),
+    ).toBeVisible();
+    await expect(page.getByRole("link", { name: "导出 Markdown" })).toHaveAttribute(
+      "href",
+      /stale=1/u,
+    );
     await page.goto(`${application.detailUrl}?tab=improvements`);
     await expect(page.getByText("材料已变化，请重新分析", { exact: true })).toBeVisible();
 

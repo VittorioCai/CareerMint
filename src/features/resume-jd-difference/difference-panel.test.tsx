@@ -547,6 +547,7 @@ describe("ResumeJDDifferencePanel", () => {
         run={succeededRun()}
         facts={facts}
         stale
+        readerLocale="zh-CN"
       />,
     );
     expect(screen.getByText("结果已过期")).toBeVisible();
@@ -580,5 +581,52 @@ describe("ResumeJDDifferencePanel", () => {
       "href",
       expect.stringContaining("&stale=1"),
     );
+  });
+});
+
+describe("a result written in the other language", () => {
+  /**
+   * Switching the interface language must not lose the analysis.
+   *
+   * The language is part of the input hash, so a switch makes the stored run
+   * stale — correctly, because its findings are in the other language. What
+   * would be wrong is to answer that by showing nothing, or by telling the
+   * reader their material changed when only their language did.
+   */
+  it("says which language the result is in, not that the material changed", () => {
+    render(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={{ ...succeededRun(), outputLocale: "en" }}
+        facts={facts}
+        stale
+        readerLocale="zh-CN"
+      />,
+    );
+
+    // The findings are still on screen.
+    expect(screen.getByTestId("severity-tally")).toBeVisible();
+    // And they are labelled with their own language, named in itself.
+    expect(screen.getByText("English")).toBeVisible();
+    expect(screen.getByText(zhCN.difference.otherLanguage)).toBeVisible();
+  });
+
+  it("says nothing about language when the result matches the reader", () => {
+    // A run stale because the JD or the resume changed is a different thing,
+    // and labelling it with a language would be noise on every ordinary rerun.
+    render(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+        stale
+      />,
+    );
+
+    expect(screen.getByText(zhCN.difference.stale)).toBeVisible();
+    expect(screen.queryByText(zhCN.difference.otherLanguage)).toBeNull();
+    expect(screen.queryByText("中文")).toBeNull();
   });
 });

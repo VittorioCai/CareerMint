@@ -104,6 +104,20 @@ test("analyses in English, and a language switch marks that analysis stale", asy
   test.setTimeout(180_000);
   const { admin, account } = clients();
   const { email, userId } = await createUser(admin);
+  // Switching language must not spend money. The switch revalidates the whole
+  // layout, which re-renders the difference page and recomputes its input
+  // hash — none of which may reach the analyze route.
+  const analyzePosts: string[] = [];
+  page.on("request", (request) => {
+    if (
+      request.method() === "POST" &&
+      /\/(?:resume-jd-difference\/analyze|interview\/questions\/generate)$/u.test(
+        new URL(request.url()).pathname,
+      )
+    ) {
+      analyzePosts.push(request.url());
+    }
+  });
 
   try {
     await prepareAccount(page, account, email, userId);
@@ -179,15 +193,36 @@ test("analyses in English, and a language switch marks that analysis stale", asy
       // name here is an email address.
       await page.getByTestId("account-menu").click();
     }
+    const analyzeCountBeforeSwitch = analyzePosts.length;
+    expect(analyzeCountBeforeSwitch).toBe(1);
     await languages.getByRole("button", { name: "中文" }).click();
 
     // The English run cannot be served to a Chinese reader — the language is
-    // in the input hash through the prompt version — and it must not be shown
-    // under Chinese headings either. So it goes stale and the control offers
-    // to run it again, rather than offering a first analysis as if none
-    // existed.
+    // in the input hash through the prompt version. So it goes stale and the
+    // control offers to run it again, rather than offering a first analysis
+    // as if none existed.
     await expect(page.getByRole("button", { name: "重新分析" })).toBeVisible();
-    await expect(page.getByText("材料已变化，请重新分析")).toBeVisible();
+
+    // The route survives the switch, tab and all.
+    await expect(page).toHaveURL(
+      new RegExp(`/applications/${applicationId}\\?tab=difference$`, "u"),
+    );
+
+    // The analysis is still on screen, labelled with its own language, and
+    // the reason given is the language rather than a material change that did
+    // not happen.
+    await expect(page.getByTestId("severity-tally")).toBeVisible();
+    // Scoped to the result: "English" is also the name of a button in the
+    // language switch, and this assertion is about the label on the analysis.
+    const resultSection = page.locator("section[data-run-id]");
+    await expect(
+      resultSection.getByText("English", { exact: true }),
+    ).toBeVisible();
+    await expect(resultSection.getByText(/另一种语言/u)).toBeVisible();
+    await expect(page.getByText(/材料已变化/u)).toHaveCount(0);
+
+    // And switching cost nothing.
+    expect(analyzePosts).toHaveLength(analyzeCountBeforeSwitch);
   } finally {
     await admin.auth.admin.deleteUser(userId);
   }

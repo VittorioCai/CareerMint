@@ -70,6 +70,7 @@ import {
 import { summarizeAssetUsage } from "@/features/resume-baseline/asset-usage";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { getResumeWorkspaceMode, ResumeWorkspace } from "@/features/resume-baseline/resume-workspace";
+import { LinkPending } from "@/components/link-pending";
 
 function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
@@ -449,8 +450,14 @@ export default async function ApplicationDetailPage({
     );
   }
 
+  // A finished analysis stays on screen when there is no run for the current
+  // inputs. Before, any change — including switching language — replaced it
+  // with an empty page whose only route back was a link the control rendered
+  // solely while busy or failed, which a language switch is neither.
   const showingPreviousDifference =
-    first(query.result) === "previous" || !selectedResumeAssetRecord;
+    first(query.result) === "previous" ||
+    !selectedResumeAssetRecord ||
+    (!differenceView.current && Boolean(differenceView.previousSucceeded));
   const displayedDifferenceRun = showingPreviousDifference
     ? differenceView.previousSucceeded
     : differenceView.current;
@@ -483,9 +490,10 @@ export default async function ApplicationDetailPage({
             key={tab}
             href={`/applications/${application.id}?tab=${tab}`}
             aria-current={activeTab === tab ? "page" : undefined}
-            className={`segment shrink-0 ${activeTab === tab ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
+            className={`segment shrink-0 gap-1.5 ${activeTab === tab ? "bg-[var(--paper)] font-semibold shadow-[var(--elevation-1)]" : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"}`}
           >
             {detail.tabs[tab]}
+            <LinkPending />
           </Link>
         ))}
       </nav>
@@ -528,6 +536,7 @@ export default async function ApplicationDetailPage({
               copy={difference}
               applicationId={application.id}
               run={displayedDifferenceRun}
+              readerLocale={locale}
               facts={differenceFacts}
               stale={showingPreviousDifference}
               control={

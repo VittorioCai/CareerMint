@@ -390,6 +390,8 @@ export const zhCN: Dictionary = {
     hasEvidenceStatus: "简历里已经有对得上的表述。",
     complete: "分析已完成",
     stale: "结果已过期",
+    otherLanguage: "这份结果是用另一种语言写的。重新分析可得到当前语言的版本。",
+    staleMaterial: "材料已变化，请重新分析。",
     jobWants: "这个岗位真正要什么",
     listTitle: "逐条差异 · 按严重度排序",
     allMatchedTitle: "岗位要求 · 全部已对上",

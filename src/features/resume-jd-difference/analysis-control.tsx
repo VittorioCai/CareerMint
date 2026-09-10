@@ -360,11 +360,14 @@ function AnalysisControlState({
           : copy.statusIdle;
 
   // When a result is on screen the panel's own headline already names the
-  // resume and the state, so repeating them here would be the page saying the
-  // same thing twice inside one sticker. Only `completed` qualifies: a stale
-  // run shows no conclusion, so hiding this too would leave nothing explaining
-  // why the page is empty.
-  const resultOnScreen = completed;
+  // resume, the state and — when they differ — the language the result is
+  // written in. Repeating any of it here would be the page saying the same
+  // thing twice inside one sticker.
+  //
+  // A stale run qualifies now: it used to show no conclusion, so hiding this
+  // too would have left nothing explaining an empty page. The page keeps the
+  // previous analysis instead, so the panel has a headline to carry.
+  const resultOnScreen = completed || (stale && hasPreviousResult);
 
   return (
     <div
@@ -517,7 +520,7 @@ function AnalysisControlState({
               </button>
             </div>
           ) : null}
-          {hasPreviousResult && (busy || status === "failed") ? (
+          {hasPreviousResult && (busy || stale || status === "failed") ? (
             <Link
               href={`/applications/${applicationId}?tab=difference&result=previous`}
               className="mt-3 inline-block text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4"

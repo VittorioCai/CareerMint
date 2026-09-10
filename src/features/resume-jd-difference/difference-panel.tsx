@@ -1,8 +1,9 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
-import type { Dictionary } from "@/i18n/dictionaries/en";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { LOCALE_LABEL, type AppLocale } from "@/i18n/locale";
 
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { ResumeJDDifferenceOutput } from "./schemas";
@@ -19,6 +20,14 @@ export type ResumeJDDifferencePanelProps = {
    */
   control?: ReactNode;
   stale?: boolean;
+  /**
+   * The language the reader is reading in, when it differs from the run's.
+   *
+   * Only set on that mismatch: a run stale because the JD or the resume
+   * changed is a different thing, and labelling every ordinary rerun with a
+   * language would be noise.
+   */
+  readerLocale?: AppLocale;
 };
 
 /**
@@ -309,6 +318,7 @@ export function ResumeJDDifferencePanel({
   facts,
   control,
   stale = false,
+  readerLocale,
   copy,
 }: ResumeJDDifferencePanelProps & { copy: Dictionary["difference"] }) {
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
@@ -322,6 +332,11 @@ export function ResumeJDDifferencePanel({
     );
   }
 
+  // Only when the two actually differ. `readerLocale` is passed on every
+  // render, so comparing here keeps the caller from having to decide.
+  const otherLanguage = Boolean(
+    readerLocale && readerLocale !== run.outputLocale,
+  );
   const rows = buildRows(result, copy);
   const counts = tally(rows, copy);
   const nothingToFix = rows.length > 0 && rows.every((row) => row.severity === "matched");
@@ -342,8 +357,32 @@ export function ResumeJDDifferencePanel({
             />
             {stale ? copy.stale : copy.complete}
           </span>
+          {otherLanguage ? (
+            <>
+              <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+              {/* Named in its own language, from the same map the switch uses:
+                  a reader recognises "English" or "中文" without having to be
+                  able to read the other one. */}
+              <span
+                lang={run.outputLocale}
+                className="status-chip bg-[var(--surface-muted)]"
+              >
+                {LOCALE_LABEL[run.outputLocale]}
+              </span>
+            </>
+          ) : null}
           <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
           <span lang="und">{run.sourceFilename}</span>
+          {/* Why it is out of date, said once and next to the result. The
+              control used to carry this, where "the material changed" was
+              the only reason it knew how to give — false after a language
+              switch, which sends the reader to check inputs they never
+              touched. */}
+          {stale ? (
+            <span className="basis-full text-[var(--ink-muted)]">
+              {otherLanguage ? copy.otherLanguage : copy.staleMaterial}
+            </span>
+          ) : null}
         </p>
         <h2
           id="resume-jd-difference-title"

@@ -423,6 +423,10 @@ export const en = {
     hasEvidenceStatus: "The resume already says something that lines up.",
     complete: "Analysis complete",
     stale: "Result out of date",
+    // The reader's language is in the input hash, so a switch makes a stored
+    // result stale. Saying *why* matters: the material did not change.
+    otherLanguage: "Written in another language. Run it again for this one.",
+    staleMaterial: "The material changed. Run the analysis again.",
     jobWants: "What this job is actually asking for",
     listTitle: "Differences, most severe first",
     allMatchedTitle: "Every requirement · matched",
