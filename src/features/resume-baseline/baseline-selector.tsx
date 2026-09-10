@@ -8,6 +8,11 @@ import {
   useState,
 } from "react";
 
+import { uploadErrorMessage } from "@/features/source-assets/upload-form";
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import { formatDay } from "@/i18n/format";
+import type { AppLocale } from "@/i18n/locale";
+
 import type { ApplicationActionState } from "@/features/applications/actions";
 
 import type { SourceAssetStatus } from "./asset-usage";
@@ -39,32 +44,6 @@ export type BaselineSelectorProps = {
   ): Promise<ApplicationActionState>;
 };
 
-const uploadErrorMessages: Record<string, string> = {
-  "empty-file": "这个文件是空的，请选择另一份简历。",
-  "file-too-large": "文件超过 10 MiB，请压缩后重试。",
-  "unsupported-content-type": "目前只支持 PDF 和 DOCX 文件。",
-  "unsupported-file-signature": "文件内容与支持的简历格式不符。",
-  "content-type-mismatch": "文件扩展名和实际内容不一致。",
-  "missing-file": "请先选择一份简历。",
-  "unauthorized": "登录已失效，请重新登录。",
-  "upload-failed": "上传没有完成，请重试。",
-};
-
-const actionErrorMessages: Record<string, string> = {
-  "invalid-input": "请选择一份有效的私有简历。",
-  "application-or-resume-not-found": "这份简历已不可用，请重新选择。",
-  "application-storage-error": "暂时无法保存这次简历选择，请重试。",
-  "application-action-failed": "暂时无法保存这次简历选择，请重试。",
-};
-
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
 
 async function readResponse(response: Response) {
   try {
@@ -83,7 +62,14 @@ export function BaselineSelector({
   availableAssets,
   setupMode,
   setResumeSource,
-}: BaselineSelectorProps) {
+  copy,
+  common,
+  locale,
+}: BaselineSelectorProps & {
+  copy: Dictionary["resume"];
+  common: Dictionary["common"];
+  locale: AppLocale;
+}) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -111,8 +97,8 @@ export function BaselineSelector({
   function handleDeleted(asset: ResumeAssetRow) {
     setDeletedNotice(
       asset.id === selectedAsset?.id
-        ? `已删除 ${asset.originalName}。这份投递的对照简历已清空，请另选一份；已完成的差异分析结果仍可查看。`
-        : `已删除 ${asset.originalName}。已确认的职业事实和历史分析结果都还在。`,
+        ? copy.deletedCleared.replace("{name}", asset.originalName)
+        : copy.deletedKept.replace("{name}", asset.originalName),
     );
     router.refresh();
   }
@@ -145,7 +131,7 @@ export function BaselineSelector({
       const result = await setResumeSource(formData);
       if (!("ok" in result) || !result.ok) {
         const code = "error" in result ? result.error : "application-action-failed";
-        setError(actionErrorMessages[code] ?? actionErrorMessages["application-action-failed"]);
+        setError(uploadErrorMessage(code, copy, copy.errors.selectionFailed));
         return false;
       }
       router.replace(
@@ -156,7 +142,7 @@ export function BaselineSelector({
       router.refresh();
       return true;
     } catch {
-      setError(actionErrorMessages["application-action-failed"]);
+      setError(copy.errors.selectionFailed);
       return false;
     } finally {
       setBusy(false);
@@ -165,7 +151,7 @@ export function BaselineSelector({
 
   async function upload(file: File | undefined) {
     if (!file) {
-      setError(uploadErrorMessages["missing-file"]);
+      setError(copy.errors.missingFile);
       return;
     }
     setBusy(true);
@@ -185,7 +171,7 @@ export function BaselineSelector({
         typeof payload.originalName !== "string"
       ) {
         const code = typeof payload.error === "string" ? payload.error : "upload-failed";
-        setError(uploadErrorMessages[code] ?? "上传没有完成，请重试。");
+        setError(uploadErrorMessage(code, copy));
         return;
       }
 
@@ -196,7 +182,7 @@ export function BaselineSelector({
         router.refresh();
       }
     } catch {
-      setError("上传没有完成，请重试。");
+      setError(copy.errors.uploadFailed);
     } finally {
       setBusy(false);
     }
@@ -210,7 +196,7 @@ export function BaselineSelector({
     setError(null);
   }
 
-  const title = setupMode ? "本次对照简历（可选）" : "对照简历";
+  const title = setupMode ? copy.baselineTitleSetup : copy.baselineTitle;
 
   return (
     <section
@@ -227,11 +213,11 @@ export function BaselineSelector({
             {title}
           </h2>
           <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-            先预览并选择本次对照版本，再进入差异分析；也可以暂时跳过。
+            {copy.baselineBody}
           </p>
         </div>
         {selectedAsset && !setupMode ? (
-          <span className="status-chip bg-[var(--sev-matched)]">已选择</span>
+          <span className="status-chip bg-[var(--sev-matched)]">{copy.selected}</span>
         ) : null}
       </div>
 
@@ -241,16 +227,16 @@ export function BaselineSelector({
             <div className="min-w-0">
               <p className="break-words text-sm font-semibold">{selectedAsset.originalName}</p>
               <p className="mt-1 text-xs font-semibold text-[var(--ink-muted)]">
-                上传于 {formatDate(selectedAsset.createdAt)}
+                {copy.uploadedOn.replace("{date}", formatDay(selectedAsset.createdAt, locale))}
               </p>
             </div>
             <button
               type="button"
               className="button-secondary min-h-9 px-3 text-xs font-semibold"
-              aria-label={`预览 ${selectedAsset.originalName}`}
+              aria-label={copy.previewOf.replace("{name}", selectedAsset.originalName)}
               onClick={(event) => openPreview(selectedAsset, event)}
             >
-              预览
+              {copy.preview}
             </button>
           </div>
         </div>
@@ -259,13 +245,13 @@ export function BaselineSelector({
       {previewAsset ? (
         <section
           className="soft-surface mt-5 overflow-hidden"
-          aria-label={`简历预览：${previewAsset.originalName}`}
+          aria-label={copy.previewAria.replace("{name}", previewAsset.originalName)}
         >
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-[var(--line)] bg-[var(--sev-minor)] px-4 py-3">
             <div className="min-w-0">
               <p className="break-words text-sm font-semibold">{previewAsset.originalName}</p>
               <p className="mt-0.5 text-xs font-semibold text-[var(--ink-muted)]">
-                私有预览，不会调用 AI 或 OCR
+                {copy.privatePreview}
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
@@ -275,20 +261,20 @@ export function BaselineSelector({
                 target="_blank"
                 rel="noreferrer"
               >
-                打开原文件
+                {copy.openOriginal}
               </a>
               <button
                 type="button"
                 className="button-secondary min-h-9 px-3 text-xs font-semibold"
                 onClick={closePreview}
               >
-                关闭预览
+                {copy.closePreview}
               </button>
             </div>
           </div>
           <iframe
             key={previewAsset.id}
-            title={`预览 ${previewAsset.originalName}`}
+            title={copy.previewOf.replace("{name}", previewAsset.originalName)}
             src={`/api/source-assets/${previewAsset.id}/preview`}
             className="block h-[32rem] w-full bg-[var(--paper)]"
           />
@@ -298,7 +284,7 @@ export function BaselineSelector({
       {showOptions ? (
         <div className="mt-5 space-y-5">
           <fieldset>
-            <legend className="text-sm font-semibold">选择已有简历</legend>
+            <legend className="text-sm font-semibold">{copy.chooseExisting}</legend>
             {availableAssets.length ? (
               <div className="mt-3 grid gap-2">
                 {availableAssets.map((asset) => (
@@ -309,7 +295,7 @@ export function BaselineSelector({
                     <span className="min-w-0">
                       <span className="block break-words text-sm font-semibold">{asset.originalName}</span>
                       <span className="mt-1 block text-xs font-semibold text-[var(--ink-muted)]">
-                        上传于 {formatDate(asset.createdAt)}
+                        {copy.uploadedOn.replace("{date}", formatDay(asset.createdAt, locale))}
                       </span>
                     </span>
                     <span className="flex shrink-0 flex-wrap gap-2 sm:justify-end">
@@ -319,7 +305,7 @@ export function BaselineSelector({
                         onClick={(event) => openPreview(asset, event)}
                         disabled={busy}
                       >
-                        预览 {asset.originalName}
+                        {copy.previewOf.replace("{name}", asset.originalName)}
                       </button>
                       <button
                         type="button"
@@ -327,7 +313,7 @@ export function BaselineSelector({
                         onClick={() => void finishSelection(asset.id)}
                         disabled={busy}
                       >
-                        选择 {asset.originalName}
+                        {copy.chooseThis.replace("{name}", asset.originalName)}
                       </button>
                       <ResumeFileDeleteControl
                         assetId={asset.id}
@@ -336,19 +322,21 @@ export function BaselineSelector({
                         applicationCount={asset.applicationCount}
                         confirmedFactCount={asset.confirmedFactCount}
                         onDeleted={() => handleDeleted(asset)}
+                        copy={copy}
+                        common={common}
                       />
                     </span>
                   </article>
                 ))}
               </div>
             ) : (
-              <p className="mt-3 text-sm font-semibold text-[var(--ink-muted)]">还没有已上传的简历。</p>
+              <p className="mt-3 text-sm font-semibold text-[var(--ink-muted)]">{copy.noneUploaded}</p>
             )}
           </fieldset>
 
           <div className="border-t border-[var(--line)] pt-5">
             <label htmlFor={`baseline-upload-${applicationId}`} className="text-sm font-semibold">
-              上传新的 PDF 或 DOCX 简历
+              {copy.uploadNewLabel}
             </label>
             <div className="form-input mt-2 flex max-w-full items-center gap-3">
               <input
@@ -366,16 +354,16 @@ export function BaselineSelector({
                 htmlFor={`baseline-upload-${applicationId}`}
                 className="button-secondary inline-flex shrink-0 cursor-pointer items-center justify-center px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
               >
-                选择文件
+                {copy.chooseFile}
               </label>
               <span
                 className={`min-w-0 truncate text-sm ${selectedFile ? "font-bold" : "font-medium text-[var(--ink-muted)]"}`}
               >
-                {selectedFile?.name ?? "尚未选择文件"}
+                {selectedFile?.name ?? copy.noFileChosen}
               </span>
             </div>
             <p id={`baseline-upload-help-${applicationId}`} className="mt-2 text-xs font-medium text-[var(--ink-muted)]">
-              支持 PDF、DOCX，最大 10 MiB。原文件只保存在你的私有空间。
+              {copy.fileNote}
             </p>
             <button
               type="button"
@@ -383,7 +371,7 @@ export function BaselineSelector({
               disabled={busy}
               onClick={() => void upload(selectedFile ?? undefined)}
             >
-              上传并使用这份简历
+              {copy.uploadAndUse}
             </button>
           </div>
         </div>
@@ -397,7 +385,7 @@ export function BaselineSelector({
             onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
-            更换简历
+            {copy.swapResume}
           </button>
           <button
             type="button"
@@ -405,7 +393,7 @@ export function BaselineSelector({
             onClick={() => setOptionsOpen(true)}
             disabled={busy}
           >
-            上传新简历
+            {copy.uploadNew}
           </button>
         </div>
       ) : null}
@@ -417,7 +405,7 @@ export function BaselineSelector({
           onClick={() => void finishSelection(null)}
           disabled={busy}
         >
-          暂时跳过，进入申请
+          {copy.skipForNow}
         </button>
       ) : null}
 
@@ -427,7 +415,7 @@ export function BaselineSelector({
         </p>
       ) : null}
       {busy ? (
-        <p className="mt-4 text-sm font-semibold" aria-live="polite">正在保存…</p>
+        <p className="mt-4 text-sm font-semibold" aria-live="polite">{copy.saving}</p>
       ) : null}
       {error ? (
         <p role="alert" className="mt-4 text-sm font-bold text-[var(--error)]">

@@ -1,6 +1,7 @@
 "use client";
 
 import { type FormEvent, useRef, useState } from "react";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import type { OcrProgress, ScannedPdfOcrOptions } from "./ocr";
 
@@ -23,27 +24,42 @@ const defaultOcrPdf = async (
   return extractScannedPdfText(file, options);
 };
 
-export const uploadErrorCopy: Record<string, string> = {
-  "empty-file": "这个文件是空的，请选择另一份简历。",
-  "file-too-large": "文件超过 10 MiB，请压缩后重试。",
-  "unsupported-content-type":
-    "这个格式读不了，目前只支持 PDF 和 DOCX。请另存为其中一种再上传。",
-  "unsupported-file-signature":
-    "文件内容看起来不是 PDF 或 DOCX，扩展名可能被改过。请用原始文件重新上传。",
-  "content-type-mismatch":
-    "扩展名和文件实际内容对不上。请从原始软件重新导出一份再上传。",
-  "missing-file": "请先选择一份简历。",
-  unauthorized: "登录已失效，请重新登录。",
-  "upload-failed": "上传没有完成，请重试。",
-  "resume-extraction-request-failed": "分析暂时没有完成，请重新尝试。",
-  "resume-text-too-short":
-    "只读到很少的文字，这份多半是扫描件或图片型 PDF。可以在简历页用本地识别，或上传文字版简历。",
-  "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
-  "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
-  "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
-  "ai-provider-authentication-failed": "AI 服务授权暂时失效，请稍后重试。",
-  AbortError: "已取消本地识别，可重新尝试。",
-};
+/** Server error codes to the sentence that explains each one. */
+export function uploadErrorMessage(
+  code: string,
+  copy: Dictionary["resume"],
+  /**
+   * What an unrecognised code means *here*. Uploading and picking a baseline
+   * share this table because the baseline picker uploads too, but they fail
+   * differently: an unknown code mid-upload means the file never arrived, and
+   * an unknown code mid-selection means the choice was not saved. Collapsing
+   * both into one default told half the readers the wrong thing.
+   */
+  fallback: string = copy.errors.uploadFallback,
+): string {
+  const messages: Record<string, string> = {
+    "empty-file": copy.errors.emptyFile,
+    "file-too-large": copy.errors.tooLarge,
+    "unsupported-content-type": copy.errors.unsupportedType,
+    "unsupported-file-signature": copy.errors.badSignature,
+    "content-type-mismatch": copy.errors.typeMismatch,
+    "missing-file": copy.errors.missingFile,
+    unauthorized: copy.errors.unauthorized,
+    "upload-failed": copy.errors.uploadFailed,
+    "resume-extraction-request-failed": copy.errors.extractionFailed,
+    "resume-text-too-short": copy.errors.textTooShort,
+    "resume-ocr-too-many-pages": copy.errors.ocrTooManyPages,
+    "resume-ocr-unavailable": copy.errors.ocrUnavailable,
+    "ocr-request-too-large": copy.errors.ocrRequestTooLarge,
+    "ai-provider-authentication-failed": copy.errors.providerAuthFailed,
+    AbortError: copy.errors.cancelled,
+    "invalid-input": copy.errors.invalidSelection,
+    "application-or-resume-not-found": copy.errors.selectionNotFound,
+    "application-storage-error": copy.errors.selectionFailed,
+    "application-action-failed": copy.errors.selectionFailed,
+  };
+  return messages[code] ?? fallback;
+}
 
 async function responseBody(response: Response): Promise<Record<string, unknown>> {
   try {
@@ -93,7 +109,8 @@ export function UploadForm({
   request = fetch,
   pollIntervalMs = 1_000,
   ocrPdf = defaultOcrPdf,
-}: UploadFormProps) {
+  copy,
+}: UploadFormProps & { copy: Dictionary["resume"] }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const selectedFileRef = useRef<File | null>(null);
   const cachedOcrTextRef = useRef<string | null>(null);
@@ -178,7 +195,7 @@ export function UploadForm({
   function showConsent() {
     setPhase("consent");
     setError(
-      "文件已保存在你的私有空间。授权 AI 文字分析后可继续，不需要重新上传。",
+      copy.savedPrivately,
     );
   }
 
@@ -256,8 +273,7 @@ export function UploadForm({
       const code = errorCode(caught);
       setPhase("failed");
       setError(
-        uploadErrorCopy[code] ??
-          uploadErrorCopy["resume-extraction-request-failed"],
+        uploadErrorMessage(code, copy),
       );
     }
   }
@@ -266,14 +282,14 @@ export function UploadForm({
     ocrAbortControllerRef.current?.abort();
     setPhase("failed");
     setOcrProgress(null);
-    setError(uploadErrorCopy.AbortError);
+    setError(copy.errors.cancelled);
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const file = inputRef.current?.files?.[0];
     if (!file) {
-      setError(uploadErrorCopy["missing-file"]);
+      setError(copy.errors.missingFile);
       return;
     }
 
@@ -308,7 +324,7 @@ export function UploadForm({
     } catch (caught) {
       const code = caught instanceof Error ? caught.message : "";
       setPhase("failed");
-      setError(uploadErrorCopy[code] ?? "上传失败，请稍后重试。");
+      setError(uploadErrorMessage(code, copy));
     }
   }
 
@@ -322,7 +338,7 @@ export function UploadForm({
     >
       <div>
         <label className="form-label" htmlFor="resume-source">
-          上传现有简历
+          {copy.uploadLabel}
         </label>
         <div className="form-input mt-2 flex max-w-full items-center gap-3">
           <input
@@ -342,24 +358,24 @@ export function UploadForm({
             htmlFor="resume-source"
             className="button-secondary inline-flex shrink-0 cursor-pointer items-center justify-center px-3 py-1.5 text-sm font-semibold peer-disabled:cursor-not-allowed peer-disabled:opacity-60 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2 peer-focus-visible:outline-[var(--focus-ring)]"
           >
-            选择文件
+            {copy.chooseFile}
           </label>
           <span
             className={`min-w-0 truncate text-sm ${chosenName ? "font-bold" : "font-medium text-[var(--ink-muted)]"}`}
           >
-            {chosenName ?? "尚未选择文件"}
+            {chosenName ?? copy.noFileChosen}
           </span>
         </div>
         <p className="mt-2 text-xs font-medium text-[var(--ink-muted)]">
-          支持 PDF、DOCX，最大 10 MiB。原文件只保存在你的私有空间。
+          {copy.fileNote}
         </p>
       </div>
 
       {asset ? (
         <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3 text-sm">
-          <p className="break-words font-semibold">{asset.originalName} 已安全保存</p>
+          <p className="break-words font-semibold">{copy.savedSafely.replace("{name}", asset.originalName)}</p>
           <p className="mt-1 text-xs font-medium text-[var(--ink-muted)]">
-            重试分析不会再次上传，也不会创建重复任务。
+            {copy.retryNote}
           </p>
         </div>
       ) : null}
@@ -368,14 +384,16 @@ export function UploadForm({
         <div className="mt-4" aria-live="polite">
           <p className="text-sm font-semibold">
             {phase === "uploading"
-              ? "正在安全上传…"
+              ? copy.uploading
               : phase === "ocr"
                 ? ocrProgress?.phase === "loading-model"
-                  ? "正在加载本地识别模型…"
+                  ? copy.loadingOcrModel
                   : ocrProgress?.phase === "recognizing"
-                    ? `正在本地识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
-                    : "正在准备本地识别…"
-                : "正在分析，离开页面也不会丢失任务…"}
+                    ? copy.ocrProgress
+                        .replace("{page}", String(ocrProgress.page))
+                        .replace("{total}", String(ocrProgress.totalPages))
+                    : copy.preparingOcr
+                : copy.analysing}
           </p>
           <progress
             className="mt-2 h-2 w-full accent-[var(--ink)]"
@@ -388,7 +406,7 @@ export function UploadForm({
               className="button-secondary mt-3 min-h-10 px-4 text-sm font-semibold"
               onClick={cancelOcr}
             >
-              取消本地识别
+              {copy.cancelOcr}
             </button>
           ) : null}
         </div>
@@ -397,7 +415,7 @@ export function UploadForm({
       {phase === "succeeded" ? (
         <p className="mt-4 rounded-xl border border-[var(--ink)] bg-[var(--sev-matched)] p-3 text-sm font-semibold" role="status">
           <span aria-hidden="true">✓ </span>
-          <span>简历分析完成</span>
+          <span>{copy.analysisComplete}</span>
         </p>
       ) : null}
 
@@ -413,7 +431,7 @@ export function UploadForm({
           className="button-primary mt-5 min-h-11 px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-60"
           disabled={busy}
         >
-          {phase === "uploading" ? "正在上传…" : "上传并开始建档"}
+          {phase === "uploading" ? copy.uploadingShort : copy.uploadAndStart}
         </button>
       ) : phase === "failed" || phase === "consent" ? (
         <button
@@ -422,7 +440,7 @@ export function UploadForm({
           disabled={busy}
           onClick={() => void extract(asset)}
         >
-          {phase === "consent" ? "授权后重试" : "重新尝试"}
+          {phase === "consent" ? copy.consentRetry : copy.retry}
         </button>
       ) : null}
     </form>

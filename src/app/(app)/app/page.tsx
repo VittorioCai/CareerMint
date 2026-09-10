@@ -32,7 +32,7 @@ export default async function DashboardPage() {
   );
   const confirmedCount = facts.length - pendingFacts.length;
   const applicationSummary = summarizeApplications(applications);
-  const { applications: appsCopy, home } = await getDictionary();
+  const { applications: appsCopy, home, resume } = await getDictionary();
 
   let primaryState;
   if (assets.length === 0) {
@@ -44,7 +44,7 @@ export default async function DashboardPage() {
           {home.uploadBody}
         </p>
         <div className="mt-6 max-w-2xl">
-          <DashboardUpload />
+          <DashboardUpload copy={resume} />
         </div>
       </article>
     );

@@ -19,10 +19,12 @@ type ActionResult = Promise<{ ok: true } | { ok: false; error: string }>;
 export function ManualFactForm({
   createFact,
   copy,
+  common,
   trigger = "button",
 }: {
   createFact(input: CareerFactInput): ActionResult;
   copy: Dictionary["profile"];
+  common: Dictionary["common"];
   /**
    * On an empty profile the card below already offers the primary path, so the
    * manual route becomes a text link inside it rather than a second cream
@@ -145,7 +147,7 @@ export function ManualFactForm({
             setFieldErrors({});
           }}
         >
-          取消
+          {common.cancel}
         </button>
       </div>
     </form>

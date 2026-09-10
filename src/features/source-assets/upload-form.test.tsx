@@ -2,6 +2,8 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { UploadForm } from "./upload-form";
 import type { ScannedPdfOcrOptions } from "./ocr";
 
@@ -20,6 +22,7 @@ async function selectAndUpload(request: ReturnType<typeof vi.fn>) {
   const onUploaded = vi.fn();
   render(
     <UploadForm
+      copy={zhCN.resume}
       onUploaded={onUploaded}
       request={request as typeof fetch}
       pollIntervalMs={0}
@@ -140,6 +143,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     render(
       <UploadForm
+        copy={zhCN.resume}
         request={request as typeof fetch}
         ocrPdf={ocrPdf}
         pollIntervalMs={0}
@@ -190,6 +194,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     render(
       <UploadForm
+        copy={zhCN.resume}
         request={request as typeof fetch}
         ocrPdf={ocrPdf}
         pollIntervalMs={0}
@@ -240,6 +245,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     render(
       <UploadForm
+        copy={zhCN.resume}
         request={request as typeof fetch}
         ocrPdf={ocrPdf}
         pollIntervalMs={0}
@@ -278,6 +284,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     render(
       <UploadForm
+        copy={zhCN.resume}
         request={request as typeof fetch}
         ocrPdf={ocrPdf}
         pollIntervalMs={0}
@@ -311,6 +318,7 @@ describe("UploadForm", () => {
     const user = userEvent.setup();
     render(
       <UploadForm
+        copy={zhCN.resume}
         request={request as typeof fetch}
         ocrPdf={ocrPdf}
         pollIntervalMs={0}
@@ -331,7 +339,7 @@ describe("UploadForm", () => {
     // locale. That text is not ours to translate or style, so a Chinese
     // interface shows an English control at the very first step of the product.
     const user = userEvent.setup();
-    render(<UploadForm request={vi.fn()} onUploaded={vi.fn()} />);
+    render(<UploadForm copy={zhCN.resume} request={vi.fn()} onUploaded={vi.fn()} />);
 
     expect(screen.getByText("选择文件")).toBeVisible();
     expect(screen.getByText("尚未选择文件")).toBeVisible();

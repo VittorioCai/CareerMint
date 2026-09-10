@@ -654,6 +654,106 @@ export const en = {
     checklistTitle: "This job's checklist",
     backToApplications: "← Back to my applications",
   },
+  resume: {
+    uploadLabel: "Upload a resume you have",
+    chooseFile: "Choose a file",
+    noFileChosen: "No file chosen",
+    fileNote:
+      "PDF or DOCX, up to 10 MiB. The original file is kept only in your private space.",
+    savedPrivately:
+      "The file is saved in your private space. Allow AI text analysis to continue — you will not need to upload it again.",
+    retryNote: "Retrying the analysis does not re-upload the file or create a duplicate job.",
+    uploading: "Uploading securely…",
+    loadingOcrModel: "Loading the local recognition model…",
+    preparingOcr: "Preparing local recognition…",
+    analysing: "Analysing. The job survives you leaving this page…",
+    cancelOcr: "Cancel local recognition",
+    analysisComplete: "Resume analysis complete",
+    savedSafely: "{name} saved safely",
+    ocrProgress: "Recognising the scanned resume locally (page {page}/{total})",
+    uploadingShort: "Uploading…",
+    uploadAndStart: "Upload and start the profile",
+    consentRetry: "Allow it and retry",
+    retry: "Try again",
+    baselineTitle: "The resume for this application",
+    baselineTitleSetup: "The resume for this application (optional)",
+    baselineBody:
+      "Preview and pick the version to compare this time, then move on to the differences. You can also skip for now.",
+    selected: "Selected",
+    uploadedOn: "Uploaded {date}",
+    preview: "Preview",
+    previewOf: "Preview {name}",
+    privatePreview: "A private preview. No AI or OCR is called.",
+    openOriginal: "Open the original file",
+    closePreview: "Close the preview",
+    chooseExisting: "Choose an existing resume",
+    chooseThis: "Choose {name}",
+    noneUploaded: "No resumes uploaded yet.",
+    uploadNewLabel: "Upload a new PDF or DOCX resume",
+    uploadAndUse: "Upload and use this resume",
+    skipForNow: "Skip for now and open the application",
+    swapResume: "Swap the resume",
+    uploadNew: "Upload a new resume",
+    saving: "Saving…",
+    deletedCleared:
+      "{name} deleted. This application's comparison resume is now empty — pick another; completed difference results stay viewable.",
+    deletedKept: "{name} deleted. Confirmed career facts and past analyses are all still there.",
+    previewAria: "Resume preview: {name}",
+    workspaceTitle: "The resume for this application",
+    workspaceBody:
+      "Pick the resume this application is compared against. The comparison itself happens on the Differences page.",
+    workspaceHint:
+      "The differences against the job's requirements can only be judged once a resume is chosen.",
+    workspaceReady: "The comparison resume is set. You can start matching it against the job's requirements.",
+    workspaceNext: "Go to the differences →",
+    deleteFile: "Delete {name}",
+    deleteConfirmTitle: "Delete {name}?",
+    deleteBody:
+      "Only the file itself goes. Confirmed career facts and past difference results are all kept.",
+    deleteExtracting:
+      "This file is being extracted. Deleting it now fails that extraction, and nothing extracted so far is saved.",
+    deleteIrreversible: "The original cannot be restored. Upload it again if you need it.",
+    deleting: "Deleting…",
+    confirmDeleteFile: "Delete the file",
+    usage: {
+      both:
+        "This resume is the comparison resume for {applications} applications and the source of {facts} confirmed career facts. Those applications will need a new comparison resume; completed analyses stay viewable.",
+      applications:
+        "This resume is the comparison resume for {applications} applications. They will need a new comparison resume; completed analyses stay viewable.",
+      facts:
+        "This resume is the source of {facts} confirmed career facts. Those facts stay; they just lose their link to the original file.",
+      none: "No application or career fact refers to this file.",
+    },
+    errors: {
+      emptyFile: "That file is empty. Choose a different resume.",
+      tooLarge: "The file is over 10 MiB. Compress it and try again.",
+      unsupportedType:
+        "That format cannot be read; only PDF and DOCX are supported. Save it as one of those and upload again.",
+      badSignature:
+        "The contents do not look like a PDF or a DOCX — the extension may have been changed. Upload the original file.",
+      typeMismatch:
+        "The extension does not match the contents. Export a fresh copy from the original software and upload that.",
+      missingFile: "Choose a resume first.",
+      unauthorized: "Your session expired. Sign in again.",
+      uploadFailed: "The upload did not finish. Try again.",
+      extractionFailed: "The analysis did not finish. Try again.",
+      textTooShort:
+        "Only a little text was readable — this is probably a scan or an image-only PDF. Use local recognition on the resume page, or upload a text version.",
+      ocrTooManyPages: "A scanned resume over 10 pages is too long. Trim it and try again.",
+      ocrUnavailable:
+        "Local recognition is unavailable. Try again, or upload a text version of the resume.",
+      ocrRequestTooLarge: "The recognised text is over the size limit. Trim it and try again.",
+      providerAuthFailed: "The AI service authorisation lapsed. Try again in a moment.",
+      cancelled: "Local recognition cancelled. You can try again.",
+      uploadFallback: "The upload failed. Try again in a moment.",
+      invalidSelection: "Choose a valid private resume.",
+      selectionNotFound: "That resume is no longer available. Choose another.",
+      selectionFailed: "That resume choice could not be saved. Try again.",
+      inUse: "This file is still referenced by another record and cannot be deleted yet.",
+      networkLost: "The connection dropped. The file was not deleted.",
+      deleteFailed: "The file was not deleted. Try again.",
+    },
+  },
   shell: {
     homeLink: "CareerMint home",
     newApplication: "New application",

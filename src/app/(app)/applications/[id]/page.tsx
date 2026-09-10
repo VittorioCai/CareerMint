@@ -56,7 +56,9 @@ import {
   type ResumeJDDifferenceRunView,
 } from "@/features/resume-jd-difference/repository";
 import type { Dictionary } from "@/i18n/dictionaries/en";
-import { getDictionary } from "@/i18n/server";
+import { formatDay } from "@/i18n/format";
+import type { AppLocale } from "@/i18n/locale";
+import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { getServerEnv } from "@/lib/env/server";
 import { listAssets } from "@/features/source-assets/repository";
@@ -73,24 +75,21 @@ function first(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: string | null, locale: AppLocale) {
   if (!value) return null;
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
+  return formatDay(value, locale, "long");
 }
 
 function Overview({
   application,
   appsCopy,
+  locale,
   common,
   detail,
 }: {
   application: Application;
   appsCopy: Dictionary["applications"];
+  locale: AppLocale;
   common: Dictionary["common"];
   detail: Dictionary["detail"];
 }) {
@@ -108,8 +107,8 @@ function Overview({
           {(
             [
               [detail.fields.currentStage, appsCopy.stages[application.stage]],
-              [detail.fields.stageSince, formatDate(application.stageChangedAt)],
-              [detail.fields.appliedAt, formatDate(application.appliedAt)],
+              [detail.fields.stageSince, formatDate(application.stageChangedAt, locale)],
+              [detail.fields.appliedAt, formatDate(application.appliedAt, locale)],
               [
                 detail.fields.workplaceMode,
                 application.workplaceMode === "unspecified"
@@ -175,16 +174,18 @@ function Overview({
 function Timeline({
   events,
   appsCopy,
+  locale,
 }: {
   events: ApplicationStageEvent[];
   appsCopy: Dictionary["applications"];
+  locale: AppLocale;
 }) {
   return (
     <ol className="space-y-3">
       {events.map((event) => (
         <li key={event.id} className="grid gap-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:grid-cols-[150px_minmax(0,1fr)]">
           <time className="text-xs font-semibold text-[var(--ink-muted)]" dateTime={event.occurredAt}>
-            {formatDate(event.occurredAt)}
+            {formatDate(event.occurredAt, locale)}
           </time>
           <div>
             <p className="text-sm font-semibold">
@@ -210,17 +211,27 @@ function ResumePanel({
   selectedAsset,
   availableAssets,
   setupMode,
+  resume,
+  common,
+  locale,
 }: {
   application: Application;
   selectedAsset: ResumeAssetOption | null;
   availableAssets: ResumeAssetRow[];
   setupMode: boolean;
+  resume: Dictionary["resume"];
+  common: Dictionary["common"];
+  locale: AppLocale;
 }) {
   return (
     <ResumeWorkspace
+      copy={resume}
       applicationId={application.id}
       mode={getResumeWorkspaceMode({ selectedAssetId: selectedAsset?.id ?? null })}
       baselineSelector={<BaselineSelector
+        copy={resume}
+        common={common}
+        locale={locale}
         applicationId={application.id}
         selectedAsset={selectedAsset}
         availableAssets={availableAssets}
@@ -327,7 +338,9 @@ export default async function ApplicationDetailPage({
     improvements,
     detail,
     interview,
+    resume,
   } = await getDictionary();
+  const locale = await getLocale();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = resolveApplicationDetailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
@@ -477,12 +490,16 @@ export default async function ApplicationDetailPage({
               appsCopy={appsCopy}
               common={common}
               detail={detail}
+              locale={locale}
             /> : null}
-        {activeTab === "timeline" ? <Timeline events={events} appsCopy={appsCopy} /> : null}
+        {activeTab === "timeline" ? <Timeline events={events} appsCopy={appsCopy} locale={locale} /> : null}
         {activeTab === "resume" ? (
           <div className="space-y-6">
             {first(query.setup) === "1" ? <SetupProgress current="resume" /> : null}
             <ResumePanel
+              resume={resume}
+              common={common}
+              locale={locale}
               application={application}
               availableAssets={resumeAssets.map((asset) => ({
                 id: asset.id,

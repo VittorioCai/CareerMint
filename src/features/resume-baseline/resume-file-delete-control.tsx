@@ -2,25 +2,40 @@
 
 import { useState, useTransition } from "react";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type { SourceAssetStatus } from "./asset-usage";
 
-export const resumeFileDeleteErrorCopy: Record<number, string> = {
-  409: "这个文件还在被其他记录占用，暂时无法删除。",
-};
+/**
+ * What a failed deletion says, keyed by the outcome that produced it.
+ *
+ * A table rather than three `setError` calls so the copy floor can walk every
+ * outcome in both languages without rendering the component: a message that
+ * only names an action in one language still leaves half the readers stuck.
+ */
+export function resumeFileDeleteErrorCopy(copy: Dictionary["resume"]["errors"]) {
+  return {
+    "network-lost": copy.networkLost,
+    "source-asset-in-use": copy.inUse,
+    "delete-failed": copy.deleteFailed,
+  };
+}
 
 // What the user gives up, stated before they commit rather than discovered
 // after. The file itself is the only thing that goes.
-function usageCopy(applicationCount: number, confirmedFactCount: number) {
-  if (applicationCount && confirmedFactCount) {
-    return `这份简历是 ${applicationCount} 份投递的对照简历，也是 ${confirmedFactCount} 条已确认职业事实的来源。删除后这些投递需要重新选择对照简历，已完成的分析结果仍可查看。`;
-  }
-  if (applicationCount) {
-    return `这份简历是 ${applicationCount} 份投递的对照简历。删除后这些投递需要重新选择对照简历，已完成的分析结果仍可查看。`;
-  }
-  if (confirmedFactCount) {
-    return `这份简历是 ${confirmedFactCount} 条已确认职业事实的来源。删除后这些事实仍然保留，只是不再关联原文件。`;
-  }
-  return "目前没有投递或职业事实引用这个文件。";
+function usageCopy(
+  applicationCount: number,
+  confirmedFactCount: number,
+  copy: Dictionary["resume"],
+) {
+  const fill = (template: string) =>
+    template
+      .replace("{applications}", String(applicationCount))
+      .replace("{facts}", String(confirmedFactCount));
+  if (applicationCount && confirmedFactCount) return fill(copy.usage.both);
+  if (applicationCount) return fill(copy.usage.applications);
+  if (confirmedFactCount) return fill(copy.usage.facts);
+  return copy.usage.none;
 }
 
 export function ResumeFileDeleteControl({
@@ -30,6 +45,8 @@ export function ResumeFileDeleteControl({
   applicationCount,
   confirmedFactCount,
   onDeleted,
+  copy,
+  common,
 }: {
   assetId: string;
   originalName: string;
@@ -37,6 +54,8 @@ export function ResumeFileDeleteControl({
   applicationCount: number;
   confirmedFactCount: number;
   onDeleted: () => void;
+  copy: Dictionary["resume"];
+  common: Dictionary["common"];
 }) {
   const [expanded, setExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -51,7 +70,7 @@ export function ResumeFileDeleteControl({
           method: "DELETE",
         });
       } catch {
-        setError("网络连接中断，文件没有被删除。");
+        setError(resumeFileDeleteErrorCopy(copy.errors)["network-lost"]);
         return;
       }
 
@@ -60,7 +79,12 @@ export function ResumeFileDeleteControl({
         onDeleted();
         return;
       }
-      setError(resumeFileDeleteErrorCopy[response.status] ?? "文件没有删除成功，请重试。");
+      const messages = resumeFileDeleteErrorCopy(copy.errors);
+      setError(
+        response.status === 409
+          ? messages["source-asset-in-use"]
+          : messages["delete-failed"],
+      );
     });
   }
 
@@ -74,7 +98,7 @@ export function ResumeFileDeleteControl({
         }}
         className="button-secondary min-h-9 px-3 text-xs font-semibold text-[var(--danger)]"
       >
-        删除 {originalName}
+        {copy.deleteFile.replace("{name}", originalName)}
       </button>
     );
   }
@@ -85,21 +109,21 @@ export function ResumeFileDeleteControl({
       className="w-full rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] p-3 text-left"
     >
       <p className="text-xs font-semibold text-[var(--ink)]">
-        确定删除 {originalName}？
+        {copy.deleteConfirmTitle.replace("{name}", originalName)}
       </p>
       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-        只删除这个文件本身。已确认的职业事实和历史差异分析结果都会保留。
+        {copy.deleteBody}
       </p>
       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-        {usageCopy(applicationCount, confirmedFactCount)}
+        {usageCopy(applicationCount, confirmedFactCount, copy)}
       </p>
       {status === "extracting" ? (
         <p className="mt-1 text-xs font-semibold leading-5 text-[var(--danger)]">
-          这个文件正在提取中，删除后本次提取会失败，已提取的内容不会保存。
+          {copy.deleteExtracting}
         </p>
       ) : null}
       <p className="mt-1 text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-        原文件不能恢复，需要时请重新上传。
+        {copy.deleteIrreversible}
       </p>
       {error ? (
         <p className="mt-2 text-xs font-semibold text-[var(--danger)]">{error}</p>
@@ -114,7 +138,7 @@ export function ResumeFileDeleteControl({
           }}
           className="button-secondary px-3 py-2 text-xs font-medium disabled:opacity-60"
         >
-          取消
+          {common.cancel}
         </button>
         <button
           type="button"
@@ -122,7 +146,7 @@ export function ResumeFileDeleteControl({
           onClick={submitDeletion}
           className="button-danger px-3 py-2 text-xs font-semibold disabled:opacity-60"
         >
-          {pending ? "正在删除…" : "确认删除文件"}
+          {pending ? copy.deleting : copy.confirmDeleteFile}
         </button>
       </div>
     </div>

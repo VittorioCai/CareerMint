@@ -8,7 +8,7 @@ import { draftErrorMessage } from "./applications/application-draft-form";
 import { stageUpdateMessage } from "./applications/stage-update-form";
 import { resumeFileDeleteErrorCopy } from "./resume-baseline/resume-file-delete-control";
 import { errorCopy as differenceErrorCopy } from "./resume-jd-difference/analysis-control";
-import { uploadErrorCopy } from "./source-assets/upload-form";
+import { uploadErrorMessage } from "./source-assets/upload-form";
 
 /**
  * Every failure message names something the reader can do.
@@ -54,7 +54,7 @@ const transient = new Set([
  * first version, and it passed every English message without reading it.
  */
 const concreteAction =
-  /(上传|选择|检查|压缩|精简|刷新|登录|授权|预览|设置|更换|删除|补充|识别|连接|返回|联系)|\b(upload|select|pick|check|compress|trim|reload|sign in|authoris|authoriz|preview|settings|replace|delete|add|recognis|recogniz|connection|back to|contact|confirm|save as|export|leave it out|fill in|entered|different)/iu;
+  /(上传|选择|检查|压缩|精简|刷新|登录|授权|预览|设置|更换|删除|补充|识别|连接|返回|联系)|\b(upload|select|pick|choose|check|compress|trim|reload|sign in|authoris|authoriz|preview|settings|replace|delete|add|recognis|recogniz|connection|back to|contact|confirm|save as|export|leave it out|fill in|entered|different)/iu;
 const retry = /(重试|再试|重新)|\b(try again|retry|again in a moment)/iu;
 
 /**
@@ -89,9 +89,36 @@ const STAGE_UPDATE_CODES = [
   "application-action-failed",
 ] as const;
 
+/**
+ * Every code `uploadErrorMessage` answers.
+ *
+ * Uploading a file and picking a baseline share the table because the baseline
+ * picker uploads too, so the four application-action codes belong here as well.
+ */
+const UPLOAD_CODES = [
+  "empty-file",
+  "file-too-large",
+  "unsupported-content-type",
+  "unsupported-file-signature",
+  "content-type-mismatch",
+  "missing-file",
+  "unauthorized",
+  "upload-failed",
+  "resume-extraction-request-failed",
+  "resume-text-too-short",
+  "resume-ocr-too-many-pages",
+  "resume-ocr-unavailable",
+  "ocr-request-too-large",
+  "ai-provider-authentication-failed",
+  "AbortError",
+  "invalid-input",
+  "application-or-resume-not-found",
+  "application-storage-error",
+  "application-action-failed",
+] as const;
+
 const tables: [string, Record<string, string>][] = [
   ["difference", differenceErrorCopy],
-  ["upload", uploadErrorCopy],
   // The localized tables are built by calling the resolver for every code it
   // knows, once per language: a message that only reads well in one of them is
   // still a message that fails this rule for half the readers.
@@ -101,6 +128,19 @@ const tables: [string, Record<string, string>][] = [
       ["zh-CN", zhCN],
     ] as const
   ).flatMap(([language, dictionary]): [string, Record<string, string>][] => [
+    [
+      `upload (${language})`,
+      Object.fromEntries(
+        UPLOAD_CODES.map((code) => [
+          code,
+          uploadErrorMessage(code, dictionary.resume),
+        ]),
+      ),
+    ],
+    [
+      `resume-file-delete (${language})`,
+      resumeFileDeleteErrorCopy(dictionary.resume.errors),
+    ],
     [
       `application-delete (${language})`,
       Object.fromEntries(
@@ -129,15 +169,6 @@ const tables: [string, Record<string, string>][] = [
       ),
     ],
   ]),
-  [
-    "resume-file-delete",
-    Object.fromEntries(
-      Object.entries(resumeFileDeleteErrorCopy).map(([code, copy]) => [
-        code,
-        copy,
-      ]),
-    ),
-  ],
 ];
 
 describe("error copy", () => {

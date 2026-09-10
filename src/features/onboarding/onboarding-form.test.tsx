@@ -14,6 +14,7 @@ describe("OnboardingForm", () => {
     render(
       <OnboardingForm
         copy={zhCN.onboarding}
+        resumeCopy={zhCN.resume}
         initialPreferences={{
           displayName: "",
           interfaceLocale: "zh-CN",

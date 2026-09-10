@@ -359,6 +359,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={[]}
             view="table"
             deleteApplication={noopDelete}
@@ -369,6 +370,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={[application(0)]}
             view="table"
             deleteApplication={noopDelete}
@@ -382,6 +384,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={[application(0)]}
             view="board"
             deleteApplication={noopDelete}
@@ -395,6 +398,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={[
               application(1, {
                 location: null,
@@ -417,6 +421,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={[
               application(2, {
                 companyName: longCompany,
@@ -433,6 +438,7 @@ export default function DevStatesPage() {
           <ApplicationList
             copy={zhCN.applications}
             common={zhCN.common}
+            locale="zh-CN"
             applications={Array.from({ length: 20 }, (_, index) =>
               application(index + 3),
             )}

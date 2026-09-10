@@ -16,7 +16,7 @@ import {
   applicationFilterSchema,
   resolveApplicationView,
 } from "@/features/applications/schemas";
-import { getDictionary } from "@/i18n/server";
+import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
 function first(value: string | string[] | undefined) {
@@ -30,6 +30,7 @@ export default async function ApplicationsPage({
 }) {
   const user = await requireUser();
   const { applications: appsCopy, common } = await getDictionary();
+  const locale = await getLocale();
   const raw = await searchParams;
   const store = await cookies();
   const filter = applicationFilterSchema.parse({
@@ -149,6 +150,7 @@ export default async function ApplicationsPage({
         <ApplicationList
           copy={appsCopy}
           common={common}
+          locale={locale}
           applications={visibleApplications}
           view={filter.view}
           deleteApplication={deleteApplicationAction.bind(null, {})}

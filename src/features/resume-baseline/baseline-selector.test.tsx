@@ -11,6 +11,8 @@ vi.mock("next/navigation", () => ({
   useRouter: () => router,
 }));
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { BaselineSelector, type ResumeAssetRow } from "./baseline-selector";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
@@ -58,6 +60,9 @@ function renderSelector(
     availableAssets: assets,
     setupMode: true,
     setResumeSource,
+    copy: zhCN.resume,
+    common: zhCN.common,
+    locale: "zh-CN",
     ...overrides,
   };
   vi.stubGlobal("fetch", request);
@@ -113,6 +118,9 @@ describe("BaselineSelector", () => {
         availableAssets={assets}
         setupMode={false}
         setResumeSource={setResumeSource}
+        copy={zhCN.resume}
+        common={zhCN.common}
+        locale="zh-CN"
       />,
     );
 
@@ -293,6 +301,9 @@ describe("BaselineSelector", () => {
         availableAssets={[assets[0], assets[1], { ...assets[0], id: "44444444-4444-4444-8444-444444444444", originalName: "fresh.pdf" }]}
         setupMode={false}
         setResumeSource={vi.fn().mockResolvedValue(actionResult())}
+        copy={zhCN.resume}
+        common={zhCN.common}
+        locale="zh-CN"
       />,
     );
     expect(screen.getByRole("button", { name: /选择 fresh\.pdf/ })).toBeVisible();

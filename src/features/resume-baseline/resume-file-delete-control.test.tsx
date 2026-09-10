@@ -2,6 +2,8 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { ResumeFileDeleteControl } from "./resume-file-delete-control";
 
 const assetId = "22222222-2222-4222-8222-222222222222";
@@ -18,6 +20,8 @@ function renderControl(
       applicationCount={0}
       confirmedFactCount={0}
       onDeleted={onDeleted}
+      copy={zhCN.resume}
+      common={zhCN.common}
       {...overrides}
     />,
   );

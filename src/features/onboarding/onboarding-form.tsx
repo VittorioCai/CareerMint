@@ -15,12 +15,14 @@ export function OnboardingForm({
   savePreferences,
   completeOnboarding,
   copy,
+  resumeCopy,
 }: {
   initialPreferences: AccountPreferences;
   factCount: number;
   savePreferences(input: unknown): ActionResult;
   completeOnboarding(): ActionResult;
   copy: Dictionary["onboarding"];
+  resumeCopy: Dictionary["resume"];
 }) {
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [preferences, setPreferences] = useState(initialPreferences);
@@ -168,6 +170,7 @@ export function OnboardingForm({
             </Link>
             <div className="mt-5 min-w-0">
               <UploadForm
+                copy={resumeCopy}
                 onUploaded={() => setUploaded(true)}
                 beforeExtract={saveBeforeExtraction}
               />

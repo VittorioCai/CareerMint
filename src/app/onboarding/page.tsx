@@ -17,7 +17,7 @@ export default async function OnboardingPage() {
   const profile = await getOwnedProfile(user.id);
   if (profile?.onboardingCompletedAt) redirect("/app");
   const facts = await careerFactRepository.list(user.id);
-  const { common, onboarding } = await getDictionary();
+  const { common, onboarding, resume } = await getDictionary();
   const initialPreferences: AccountPreferences = {
     displayName: profile?.displayName ?? "",
     interfaceLocale: profile?.interfaceLocale === "zh-CN" ? "zh-CN" : "en",
@@ -52,6 +52,7 @@ export default async function OnboardingPage() {
             savePreferences={saveAccountPreferencesAction}
             completeOnboarding={completeOnboardingAction}
             copy={onboarding}
+            resumeCopy={resume}
           />
         </div>
       </div>

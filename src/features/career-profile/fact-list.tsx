@@ -65,7 +65,7 @@ export function FactList({
       ) : null}
 
       <div className="min-w-0">
-        {facts.length ? <ManualFactForm createFact={createFactAction} copy={copy} /> : null}
+        {facts.length ? <ManualFactForm createFact={createFactAction} copy={copy} common={common} /> : null}
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
             <p className="heading-font text-lg font-semibold">{copy.emptyTitle}</p>
@@ -79,7 +79,12 @@ export function FactList({
               >
                 {copy.goUpload}
               </Link>
-              <ManualFactForm createFact={createFactAction} copy={copy} trigger="link" />
+              <ManualFactForm
+                createFact={createFactAction}
+                copy={copy}
+                common={common}
+                trigger="link"
+              />
             </div>
           </div>
         ) : (

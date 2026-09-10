@@ -1,6 +1,8 @@
 import Link from "next/link";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
+import { formatDay } from "@/i18n/format";
+import type { AppLocale } from "@/i18n/locale";
 
 import { ApplicationDeleteControl } from "./application-delete-control";
 import type { ApplicationActionState } from "./actions";
@@ -22,14 +24,6 @@ const stageTone: Record<ApplicationStage, string> = {
   withdrawn: "bg-[var(--sev-minor)]",
 };
 
-function formatDate(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(value));
-}
 
 export function filterApplications(
   applications: Application[],
@@ -86,11 +80,13 @@ function ApplicationCard({
   deleteApplication,
   copy,
   common,
+  locale,
 }: {
   application: Application;
   deleteApplication: DeleteApplication;
   copy: Dictionary["applications"];
   common: Dictionary["common"];
+  locale: AppLocale;
 }) {
   return (
     <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)] transition-transform hover:-translate-y-0.5 hover:border-[var(--ink-soft)]">
@@ -119,7 +115,7 @@ function ApplicationCard({
           </div>
         ) : null}
         <p className="mt-3 border-t border-[var(--line)] pt-2 text-xs font-semibold text-[var(--ink-muted)]">
-          {copy.updatedOn.replace("{date}", formatDate(application.updatedAt))}
+          {copy.updatedOn.replace("{date}", formatDay(application.updatedAt, locale))}
         </p>
       </Link>
       <div className="px-4 pb-3">
@@ -165,12 +161,14 @@ export function ApplicationList({
   deleteApplication,
   copy,
   common,
+  locale,
 }: {
   applications: Application[];
   view: "board" | "table";
   deleteApplication: DeleteApplication;
   copy: Dictionary["applications"];
   common: Dictionary["common"];
+  locale: AppLocale;
 }) {
   if (applications.length === 0) return <EmptyApplications copy={copy} />;
 
@@ -189,6 +187,7 @@ export function ApplicationList({
           key={application.id}
           copy={copy}
           common={common}
+          locale={locale}
           application={application}
           deleteApplication={deleteApplication}
         />
@@ -239,7 +238,7 @@ export function ApplicationList({
                   {application.source ?? <NoValue />}
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
-                  {formatDate(application.updatedAt)}
+                  {formatDay(application.updatedAt, locale)}
                 </td>
                 <td className="min-w-56 px-4 py-4 align-top">
                   <ApplicationDeleteControl
@@ -301,6 +300,7 @@ export function ApplicationList({
                     key={application.id}
                     copy={copy}
                     common={common}
+                    locale={locale}
                     application={application}
                     deleteApplication={deleteApplication}
                   />

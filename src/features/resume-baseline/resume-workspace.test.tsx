@@ -1,6 +1,8 @@
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { ResumeWorkspace, getResumeWorkspaceMode } from "./resume-workspace";
 
 describe("resume workspace", () => {
@@ -10,7 +12,7 @@ describe("resume workspace", () => {
   });
 
   it("asks for a baseline before pointing at the difference analysis", () => {
-    render(<ResumeWorkspace applicationId="app" mode="no-baseline" baselineSelector={<div>baseline selector</div>} />);
+    render(<ResumeWorkspace copy={zhCN.resume} applicationId="app" mode="no-baseline" baselineSelector={<div>baseline selector</div>} />);
 
     expect(screen.getByRole("heading", { name: "对照简历" })).toBeVisible();
     expect(screen.getByText("baseline selector")).toBeVisible();
@@ -21,7 +23,7 @@ describe("resume workspace", () => {
   });
 
   it("links straight to the difference analysis once a baseline is chosen", () => {
-    render(<ResumeWorkspace applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
+    render(<ResumeWorkspace copy={zhCN.resume} applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
 
     expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute(
       "href",
@@ -30,7 +32,7 @@ describe("resume workspace", () => {
   });
 
   it("no longer offers resume versions or a legacy gap snapshot", () => {
-    render(<ResumeWorkspace applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
+    render(<ResumeWorkspace copy={zhCN.resume} applicationId="app" mode="ready" baselineSelector={<div>baseline selector</div>} />);
 
     expect(screen.queryByText(/历史版本|旧版简历差距|查看版本|不可变快照/)).not.toBeInTheDocument();
   });
