@@ -1,10 +1,11 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 
 import type { ResumeJDDifferenceRun } from "./repository";
-import type { DifferenceIssue, ResumeJDDifferenceOutput } from "./schemas";
+import type { ResumeJDDifferenceOutput } from "./schemas";
 
 export type ResumeJDDifferencePanelProps = {
   applicationId: string;
@@ -20,31 +21,25 @@ export type ResumeJDDifferencePanelProps = {
   stale?: boolean;
 };
 
-const typeCopy: Record<DifferenceIssue["type"], string> = {
-  missing: "未覆盖",
-  language_misaligned: "岗位语言未对齐",
-  profile_only: "仅职业档案有证据",
-  skill_only: "只在技能区出现",
-  too_vague: "表述过于笼统",
-  missing_context: "缺少场景",
-  missing_result: "缺少结果",
-  needs_confirmation: "需要本人确认",
-  gate: "岗位门槛",
-};
-
-function safeCopy(value: string) {
+/**
+ * Blunts one thing the model sometimes says.
+ *
+ * "你不具备…" states a gap as a fact about the person; the product only ever
+ * claims something about the material in front of it. The Chinese phrases are
+ * what the Chinese prompt produces, so they stay literal — they are matching
+ * model output, not interface copy — but what replaces them is copy.
+ */
+function safeCopy(value: string, noEvidence: string) {
   return value
-    .replaceAll("你不具备", "当前材料未找到相关证据")
-    .replaceAll("用户不具备", "当前材料未找到相关证据");
+    .replaceAll("你不具备", noEvidence)
+    .replaceAll("用户不具备", noEvidence);
 }
 
-function resumeEvidence(row: {
-  resumeExcerpt: string | null;
-  unsupported: boolean;
-}) {
-  if (!row.resumeExcerpt || row.unsupported) {
-    return "当前材料未找到相关证据";
-  }
+function resumeEvidence(
+  row: { resumeExcerpt: string | null; unsupported: boolean },
+  noEvidence: string,
+) {
+  if (!row.resumeExcerpt || row.unsupported) return noEvidence;
   return row.resumeExcerpt;
 }
 
@@ -62,9 +57,11 @@ function resolveCitedFacts(
 function IssueDetails({
   row,
   citedFacts,
+  copy,
 }: {
   row: PanelRow;
   citedFacts: ConfirmedFactForAnalysis[];
+  copy: Dictionary["difference"];
 }) {
   return (
     <details className="reveal group" data-testid={`difference-issue-${row.id}`}>
@@ -86,7 +83,7 @@ function IssueDetails({
               data-testid="row-priority"
               className={`severity-chip ${severityChipClass[row.severity]}`}
             >
-              {severityLabel[row.severity]}
+              {copy.severity[row.severity]}
             </span>
             <span
               data-testid="row-type"
@@ -96,7 +93,7 @@ function IssueDetails({
             </span>
           </span>
           <span className="mt-2 block max-w-[64ch] text-base font-bold leading-[1.55]">
-            {safeCopy(row.jdTranslationZh)}
+            {safeCopy(row.jdTranslationZh, copy.noEvidence)}
           </span>
           {/* A requirement can quote a whole paragraph. Unclamped it runs
               three lines of grey English above the Chinese judgement it is
@@ -121,7 +118,7 @@ function IssueDetails({
         <dl className="grid grid-cols-[repeat(auto-fit,minmax(220px,1fr))] gap-x-8 gap-y-5">
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-              岗位原文
+              {copy.jdOriginal}
             </dt>
             <dd
               className="mt-2 break-words type-caption text-[var(--ink-muted)]"
@@ -132,37 +129,37 @@ function IssueDetails({
           </div>
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-              简历现状
+              {copy.resumeStatus}
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              <span className="block">{safeCopy(row.resumeStatusZh)}</span>
+              <span className="block">{safeCopy(row.resumeStatusZh, copy.noEvidence)}</span>
               <span className="mt-2 block rounded-xl bg-[var(--paper)] px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
-                {resumeEvidence(row)}
+                {resumeEvidence(row, copy.noEvidence)}
               </span>
             </dd>
           </div>
           {row.problemZh ? (
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                问题点
+                {copy.problem}
               </dt>
               <dd className="mt-2 text-sm font-medium leading-[1.65]">
-                {safeCopy(row.problemZh)}
+                {safeCopy(row.problemZh, copy.noEvidence)}
               </dd>
             </div>
           ) : null}
           <div>
             <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-              判断依据
+              {copy.reason}
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              {safeCopy(row.reasonZh)}
+              {safeCopy(row.reasonZh, copy.noEvidence)}
             </dd>
           </div>
           {citedFacts.length ? (
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
-                档案依据
+                {copy.profileEvidence}
               </dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {citedFacts.map((fact) => (
@@ -208,22 +205,6 @@ const severityRank: Record<RowSeverity, number> = {
   matched: 4,
 };
 
-const severityLabel: Record<RowSeverity, string> = {
-  critical: "关键",
-  gate: "关键",
-  important: "重要",
-  minor: "次要",
-  matched: "已对上",
-};
-
-const tallyLabel: Record<RowSeverity, string> = {
-  critical: "关键差异",
-  gate: "岗位门槛",
-  important: "重要差异",
-  minor: "次要差异",
-  matched: "已对上",
-};
-
 const badgeVariant: Record<RowSeverity, string> = {
   critical: "badge-critical",
   gate: "badge-index--gate",
@@ -252,14 +233,17 @@ const severityChipClass: Record<RowSeverity, string> = {
 // the two that are not part of that sequence — a gate rewriting cannot fix,
 // and something already covered — sit at the ends carrying a mark instead of
 // a number.
-function buildRows(result: ResumeJDDifferenceOutput): PanelRow[] {
+function buildRows(
+  result: ResumeJDDifferenceOutput,
+  copy: Dictionary["difference"],
+): PanelRow[] {
   const issues = result.issues.map((issue) => {
     const isGate = issue.isGate || issue.type === "gate";
     return {
       id: issue.id,
       severity: (isGate ? "gate" : issue.priority) as RowSeverity,
       badgeMark: "",
-      typeLabel: typeCopy[issue.type],
+      typeLabel: copy.issueTypes[issue.type],
       jdOriginal: issue.jdOriginal,
       jdTranslationZh: issue.jdTranslationZh,
       resumeStatusZh: issue.resumeStatusZh,
@@ -275,10 +259,10 @@ function buildRows(result: ResumeJDDifferenceOutput): PanelRow[] {
     id: item.id,
     severity: "matched" as const,
     badgeMark: "",
-    typeLabel: "简历已有可回查证据",
+    typeLabel: copy.hasEvidence,
     jdOriginal: item.jdOriginal,
     jdTranslationZh: item.jdTranslationZh,
-    resumeStatusZh: "简历里已经有对得上的表述。",
+    resumeStatusZh: copy.hasEvidenceStatus,
     resumeExcerpt: item.resumeExcerpt,
     unsupported: false,
     problemZh: null,
@@ -302,11 +286,14 @@ function buildRows(result: ResumeJDDifferenceOutput): PanelRow[] {
   }));
 }
 
-function tally(rows: readonly PanelRow[]) {
+function tally(
+  rows: readonly PanelRow[],
+  copy: Dictionary["difference"],
+) {
   return (Object.keys(severityRank) as RowSeverity[])
     .map((severity) => ({
       severity,
-      label: tallyLabel[severity],
+      label: copy.tally[severity],
       count: rows.filter((row) => row.severity === severity).length,
     }))
     .filter((entry) => entry.count > 0);
@@ -318,7 +305,8 @@ export function ResumeJDDifferencePanel({
   facts,
   control,
   stale = false,
-}: ResumeJDDifferencePanelProps) {
+  copy,
+}: ResumeJDDifferencePanelProps & { copy: Dictionary["difference"] }) {
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
   const result = run && run.status === "succeeded" ? run.result : null;
 
@@ -330,8 +318,8 @@ export function ResumeJDDifferencePanel({
     );
   }
 
-  const rows = buildRows(result);
-  const counts = tally(rows);
+  const rows = buildRows(result, copy);
+  const counts = tally(rows, copy);
   const nothingToFix = rows.length > 0 && rows.every((row) => row.severity === "matched");
 
   return (
@@ -348,7 +336,7 @@ export function ResumeJDDifferencePanel({
               aria-hidden="true"
               className={`size-1.5 rounded-full ${stale ? "bg-[var(--sev-critical-ink)]" : "bg-[var(--mint-strong)]"}`}
             />
-            {stale ? "结果已过期" : "分析已完成"}
+            {stale ? copy.stale : copy.complete}
           </span>
           <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
           <span lang="und">{run.sourceFilename}</span>
@@ -357,7 +345,7 @@ export function ResumeJDDifferencePanel({
           id="resume-jd-difference-title"
           className="heading-font mt-2.5 max-w-[34ch] text-xl font-semibold leading-[1.4] sm:text-2xl"
         >
-          {safeCopy(result.overallDifference.summaryZh)}
+          {safeCopy(result.overallDifference.summaryZh, copy.noEvidence)}
         </h2>
 
         {/* Counts as a line of marks, using the same badge language the rows
@@ -402,7 +390,7 @@ export function ResumeJDDifferencePanel({
             href={`/api/applications/${applicationId}/resume-jd-difference/export?runId=${run.id}${stale ? "&stale=1" : ""}`}
             download
           >
-            导出 Markdown
+            {copy.export}
           </a>
           {control}
         </div>
@@ -411,11 +399,11 @@ export function ResumeJDDifferencePanel({
       {/* What the job is actually asking for — a sentence, not three cells. */}
       <div className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-start">
         <span className="inline-flex w-fit items-center rounded-full bg-[var(--sev-matched)] px-3 py-1.5 text-xs font-semibold text-[var(--sev-matched-ink)]">
-          这个岗位真正要什么
+          {copy.jobWants}
         </span>
         <div className="min-w-0">
           <p className="type-body font-medium">
-            {safeCopy(result.jobCore.missionZh)}
+            {safeCopy(result.jobCore.missionZh, copy.noEvidence)}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {result.jobCore.coreCapabilities.map((capability) => (
@@ -436,12 +424,12 @@ export function ResumeJDDifferencePanel({
             id="specific-differences-title"
             className="heading-font text-xl font-semibold sm:text-2xl"
           >
-            {nothingToFix ? "岗位要求 · 全部已对上" : "逐条差异 · 按严重度排序"}
+            {nothingToFix ? copy.allMatchedTitle : copy.listTitle}
           </h2>
           <span className="type-caption font-medium text-[var(--ink-muted)]">
             {nothingToFix
-              ? "点任意一行看简历里对应的原文"
-              : "点任意一行展开依据 · 珊瑚色行是改简历前必须先看的"}
+              ? copy.allMatchedHint
+              : copy.listHint}
           </span>
         </div>
 
@@ -449,6 +437,7 @@ export function ResumeJDDifferencePanel({
           {rows.map((row) => (
             <li key={row.id}>
               <IssueDetails
+                copy={copy}
                 row={row}
                 citedFacts={resolveCitedFacts(row.profileFactIds, factsById)}
               />
@@ -460,19 +449,19 @@ export function ResumeJDDifferencePanel({
       <section className="soft-surface grid gap-5 px-6 py-6 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-7">
         <div>
           <h2 className="heading-font text-lg font-semibold">
-            {nothingToFix ? "下一步：准备面试" : "下一步：查看完善建议"}
+            {nothingToFix ? copy.nextInterview : copy.nextImprovements}
           </h2>
           <p className="mt-1.5 max-w-[62ch] type-caption font-medium text-[var(--ink-muted)]">
             {nothingToFix
-              ? "这份简历没有需要补的地方，可以直接开始准备这个岗位可能问到的问题。"
-              : "建议只告诉你该核对哪段经历、补足哪些真实信息，不会代写简历。"}
+              ? copy.nextInterviewBody
+              : copy.nextImprovementsBody}
           </p>
         </div>
         <Link
           href={`/applications/${applicationId}?tab=${nothingToFix ? "interview" : "improvements"}`}
           className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-base font-bold"
         >
-          {nothingToFix ? "进入面试准备 →" : "查看完善建议 →"}
+          {nothingToFix ? copy.goInterview : copy.goImprovements}
         </Link>
       </section>
     </section>

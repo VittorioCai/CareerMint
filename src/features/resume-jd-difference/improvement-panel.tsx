@@ -1,15 +1,14 @@
 import Link from "next/link";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 
 import type { ResumeJDDifferenceRun } from "./repository";
 import type {
-  DifferenceAuthenticity,
   DifferenceIssue,
   DifferenceIssueType,
   ImprovementDirection,
-  ImprovementFocusArea,
-  ResumeTargetSection,
 } from "./schemas";
 
 export type ResumeJDImprovementPanelProps = {
@@ -19,61 +18,38 @@ export type ResumeJDImprovementPanelProps = {
   freshness: "current" | "stale" | "missing";
 };
 
+/**
+ * The five groups a difference can fall into, in the order they are shown.
+ *
+ * Identifiers, not headings. They used to be the Chinese headings themselves,
+ * which made the group a piece of copy that other code looked things up by —
+ * so translating a heading silently detached every issue from its group and
+ * its explanation. The words now live in the dictionary and these do not
+ * change with the language.
+ */
 const groupOrder = [
-  "岗位语言未对齐",
-  "经历证据需要加强",
-  "关键词位置较弱",
-  "需要本人确认",
-  "不能通过改简历解决",
+  "language",
+  "evidence",
+  "placement",
+  "confirmation",
+  "gate",
 ] as const;
 
 type ImprovementGroup = (typeof groupOrder)[number];
 
 const groupByIssueType: Record<DifferenceIssueType, ImprovementGroup> = {
-  missing: "需要本人确认",
-  language_misaligned: "岗位语言未对齐",
-  profile_only: "经历证据需要加强",
-  skill_only: "关键词位置较弱",
-  too_vague: "经历证据需要加强",
-  missing_context: "经历证据需要加强",
-  missing_result: "经历证据需要加强",
-  needs_confirmation: "需要本人确认",
-  gate: "不能通过改简历解决",
+  missing: "confirmation",
+  language_misaligned: "language",
+  profile_only: "evidence",
+  skill_only: "placement",
+  too_vague: "evidence",
+  missing_context: "evidence",
+  missing_result: "evidence",
+  needs_confirmation: "confirmation",
+  gate: "gate",
 };
 
-const targetSectionCopy: Record<ResumeTargetSection, string> = {
-  summary: "个人总结",
-  experience: "工作经历",
-  project: "项目经历",
-  skills: "技能",
-  education: "教育",
-  languages: "语言",
-  other: "其他",
-};
 
-const focusAreaCopy: Record<ImprovementFocusArea, string> = {
-  action: "动作",
-  context: "场景",
-  stakeholders: "协作对象",
-  method: "方法",
-  result: "结果",
-  placement: "位置",
-};
-
-const authenticityCopy: Record<DifferenceAuthenticity, string> = {
-  supported: "当前简历有可回查证据",
-  profile_only: "职业档案有已确认事实，当前简历未体现",
-  needs_confirmation: "需要本人确认",
-  unsupported: "当前材料没有可回查证据",
-};
-
-const groupIntro: Record<ImprovementGroup, string> = {
-  岗位语言未对齐: "经历本身有关联，但尚未使用这个岗位通常采用的表达方式。",
-  经历证据需要加强: "补足真实的动作、场景、方法或结果，让现有经历更容易被识别。",
-  关键词位置较弱: "关键词虽然存在，但还没有放进能够证明它的真实经历中。",
-  需要本人确认: "现有材料不足以判断。请先回忆并确认真实经历，再决定是否补充。",
-  不能通过改简历解决: "这是资格或条件门槛，不能通过调整措辞改变真实情况。",
-};
 
 export function improvementGroupForIssue(
   type: DifferenceIssueType,
@@ -81,9 +57,12 @@ export function improvementGroupForIssue(
   return groupByIssueType[type];
 }
 
-function targetCopy(direction: ImprovementDirection | null) {
-  if (!direction) return "按真实情况核实";
-  const section = targetSectionCopy[direction.targetSection];
+function targetCopy(
+  direction: ImprovementDirection | null,
+  copy: Dictionary["improvements"],
+) {
+  if (!direction) return copy.verifyAsIs;
+  const section = copy.targetSections[direction.targetSection];
   return direction.targetExperienceZh
     ? `${section} · ${direction.targetExperienceZh}`
     : section;
@@ -93,13 +72,16 @@ function uniqueTerms(direction: ImprovementDirection) {
   return [...new Set([...direction.jdTerms, ...direction.synonymousJobLanguage])];
 }
 
-function synthesizedGateDirection(issue: DifferenceIssue) {
+function synthesizedGateDirection(
+  issue: DifferenceIssue,
+  copy: Dictionary["improvements"],
+) {
   return {
-    target: "资格条件",
-    focus: "真实情况",
-    authenticity: authenticityCopy[issue.authenticity],
+    target: copy.gateTarget,
+    focus: copy.gateFocus,
+    authenticity: copy.authenticity[issue.authenticity],
     direction:
-      "这是资格门槛，不能通过调整简历措辞解决。请按真实情况核实并呈现。",
+      copy.gateDirection,
   };
 }
 
@@ -119,16 +101,18 @@ function ImprovementItem({
   issue,
   direction,
   citedFacts,
+  copy,
 }: {
   issue: DifferenceIssue;
   direction: ImprovementDirection | null;
   citedFacts: ConfirmedFactForAnalysis[];
+  copy: Dictionary["improvements"];
 }) {
   const isGate = issue.isGate || issue.type === "gate";
   const unsupported =
     issue.authenticity === "unsupported" ||
     direction?.authenticity === "unsupported";
-  const gateDirection = isGate ? synthesizedGateDirection(issue) : null;
+  const gateDirection = isGate ? synthesizedGateDirection(issue, copy) : null;
   const terms = direction && !unsupported ? uniqueTerms(direction) : [];
 
   return (
@@ -139,7 +123,7 @@ function ImprovementItem({
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1.25fr)_minmax(280px,0.75fr)]">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-            对应差异
+            {copy.matchingDifference}
           </p>
           <p className="mt-2 type-body font-medium">
             {issue.jdTranslationZh}
@@ -149,31 +133,31 @@ function ImprovementItem({
           </p>
           {unsupported ? (
             <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 type-body font-medium">
-              当前材料没有可回查证据。如未实际做过，请不要加入简历。
+              {copy.unsupportedWarning}
             </p>
           ) : null}
         </div>
 
         <dl className="grid content-start gap-4 rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
           <div>
-            <dt className="text-xs font-semibold text-[var(--ink-muted)]">目标位置</dt>
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">{copy.targetLocation}</dt>
             <dd className="mt-1 text-sm font-semibold leading-6">
-              {gateDirection?.target ?? targetCopy(direction)}
+              {gateDirection?.target ?? targetCopy(direction, copy)}
             </dd>
           </div>
           <div>
-            <dt className="text-xs font-semibold text-[var(--ink-muted)]">完善重点</dt>
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">{copy.focus}</dt>
             <dd className="mt-1 text-sm font-bold leading-6">
               {gateDirection?.focus ??
                 (direction?.focusAreas.length
-                  ? direction.focusAreas.map((area) => focusAreaCopy[area]).join(" · ")
-                  : "核实真实经历")}
+                  ? direction.focusAreas.map((area) => copy.focusAreas[area]).join(" · ")
+                  : copy.verifyExperience)}
             </dd>
           </div>
           {terms.length ? (
             <div>
               <dt className="text-xs font-semibold text-[var(--ink-muted)]">
-                岗位原词 / 同义表达
+                {copy.jobTerms}
               </dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {terms.map((term) => (
@@ -190,7 +174,7 @@ function ImprovementItem({
           ) : null}
           {citedFacts.length ? (
             <div>
-              <dt className="text-xs font-semibold text-[var(--ink-muted)]">档案依据</dt>
+              <dt className="text-xs font-semibold text-[var(--ink-muted)]">{copy.profileEvidence}</dt>
               <dd className="mt-2 flex flex-wrap gap-2">
                 {citedFacts.map((fact) => (
                   <span
@@ -206,10 +190,10 @@ function ImprovementItem({
             </div>
           ) : null}
           <div>
-            <dt className="text-xs font-semibold text-[var(--ink-muted)]">真实性</dt>
+            <dt className="text-xs font-semibold text-[var(--ink-muted)]">{copy.authenticityLabel}</dt>
             <dd className="mt-1 text-sm font-bold leading-6">
               {gateDirection?.authenticity ??
-                authenticityCopy[direction?.authenticity ?? issue.authenticity]}
+                copy.authenticity[direction?.authenticity ?? issue.authenticity]}
             </dd>
           </div>
         </dl>
@@ -221,23 +205,25 @@ function ImprovementItem({
 function Prerequisite({
   applicationId,
   stale,
+  copy,
 }: {
   applicationId: string;
   stale: boolean;
+  copy: Dictionary["improvements"];
 }) {
   return (
     <section className="dense-surface px-5 py-8 sm:px-6">
       <h2 className="heading-font text-2xl font-bold">
-        {stale ? "材料已变化，请重新分析" : "请先完成差异分析"}
+        {stale ? copy.staleNotice : copy.missingNotice}
       </h2>
       <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
-        完善方向只会基于当前 JD、所选简历和可回查事实生成。
+        {copy.prerequisiteBody}
       </p>
       <Link
         className="button-secondary mt-5 inline-flex px-4 py-2 text-sm font-semibold"
         href={`/applications/${applicationId}?tab=difference`}
       >
-        前往差异分析
+        {copy.goToDifference}
       </Link>
     </section>
   );
@@ -248,7 +234,8 @@ export function ResumeJDImprovementPanel({
   run,
   facts,
   freshness,
-}: ResumeJDImprovementPanelProps) {
+  copy,
+}: ResumeJDImprovementPanelProps & { copy: Dictionary["improvements"] }) {
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
   if (
     freshness !== "current" ||
@@ -260,6 +247,7 @@ export function ResumeJDImprovementPanel({
       <Prerequisite
         applicationId={applicationId}
         stale={freshness === "stale"}
+        copy={copy}
       />
     );
   }
@@ -281,13 +269,13 @@ export function ResumeJDImprovementPanel({
     >
       <header className="soft-surface p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-          Grounded guidance
+          {copy.eyebrow}
         </p>
         <h2 id="improvement-panel-title" className="heading-font mt-1 text-2xl font-bold sm:text-3xl">
-          完善建议
+          {copy.title}
         </h2>
         <p className="mt-3 type-body font-medium">
-          用岗位能够识别的语言重新表达真实经历，并把关键词放回动作、场景和结果中；这里不会替你编造经历或直接改写简历。
+          {copy.body}
         </p>
       </header>
 
@@ -298,16 +286,17 @@ export function ResumeJDImprovementPanel({
           <section key={group} aria-labelledby={`improvement-group-${group}`}>
             <div className="mb-3">
               <h2 id={`improvement-group-${group}`} className="heading-font text-2xl font-bold">
-                {group}
+                {copy.groups[group]}
               </h2>
               <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">
-                {groupIntro[group]}
+                {copy.groupIntros[group]}
               </p>
             </div>
             <div className="dense-surface overflow-hidden">
               {issues.map((issue) => (
                 <ImprovementItem
                   key={issue.id}
+                  copy={copy}
                   issue={issue}
                   direction={directions.get(issue.id) ?? null}
                   citedFacts={resolveCitedFacts(issue, factsById)}
@@ -321,18 +310,18 @@ export function ResumeJDImprovementPanel({
       <section className="soft-surface grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-            Optional next step
+            {copy.eyebrow}
           </p>
-          <h2 className="heading-font mt-1 text-xl font-semibold">下一步：准备面试</h2>
+          <h2 className="heading-font mt-1 text-xl font-semibold">{copy.nextTitle}</h2>
           <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
-            完善建议是独立参考。你可以继续核对简历，也可以进入面试准备。
+            {copy.nextBody}
           </p>
         </div>
         <Link
           className="button-secondary press inline-flex justify-center px-4 py-3 text-sm font-semibold"
           href={`/applications/${applicationId}?tab=interview`}
         >
-          进入面试准备
+          {copy.goInterview}
         </Link>
       </section>
     </section>

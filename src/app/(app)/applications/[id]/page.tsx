@@ -57,6 +57,7 @@ import {
   resumeJDDifferenceRepository,
   type ResumeJDDifferenceRunView,
 } from "@/features/resume-jd-difference/repository";
+import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 import { getServerEnv } from "@/lib/env/server";
 import { listAssets } from "@/features/source-assets/repository";
@@ -291,6 +292,7 @@ export default async function ApplicationDetailPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
+  const { difference, improvements } = await getDictionary();
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = resolveApplicationDetailTab(first(query.tab));
   const application = await applicationRepository.get(user.id, id);
@@ -460,6 +462,7 @@ export default async function ApplicationDetailPage({
         {activeTab === "difference" ? (
           <div className="max-w-[1040px] space-y-7">
             <ResumeJDDifferencePanel
+              copy={difference}
               applicationId={application.id}
               run={displayedDifferenceRun}
               facts={differenceFacts}
@@ -481,6 +484,7 @@ export default async function ApplicationDetailPage({
         ) : null}
         {activeTab === "improvements" ? (
           <ResumeJDImprovementPanel
+            copy={improvements}
             applicationId={application.id}
             run={differenceView.current}
             facts={differenceFacts}

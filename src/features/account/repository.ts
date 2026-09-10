@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { createClient } from "@/lib/supabase/server";
 
 import type { AccountPreferences } from "./schemas";
@@ -16,9 +18,14 @@ export type AccountProfile = {
   onboardingCompletedAt: string | null;
 };
 
-export async function getOwnedProfile(
+/**
+ * Cached per request: the interface language reads this in the root layout,
+ * and pages read it again for the display name, the target role and the AI
+ * consent. One query answers all of them.
+ */
+export const getOwnedProfile = cache(async (
   userId: string,
-): Promise<AccountProfile | null> {
+): Promise<AccountProfile | null> => {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("profiles")
@@ -39,7 +46,7 @@ export async function getOwnedProfile(
     aiProcessingConsentAt: data.ai_processing_consent_at,
     onboardingCompletedAt: data.onboarding_completed_at,
   };
-}
+});
 
 export async function saveAccountPreferences(
   userId: string,

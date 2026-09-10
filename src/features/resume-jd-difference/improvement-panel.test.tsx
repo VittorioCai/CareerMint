@@ -9,6 +9,8 @@ import {
   ResumeJDImprovementPanel,
   improvementGroupForIssue,
 } from "./improvement-panel";
+import { en } from "@/i18n/dictionaries/en";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const timestamp = "2026-08-28T10:00:00.000Z";
@@ -188,16 +190,29 @@ function run(): ResumeJDDifferenceRun {
 
 describe("ResumeJDImprovementPanel", () => {
   it("uses the five approved groups for issue types", () => {
-    expect(improvementGroupForIssue("language_misaligned")).toBe("岗位语言未对齐");
-    expect(improvementGroupForIssue("missing_result")).toBe("经历证据需要加强");
-    expect(improvementGroupForIssue("skill_only")).toBe("关键词位置较弱");
-    expect(improvementGroupForIssue("missing")).toBe("需要本人确认");
-    expect(improvementGroupForIssue("gate")).toBe("不能通过改简历解决");
+    // Identifiers, not headings. They used to be the Chinese headings, which
+    // made the group a piece of copy that other code looked up by — so
+    // translating a heading detached every issue from its group.
+    expect(improvementGroupForIssue("language_misaligned")).toBe("language");
+    expect(improvementGroupForIssue("missing_result")).toBe("evidence");
+    expect(improvementGroupForIssue("skill_only")).toBe("placement");
+    expect(improvementGroupForIssue("missing")).toBe("confirmation");
+    expect(improvementGroupForIssue("gate")).toBe("gate");
+
+    // And every group has a heading and an intro in both languages, which is
+    // the property the old shape got for free and this one has to state.
+    for (const group of ["language", "evidence", "placement", "confirmation", "gate"] as const) {
+      expect(en.improvements.groups[group]).toBeTruthy();
+      expect(en.improvements.groupIntros[group]).toBeTruthy();
+      expect(zhCN.improvements.groups[group]).toBeTruthy();
+      expect(zhCN.improvements.groupIntros[group]).toBeTruthy();
+    }
   });
 
   it("renders every group and links each direction back to a diagnosed issue", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -219,6 +234,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("shows target, focus, job language, authenticity, and the grounded direction", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -240,6 +256,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("warns unsupported users not to add unverified content and never offers rewriting actions", () => {
     const { container } = render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -258,6 +275,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("names the confirmed career facts a suggestion is grounded in", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -273,6 +291,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("drops fact ids the profile no longer has instead of rendering an empty citation", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -288,6 +307,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("omits the citation row entirely when a suggestion cites no facts", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -302,6 +322,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("still renders when the panel is given no facts at all", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={[]}
@@ -317,6 +338,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("shows only a prerequisite message when analysis is missing or stale", () => {
     const { rerender } = render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={null}
         facts={facts}
@@ -331,6 +353,7 @@ describe("ResumeJDImprovementPanel", () => {
 
     rerender(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}
@@ -344,6 +367,7 @@ describe("ResumeJDImprovementPanel", () => {
   it("ends with the optional next step to interview preparation", () => {
     render(
       <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
         applicationId={applicationId}
         run={run()}
         facts={facts}

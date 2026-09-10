@@ -7,6 +7,7 @@ import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import type { ResumeJDDifferenceRun } from "./repository";
 import type { ResumeJDDifferenceOutput } from "./schemas";
 import { ResumeJDDifferencePanel } from "./difference-panel";
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const timestamp = "2026-08-28T10:00:00.000Z";
@@ -203,6 +204,7 @@ describe("ResumeJDDifferencePanel", () => {
     const control = <button type="button">重新分析</button>;
     const { container, rerender } = render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={null}
         facts={facts}
@@ -215,6 +217,7 @@ describe("ResumeJDDifferencePanel", () => {
 
     rerender(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -237,6 +240,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("leads with the conclusion, then the job, then the rows", () => {
     const { container } = render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -264,6 +268,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("keeps every issue and every match reachable in the one list", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -279,6 +284,7 @@ describe("ResumeJDDifferencePanel", () => {
     const user = userEvent.setup();
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -306,6 +312,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("uses safe no-evidence copy and keeps matched content collapsed by default", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -322,6 +329,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("names the confirmed facts behind a difference and a match", async () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -343,6 +351,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("numbers ordinary differences and marks gates and matches instead", async () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -359,6 +368,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("separates priority from type instead of crowding one chip", async () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -377,6 +387,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("drops the three detail fields the row already shows", async () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -401,6 +412,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("puts differences, gates and matches in one list ordered by severity", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -420,6 +432,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("counts the list once, at the top, instead of per section", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -435,6 +448,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("drops the three section headings the single list replaces", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -449,6 +463,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("states the job's core as a sentence rather than three empty cells", () => {
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -465,6 +480,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("stops decorating a Chinese page with English section kickers", () => {
     const { container } = render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -496,6 +512,7 @@ describe("ResumeJDDifferencePanel", () => {
 
     render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={covered}
         facts={facts}
@@ -514,6 +531,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("does not call a stale run's file the current baseline", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -523,6 +541,7 @@ describe("ResumeJDDifferencePanel", () => {
 
     rerender(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -536,6 +555,7 @@ describe("ResumeJDDifferencePanel", () => {
   it("offers a Markdown export for the displayed run and marks previous results", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}
@@ -548,6 +568,7 @@ describe("ResumeJDDifferencePanel", () => {
 
     rerender(
       <ResumeJDDifferencePanel
+        copy={zhCN.difference}
         applicationId={applicationId}
         run={succeededRun()}
         facts={facts}

@@ -262,6 +262,7 @@ export default function DevStatesPage() {
       <div className="mt-10 flex flex-col gap-14">
         <State name="差异分析 · 无结果" note="只剩控制条，贴纸即控制条">
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={null}
             facts={facts}
@@ -275,6 +276,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 一条" note="最少的有结果状态">
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={run(output())}
             facts={facts}
@@ -286,6 +288,7 @@ export default function DevStatesPage() {
           note="零条差异，只有已对上 —— 结论不该说得像失败"
         >
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={run(
               output({
@@ -313,6 +316,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 十一条" note="密度上限，排序与徽章编号是否还站得住">
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={run(crowded)}
             facts={facts}
@@ -324,6 +328,7 @@ export default function DevStatesPage() {
           note="单条 JD 原文 350+ 字符，行内截断两行，全文在展开面板"
         >
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={run(
               output({
@@ -342,6 +347,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 已过期" note="材料变了，旧结论仍可查看">
           <ResumeJDDifferencePanel
+            copy={zhCN.difference}
             applicationId={applicationId}
             run={run(output())}
             facts={facts}
