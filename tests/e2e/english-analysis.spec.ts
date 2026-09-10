@@ -119,14 +119,16 @@ test("analyses in English, and a language switch marks that analysis stale", asy
     const applicationId = new URL(page.url()).pathname.split("/").pop()!;
     const detailUrl = `/applications/${applicationId}`;
 
-    const fileInput = page.getByLabel("Upload a new PDF or DOCX resume");
-    await fileInput.setInputFiles("tests/fixtures/resume-en.pdf");
-    // Clicking straight after `setInputFiles` can outrun React committing the
-    // change, and the form then answers "Choose a resume first" to someone who
-    // just chose one. Wait for the component to have seen the file.
-    await expect
-      .poll(() => fileInput.evaluate((node: HTMLInputElement) => node.files?.length ?? 0))
-      .toBe(1);
+    // A fresh document load, deliberately: the navigation that got here
+    // streams its RSC payload after the URL changes, and that payload
+    // remounts this subtree — discarding the chosen file, so the form answers
+    // "choose a resume first" to a test that just chose one. See
+    // `uploadBaseline` in resume-jd-difference-workflow.spec.ts.
+    await page.goto(`${detailUrl}?tab=resume&setup=1`);
+    await page
+      .getByLabel("Upload a new PDF or DOCX resume")
+      .setInputFiles("tests/fixtures/resume-en.pdf");
+    await expect(page.getByText("resume-en.pdf")).toBeVisible();
     await page.getByRole("button", { name: "Upload and use this resume" }).click();
     await expect(page).toHaveURL(
       new RegExp(`/applications/${applicationId}\\?tab=difference&setup=1$`, "u"),

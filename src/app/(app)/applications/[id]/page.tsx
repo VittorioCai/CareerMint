@@ -299,7 +299,7 @@ function InterviewPanel({
         <section>
           <div className="flex items-end justify-between gap-4">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">Common + job increment</p>
+              <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">{detail.checklistEyebrow}</p>
               <h2 className="heading-font mt-1 text-2xl font-bold">{detail.checklistTitle}</h2>
             </div>
             <span className="status-chip bg-[var(--paper)]">{questions.length} {interview.countSuffix}</span>

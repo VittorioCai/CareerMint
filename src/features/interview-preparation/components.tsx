@@ -103,7 +103,7 @@ export function NewInterviewQuestionForm({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em]">
-            Add one question
+            {copy.addEyebrow}
           </p>
           <h2 className="heading-font mt-1 text-xl font-semibold">{copy.addTitle}</h2>
         </div>

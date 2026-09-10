@@ -122,9 +122,17 @@ async function createApplication(
 }
 
 async function uploadBaseline(page: Page, applicationId: string) {
+  // A fresh document load, deliberately, rather than choosing a file on the
+  // page the previous click navigated to. That navigation streams its RSC
+  // payload *after* the URL changes; the payload remounts this subtree, and a
+  // remount discards the chosen file — so the form answers "choose a resume
+  // first" to a test that just chose one. A person never sees it: they spend a
+  // second in the file dialog and the payload has long landed.
+  await page.goto(`/applications/${applicationId}?tab=resume&setup=1`);
   await page
     .getByLabel("上传新的 PDF 或 DOCX 简历")
     .setInputFiles("tests/fixtures/resume-en.pdf");
+  await expect(page.getByText("resume-en.pdf")).toBeVisible();
   await page.getByRole("button", { name: "上传并使用这份简历" }).click();
   await expect(page).toHaveURL(
     new RegExp(`/applications/${applicationId}\\?tab=difference&setup=1$`, "u"),

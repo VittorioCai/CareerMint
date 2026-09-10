@@ -701,6 +701,7 @@ export const en = {
     alsoAsked: "Also asked as: {wording}",
     noMatches: "No question matches those filters",
     noMatchesBody: "Adjust the filters, or add a new question on the left.",
+    addEyebrow: "Add one question",
     addTitle: "Add to the library by hand",
     noAiCost: "No AI cost",
     coreQuestion: "The question",
@@ -799,6 +800,7 @@ export const en = {
     interviewBody:
       "{count} general questions are already included. Job-specific questions never duplicate a general one, and preparation is written back to the global library.",
     openLibrary: "Open the full library →",
+    checklistEyebrow: "Common + job increment",
     checklistTitle: "This job's checklist",
     backToApplications: "← Back to my applications",
   },
@@ -823,6 +825,7 @@ export const en = {
     uploadAndStart: "Upload and start the profile",
     consentRetry: "Allow it and retry",
     retry: "Try again",
+    baselineEyebrow: "Resume baseline",
     baselineTitle: "The resume for this application",
     baselineTitleSetup: "The resume for this application (optional)",
     baselineBody:

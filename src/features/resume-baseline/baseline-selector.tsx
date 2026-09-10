@@ -207,7 +207,7 @@ export function BaselineSelector({
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-            Resume baseline
+            {copy.baselineEyebrow}
           </p>
           <h2 id="baseline-selector-title" className="heading-font mt-1 text-2xl font-bold">
             {title}

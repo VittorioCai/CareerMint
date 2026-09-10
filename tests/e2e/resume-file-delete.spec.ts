@@ -115,9 +115,16 @@ test("deletes an uploaded resume without taking the work built on it", async ({
     await prepareAccount(page, account, email, userId);
     const applicationId = await createApplication(page);
 
+    // A fresh document load, deliberately: the navigation that got here
+    // streams its RSC payload after the URL changes, and that payload
+    // remounts this subtree — discarding the chosen file, so the form answers
+    // "choose a resume first" to a test that just chose one. See
+    // `uploadBaseline` in resume-jd-difference-workflow.spec.ts.
+    await page.goto(`/applications/${applicationId}?tab=resume&setup=1`);
     await page
       .getByLabel("上传新的 PDF 或 DOCX 简历")
       .setInputFiles("tests/fixtures/resume-en.pdf");
+    await expect(page.getByText("resume-en.pdf")).toBeVisible();
     await page.getByRole("button", { name: "上传并使用这份简历" }).click();
     await expect(page).toHaveURL(
       /\/applications\/[0-9a-f-]+\?tab=difference&setup=1$/u,
