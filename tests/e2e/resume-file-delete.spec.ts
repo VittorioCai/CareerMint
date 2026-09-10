@@ -126,8 +126,14 @@ test("deletes an uploaded resume without taking the work built on it", async ({
       .setInputFiles("tests/fixtures/resume-en.pdf");
     await expect(page.getByText("resume-en.pdf")).toBeVisible();
     await page.getByRole("button", { name: "上传并使用这份简历" }).click();
+    // The same 60 s this wait carries in `resume-jd-difference-workflow.spec.ts`
+    // and for the same reason: it waits on a real upload to storage and a
+    // server-side extraction. The five-second default is enough when this
+    // spec runs alone and not when it runs twenty-somethingth against one dev
+    // server, where the failure looks like flake and is a missing timeout.
     await expect(page).toHaveURL(
       /\/applications\/[0-9a-f-]+\?tab=difference&setup=1$/u,
+      { timeout: 60_000 },
     );
 
     const asset = await account

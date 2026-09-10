@@ -136,7 +136,12 @@ test("@real-ocr recognizes a scanned resume with the real WebAssembly engine", a
       .getByLabel("上传新的 PDF 或 DOCX 简历")
       .setInputFiles("tests/fixtures/resume-scanned.pdf");
     await page.getByRole("button", { name: "上传并使用这份简历" }).click();
-    await expect(page).toHaveURL(/tab=difference&setup=1$/u);
+    // See `uploadBaseline` in resume-jd-difference-workflow.spec.ts: this
+    // waits on a real upload and a server-side extraction, which outruns the
+    // five-second default once the suite is sharing one dev server.
+    await expect(page).toHaveURL(/tab=difference&setup=1$/u, {
+      timeout: 60_000,
+    });
 
     await page.getByRole("button", { name: "开始差异分析" }).click();
     await expect(

@@ -134,8 +134,12 @@ async function uploadBaseline(page: Page, applicationId: string) {
     .setInputFiles("tests/fixtures/resume-en.pdf");
   await expect(page.getByText("resume-en.pdf")).toBeVisible();
   await page.getByRole("button", { name: "上传并使用这份简历" }).click();
+  // See the same wait in `resume-jd-difference-workflow.spec.ts`: it depends
+  // on a real upload and a server-side extraction, which outruns the
+  // five-second default once the suite shares one dev server.
   await expect(page).toHaveURL(
     new RegExp(`/applications/${applicationId}\\?tab=difference&setup=1$`, "u"),
+    { timeout: 60_000 },
   );
 }
 
