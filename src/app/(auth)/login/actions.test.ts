@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { cookies } from "next/headers";
 
+import { en } from "@/i18n/dictionaries/en";
 import { createClient } from "@/lib/supabase/server";
 
 import { loginFormSchema } from "./schema";
@@ -13,6 +14,13 @@ vi.mock("@/lib/supabase/server", () => ({
 
 vi.mock("next/headers", () => ({
   cookies: vi.fn(),
+}));
+
+// `@/i18n/server` is `server-only`, which makes the module unimportable in a
+// jsdom test. The action only reads copy out of it, so the English dictionary
+// stands in unchanged.
+vi.mock("@/i18n/server", () => ({
+  getDictionary: () => Promise.resolve(en),
 }));
 
 const mockedCreateClient = vi.mocked(createClient);

@@ -184,7 +184,7 @@ describe("interview question generation service", () => {
       runId,
       expectedAttemptCount: 1,
       errorCode: "interview-question-generation-invalid-output",
-      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      errorMessage: "interview question generation failed",
       requestId: "request-123",
     });
     expect(JSON.stringify(dependencies.runs.fail.mock.calls)).not.toContain(jdText);
@@ -206,7 +206,7 @@ describe("interview question generation service", () => {
       runId,
       expectedAttemptCount: 1,
       errorCode: "interview-question-generation-invalid-output",
-      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      errorMessage: "interview question generation failed",
       requestId: "request-123",
     });
     const failurePayload = JSON.stringify(dependencies.runs.fail.mock.calls);
@@ -245,7 +245,7 @@ describe("interview question generation service", () => {
       runId,
       expectedAttemptCount: 1,
       errorCode: "interview-question-generation-provider-error",
-      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      errorMessage: "interview question generation failed",
       requestId: null,
     });
     expect(JSON.stringify(dependencies.runs.fail.mock.calls)).not.toContain(jdText);
@@ -359,7 +359,7 @@ describe("interview question generation service", () => {
       runId,
       expectedAttemptCount: 1,
       errorCode: "interview-question-generation-provider-error",
-      errorMessage: "岗位面试题生成失败，请稍后重试。",
+      errorMessage: "interview question generation failed",
       requestId: null,
     });
   });

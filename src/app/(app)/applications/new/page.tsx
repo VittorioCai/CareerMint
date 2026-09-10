@@ -28,7 +28,7 @@ export default async function NewApplicationPage() {
         </aside>
       </div>
 
-        <SetupProgress current="saved" />
+        <SetupProgress current="saved" copy={appsCopy.setup} />
 
       <div className="dense-surface mt-6 p-4 sm:p-7">
         <ApplicationDraftForm

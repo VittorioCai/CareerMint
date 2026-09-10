@@ -6,6 +6,8 @@ const router = { refresh: vi.fn() };
 
 vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { ResumeJDDifferenceAnalysisControl } from "./analysis-control";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
@@ -34,6 +36,8 @@ function renderControl(
     typeof ResumeJDDifferenceAnalysisControl
   > = {
     applicationId,
+    copy: zhCN.difference.control,
+    common: zhCN.common,
     asset,
     initialRun: null,
     freshness: "missing",
@@ -144,6 +148,8 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
     rerender(
       <ResumeJDDifferenceAnalysisControl
         applicationId={applicationId}
+        copy={zhCN.difference.control}
+        common={zhCN.common}
         asset={asset}
         initialRun={{ status: "succeeded", errorCode: null }}
         freshness="stale"
@@ -155,6 +161,8 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
     rerender(
       <ResumeJDDifferenceAnalysisControl
         applicationId={applicationId}
+        copy={zhCN.difference.control}
+        common={zhCN.common}
         asset={asset}
         initialRun={{ status: "running", errorCode: null }}
         freshness="current"

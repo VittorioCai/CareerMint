@@ -138,7 +138,7 @@ describe("resume extraction service", () => {
       jobId,
       assetId,
       errorCode: "resume-text-too-short",
-      errorMessage: "简历处理失败，请稍后重试。",
+      errorMessage: "resume extraction failed",
     });
     expect(failed.errorCode).toBe("resume-text-too-short");
   });
@@ -230,7 +230,7 @@ describe("resume extraction service", () => {
       jobId,
       assetId,
       errorCode: "resume-extraction-failed",
-      errorMessage: "简历处理失败，请稍后重试。",
+      errorMessage: "resume extraction failed",
     });
     expect(fakes.assets.setStatus).not.toHaveBeenCalledWith(
       userId,
@@ -284,7 +284,7 @@ describe("resume extraction service", () => {
       jobId,
       assetId,
       errorCode: "resume-extraction-failed",
-      errorMessage: "简历处理失败，请稍后重试。",
+      errorMessage: "resume extraction failed",
     });
     expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(ocrText);
     expect(failed.status).toBe("failed");
@@ -340,7 +340,7 @@ describe("resume extraction service", () => {
         jobId,
         assetId,
         errorCode,
-        errorMessage: "简历处理失败，请稍后重试。",
+        errorMessage: "resume extraction failed",
       });
       expect(JSON.stringify(fakes.jobs.failJob.mock.calls)).not.toContain(
         invalidOCRText,

@@ -3,11 +3,13 @@ import { join } from "node:path";
 import { render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import { SetupProgress } from "./setup-progress";
 
 describe("SetupProgress", () => {
   it("shows the agreed resume-first setup order and current step", () => {
-    render(<SetupProgress current="resume" />);
+    render(<SetupProgress current="resume" copy={zhCN.applications.setup} />);
 
     const steps = screen.getAllByRole("listitem");
     expect(steps.map((step) => step.textContent)).toEqual([

@@ -495,7 +495,7 @@ export default async function ApplicationDetailPage({
         {activeTab === "timeline" ? <Timeline events={events} appsCopy={appsCopy} locale={locale} /> : null}
         {activeTab === "resume" ? (
           <div className="space-y-6">
-            {first(query.setup) === "1" ? <SetupProgress current="resume" /> : null}
+            {first(query.setup) === "1" ? <SetupProgress current="resume" copy={appsCopy.setup} /> : null}
             <ResumePanel
               resume={resume}
               common={common}
@@ -527,6 +527,8 @@ export default async function ApplicationDetailPage({
               control={
                 <ResumeJDDifferenceAnalysisControl
                   applicationId={application.id}
+                  copy={difference.control}
+                  common={common}
                   asset={selectedResumeAsset}
                   initialRun={differenceView.current ? {
                     status: differenceView.current.status,

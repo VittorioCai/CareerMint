@@ -78,7 +78,11 @@ function safeFailure(error: unknown) {
     errorCode: safeErrorCodes.has(candidate)
       ? candidate
       : "resume-extraction-failed",
-    errorMessage: "简历处理失败，请稍后重试。",
+    // Stored on the job row and never rendered: the UI resolves copy from
+    // `errorCode`. Written in English on purpose — a stored diagnostic has no
+    // reader's language, and a Chinese sentence here could only reach a
+    // screen by accident, untranslated.
+    errorMessage: "resume extraction failed",
   };
 }
 

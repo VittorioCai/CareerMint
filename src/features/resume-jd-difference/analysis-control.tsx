@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 
 import type { ResumeAssetOption } from "@/features/resume-baseline/baseline-selector";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 import type {
   OcrProgress,
   ScannedPdfOcrOptions,
@@ -40,8 +41,12 @@ type AnalyzeResponse = {
   error?: unknown;
 };
 
+export type DifferenceControlCopy = Dictionary["difference"]["control"];
+
 export type ResumeJDDifferenceAnalysisControlProps = {
   applicationId: string;
+  copy: DifferenceControlCopy;
+  common: Dictionary["common"];
   asset: ResumeAssetOption | null;
   initialRun: ResumeJDDifferenceControlRun | null;
   freshness: Freshness;
@@ -51,35 +56,41 @@ export type ResumeJDDifferenceAnalysisControlProps = {
   ocrPdf?: DifferenceBrowserOcrHook;
 };
 
-export const errorCopy: Record<string, string> = {
-  "ai-processing-consent-required":
-    "需要先允许 AI 处理 JD 与简历，授权后再试。",
-  "resume-source-required": "请先选择一份对照简历。",
-  "resume-source-changed": "对照简历已经变化，请刷新页面后重试。",
-  "resume-text-insufficient":
-    "没有读到足够的简历文字。请回到简历页预览，必要时重新上传。",
-  "resume-parse-failed":
-    "无法读取这份简历。请回到简历页检查预览或重新上传。",
-  "source-download-failed": "无法下载这份私有简历，请稍后重试。",
-  "resume-jd-difference-unavailable":
-    "分析服务暂时不可用，与你上传的材料无关。稍后重新分析；如果一直这样，请联系我们。",
-  "resume-jd-difference-invalid-output":
-    "分析结果没有通过完整性检查，请重新分析。",
-  "resume-jd-difference-evidence-invalid":
-    "分析中的引用无法回查，因此结果没有发布。请重新分析。",
-  "ai-timeout": "分析服务响应超时，请稍后重新分析。",
-  "ai-rate-limited": "分析请求较多，请稍后再试。",
-  "ai-request-failed": "分析服务请求失败，请稍后再试。",
-  "resume-jd-difference-request-failed": "分析请求失败，请稍后重试。",
-  "resume-jd-difference-failed":
-    "分析中途失败了，没有产生结果。重新分析一次；如果仍然失败，请到简历页检查提取出的文字是否完整。",
-  "resume-ocr-too-many-pages": "扫描版简历页数超过 10 页，请精简后重试。",
-  "resume-ocr-unavailable": "本地识别暂时不可用，请重试或上传文字版简历。",
-  "ocr-request-too-large": "识别文字超过大小限制，请精简后重试。",
-  "invalid-ocr-text": "识别文字无效，请重新识别或上传文字版简历。",
-  "download-failed": "无法下载这份私有简历，请重试。",
-  "network-error": "网络暂时不可用，请检查连接后重试。",
-};
+/**
+ * Every code the analyze route and the OCR path can fail with, in the
+ * reader's language.
+ *
+ * A record rather than a switch because the component asks two questions of
+ * it: what does this code say, and *is* this a code we know — a caught
+ * `Error` message is only treated as an error code if it appears here, and
+ * anything else becomes `network-error` rather than being shown raw.
+ */
+export function differenceErrorCopy(
+  copy: DifferenceControlCopy["errors"],
+): Record<string, string> {
+  return {
+    "ai-processing-consent-required": copy.consentRequired,
+    "resume-source-required": copy.sourceRequired,
+    "resume-source-changed": copy.sourceChanged,
+    "resume-text-insufficient": copy.textInsufficient,
+    "resume-parse-failed": copy.parseFailed,
+    "source-download-failed": copy.downloadFailed,
+    "resume-jd-difference-unavailable": copy.unavailable,
+    "resume-jd-difference-invalid-output": copy.invalidOutput,
+    "resume-jd-difference-evidence-invalid": copy.evidenceInvalid,
+    "ai-timeout": copy.timeout,
+    "ai-rate-limited": copy.rateLimited,
+    "ai-request-failed": copy.requestFailed,
+    "resume-jd-difference-request-failed": copy.analysisRequestFailed,
+    "resume-jd-difference-failed": copy.failed,
+    "resume-ocr-too-many-pages": copy.ocrTooManyPages,
+    "resume-ocr-unavailable": copy.ocrUnavailable,
+    "ocr-request-too-large": copy.ocrRequestTooLarge,
+    "invalid-ocr-text": copy.invalidOcrText,
+    "download-failed": copy.downloadRetry,
+    "network-error": copy.networkError,
+  };
+}
 
 export function resolveDifferenceBrowserOcrHook(
   environment: string | undefined = process.env.NODE_ENV,
@@ -131,6 +142,8 @@ export function ResumeJDDifferenceAnalysisControl(
 
 function AnalysisControlState({
   applicationId,
+  copy,
+  common,
   asset,
   initialRun,
   freshness,
@@ -157,6 +170,7 @@ function AnalysisControlState({
   const [ocrProgress, setOcrProgress] = useState<OcrProgress | null>(null);
   const cachedOcrTextRef = useRef<string | null>(null);
   const ocrAbortControllerRef = useRef<AbortController | null>(null);
+  const errorCopy = differenceErrorCopy(copy.errors);
 
   useEffect(
     () => () => {
@@ -172,17 +186,17 @@ function AnalysisControlState({
         <div className="grid gap-5 p-5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:p-6">
           <div>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
-              Resume baseline
+              {copy.baselineEyebrow}
             </p>
             <h2 id="difference-control-title" className="heading-font mt-1 text-2xl font-bold">
-              先确定这次要对照的简历
+              {copy.baselineTitle}
             </h2>
             <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
-              差异分析只比较当前 JD 与你选定的那一版简历，职业档案仅作为已确认补充。
+              {copy.baselineBody}
             </p>
             {hasPreviousResult ? (
               <p className="mt-2 type-body font-medium">
-                上一次的分析结果仍显示在下方，选定新的对照简历后可以重新分析。
+                {copy.previousShown}
               </p>
             ) : null}
           </div>
@@ -190,7 +204,7 @@ function AnalysisControlState({
             href={`/applications/${applicationId}?tab=resume`}
             className="button-primary inline-flex min-h-11 items-center justify-center px-5 text-sm font-semibold"
           >
-            先选择对照简历
+            {copy.chooseBaseline}
           </Link>
         </div>
       </section>
@@ -334,16 +348,16 @@ function AnalysisControlState({
   }
 
   const statusCopy = ocrActive
-    ? "正在本机识别扫描版简历"
+    ? copy.statusOcr
     : busy
-      ? "正在分析岗位与简历差异"
+      ? copy.statusAnalysing
     : stale
-      ? "材料已变化，请重新分析"
+      ? copy.statusStale
       : completed
-        ? "分析已完成"
+        ? copy.statusComplete
         : status === "failed"
-          ? "本次分析没有完成"
-          : "准备分析当前 JD 与这份简历";
+          ? copy.statusFailed
+          : copy.statusIdle;
 
   // When a result is on screen the panel's own headline already names the
   // resume and the state, so repeating them here would be the page saying the
@@ -369,16 +383,16 @@ function AnalysisControlState({
                 </span>
               </div>
               <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-bold">
-                对照：{asset.originalName}
+                {copy.comparing.replace("{name}", asset.originalName)}
               </h2>
               <p className="mt-2 max-w-3xl type-caption font-medium text-[var(--ink-muted)]">
-                一次分析会同时生成岗位核心判断、完整差异和后续完善方向；不会修改简历。
+                {copy.oneRunBody}
               </p>
             </>
           )}
           {reused ? (
             <p className="text-xs font-semibold text-[var(--ink-muted)]">
-              已复用相同材料的结果
+              {copy.reused}
             </p>
           ) : null}
           {visibleError ? (
@@ -394,11 +408,10 @@ function AnalysisControlState({
                 onClick={() => void runOcr()}
                 disabled={busy}
               >
-                在本机识别扫描版 PDF
+                {copy.ocrCta}
               </button>
               <p className="mt-2 max-w-xl text-xs font-semibold leading-5 text-[var(--ink-muted)]">
-                识别在你的浏览器里完成，简历不会上传。首次使用需要下载约 30 MB
-                的识别引擎，之后浏览器会缓存，不必重复下载。
+                {copy.ocrNote}
               </p>
             </div>
           ) : null}
@@ -409,14 +422,14 @@ function AnalysisControlState({
                   htmlFor="difference-pasted-resume"
                   className="text-xs font-semibold uppercase tracking-[0.12em]"
                 >
-                  简历文字
+                  {copy.pasteLabel}
                 </label>
                 <textarea
                   id="difference-pasted-resume"
                   rows={6}
                   value={pastedText}
                   onChange={(event) => setPastedText(event.target.value)}
-                  placeholder="把简历内容粘贴到这里。不会上传原文件，只发送这段文字。"
+                  placeholder={copy.pastePlaceholder}
                   className="form-input mt-2 leading-6"
                 />
                 {pasteError ? (
@@ -433,28 +446,29 @@ function AnalysisControlState({
                       const text = pastedText.trim();
                       if (text.length < MIN_PASTED_RESUME_CHARS) {
                         setPasteError(
-                          `粘贴的文字太短，至少需要 ${MIN_PASTED_RESUME_CHARS} 个字符。`,
+                          copy.pasteTooShort.replace(
+                            "{min}",
+                            String(MIN_PASTED_RESUME_CHARS),
+                          ),
                         );
                         return;
                       }
                       if (text.length > MAX_PASTED_RESUME_CHARS) {
-                        setPasteError(
-                          "粘贴的文字超出长度上限，请只保留简历正文。",
-                        );
+                        setPasteError(copy.pasteTooLong);
                         return;
                       }
                       setPasteError(null);
                       void analyze(text);
                     }}
                   >
-                    用这段文字分析
+                    {copy.pasteAnalyse}
                   </button>
                   <button
                     type="button"
                     className="button-secondary min-h-11 px-4 text-sm font-semibold"
                     onClick={() => setPasteOpen(false)}
                   >
-                    取消
+                    {common.cancel}
                   </button>
                 </div>
               </div>
@@ -465,7 +479,7 @@ function AnalysisControlState({
                 onClick={() => setPasteOpen(true)}
                 disabled={busy}
               >
-                改为粘贴简历文字
+                {copy.pasteOpen}
               </button>
             )
           ) : null}
@@ -473,14 +487,16 @@ function AnalysisControlState({
             <div className="mt-3" aria-live="polite">
               <p className="text-sm font-semibold">
                 {ocrProgress?.phase === "recognizing"
-                  ? `正在本机识别扫描版简历（第 ${ocrProgress.page}/${ocrProgress.totalPages} 页）`
-                  : "正在下载识别引擎（首次约 30 MB，之后会缓存）…"}
+                  ? copy.ocrProgress
+                      .replace("{page}", String(ocrProgress.page))
+                      .replace("{total}", String(ocrProgress.totalPages))
+                  : copy.ocrDownloading}
               </p>
               <progress
                 aria-label={
                   ocrProgress?.phase === "recognizing"
-                    ? "扫描版 PDF 本机识别进度"
-                    : "识别引擎下载进度"
+                    ? copy.ocrProgressLabel
+                    : copy.ocrDownloadLabel
                 }
                 className="mt-2 h-2 w-full accent-[var(--ink)]"
                 max={
@@ -497,7 +513,7 @@ function AnalysisControlState({
                 className="button-secondary mt-2 min-h-10 px-4 text-xs font-semibold"
                 onClick={cancelOcr}
               >
-                取消本机识别
+                {copy.cancelOcr}
               </button>
             </div>
           ) : null}
@@ -506,7 +522,7 @@ function AnalysisControlState({
               href={`/applications/${applicationId}?tab=difference&result=previous`}
               className="mt-3 inline-block text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4"
             >
-              查看上次结果
+              {copy.viewPrevious}
             </Link>
           ) : null}
         </div>
@@ -517,12 +533,12 @@ function AnalysisControlState({
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >
           {ocrActive
-            ? "正在识别…"
+            ? copy.recognising
             : busy
-              ? "正在分析…"
+              ? copy.analysing
               : completed || stale
-                ? "重新分析"
-                : "开始差异分析"}
+                ? copy.reanalyse
+                : copy.start}
         </button>
     </div>
   );

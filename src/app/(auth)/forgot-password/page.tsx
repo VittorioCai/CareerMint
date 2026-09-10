@@ -11,7 +11,7 @@ export default async function ForgotPasswordPage() {
       title={auth.pages.forgotTitle}
       description={auth.pages.forgotBody}
     >
-      <ResetRequestForm />
+      <ResetRequestForm copy={auth} />
     </AuthShell>
   );
 }

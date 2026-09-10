@@ -17,6 +17,9 @@ export const updatePasswordFormSchema = z
     confirmPassword: z.string().min(8).max(128),
   })
   .refine((data) => data.password === data.confirmPassword, {
-    message: "两次输入的密码不一致",
+    // A code, not copy. The action replaces it with a localized message
+    // before anything reaches the screen, so a Chinese sentence here was
+    // untranslated text that could only ever leak by accident.
+    message: "password-confirmation-mismatch",
     path: ["confirmPassword"],
   });

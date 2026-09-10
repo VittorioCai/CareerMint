@@ -109,7 +109,10 @@ export type InterviewQuestionGenerationServiceResult = {
   reused: boolean;
 };
 
-const safeErrorMessage = "岗位面试题生成失败，请稍后重试。";
+// Stored on the run row and never rendered: the UI resolves copy from
+// `errorCode`. English on purpose — see the same note in the extraction
+// service; a stored diagnostic has no reader's language.
+const safeErrorMessage = "interview question generation failed";
 const requestIdPattern = /^[A-Za-z0-9._:-]{1,200}$/;
 
 export function sanitizeInterviewQuestionGenerationRequestId(

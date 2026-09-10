@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { isAppLocale, LOCALE_COOKIE } from "@/i18n/locale";
+import { getDictionary } from "@/i18n/server";
 import { createClient } from "@/lib/supabase/server";
 
 import {
@@ -17,8 +18,6 @@ export type AuthActionState = {
   message: string | null;
 };
 
-const neutralResetMessage = "如果该邮箱存在，我们已发送重设链接";
-
 function loginFormValues(formData: FormData) {
   return {
     email: String(formData.get("email") ?? ""),
@@ -30,15 +29,16 @@ export async function login(
   _state: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const { auth } = await getDictionary();
   const parsed = loginFormSchema.safeParse(loginFormValues(formData));
   if (!parsed.success) {
-    return { error: "请输入有效邮箱和至少 8 位密码", message: null };
+    return { error: auth.errors.invalidCredentials, message: null };
   }
 
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword(parsed.data);
   if (error) {
-    return { error: "邮箱或密码不正确", message: null };
+    return { error: auth.errors.signInFailed, message: null };
   }
 
   redirect("/app");
@@ -48,9 +48,10 @@ export async function signup(
   _state: AuthActionState,
   formData: FormData,
 ): Promise<AuthActionState> {
+  const { auth } = await getDictionary();
   const parsed = loginFormSchema.safeParse(loginFormValues(formData));
   if (!parsed.success) {
-    return { error: "请输入有效邮箱和至少 8 位密码", message: null };
+    return { error: auth.errors.invalidCredentials, message: null };
   }
 
   const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "http://127.0.0.1:3000";
@@ -76,8 +77,8 @@ export async function signup(
   });
 
   return error
-    ? { error: "注册失败，请稍后重试", message: null }
-    : { error: null, message: "请检查邮箱并完成确认" };
+    ? { error: auth.errors.signUpFailed, message: null }
+    : { error: null, message: auth.messages.confirmEmail };
 }
 
 export async function requestPasswordReset(
@@ -97,7 +98,8 @@ export async function requestPasswordReset(
     });
   }
 
-  return { error: null, message: neutralResetMessage };
+  const { auth } = await getDictionary();
+  return { error: null, message: auth.messages.resetLinkSent };
 }
 
 export async function updatePassword(
@@ -109,21 +111,22 @@ export async function updatePassword(
     confirmPassword: String(formData.get("confirmPassword") ?? ""),
   });
 
+  const { auth } = await getDictionary();
   if (!parsed.success) {
-    return { error: "请输入两次相同的 8–128 位密码", message: null };
+    return { error: auth.errors.passwordMismatch, message: null };
   }
 
   const supabase = await createClient();
   const { data } = await supabase.auth.getUser();
   if (!data.user) {
-    return { error: "重设链接已失效，请重新申请", message: null };
+    return { error: auth.errors.resetLinkExpired, message: null };
   }
 
   const { error } = await supabase.auth.updateUser({
     password: parsed.data.password,
   });
   if (error) {
-    return { error: "密码更新失败，请重新申请重设链接", message: null };
+    return { error: auth.errors.passwordUpdateFailed, message: null };
   }
 
   redirect("/app");

@@ -49,6 +49,26 @@ export const en = {
     backToSignIn: "Back to sign in",
     signUpNote:
       "We will email you a confirmation link. Third-party sign-in is not part of the MVP.",
+    resetEmail: "Account email",
+    sending: "Sending…",
+    sendResetLink: "Send the reset link",
+    newPassword: "New password",
+    confirmNewPassword: "New password again",
+    updating: "Updating…",
+    updateAndEnter: "Update the password and open the job desk",
+    errors: {
+      invalidCredentials: "Enter a valid email and a password of at least 8 characters",
+      signInFailed: "That email and password do not match",
+      signUpFailed: "The account could not be created. Try again in a moment",
+      passwordMismatch: "Enter the same 8–128 character password twice",
+      resetLinkExpired: "That reset link has expired. Request a new one",
+      passwordUpdateFailed: "The password was not updated. Request a new reset link",
+    },
+    messages: {
+      confirmEmail: "Check your email and confirm the address",
+      // Deliberately says nothing about whether the address is registered.
+      resetLinkSent: "If that email has an account, we have sent it a reset link",
+    },
     pages: {
       signInEyebrow: "Account access",
       signInTitle: "Welcome back. Let's get the next application ready.",
@@ -252,6 +272,76 @@ export const en = {
     },
   },
   difference: {
+    control: {
+      baselineEyebrow: "Resume baseline",
+      baselineTitle: "Pick the resume to compare first",
+      baselineBody:
+        "The analysis compares this job description against the one resume you pick. Your career profile only contributes what you have already confirmed.",
+      previousShown:
+        "The previous result is still below. Pick a new comparison resume and you can run it again.",
+      chooseBaseline: "Choose a comparison resume",
+      statusOcr: "Recognising the scanned resume on this device",
+      statusAnalysing: "Comparing the job and the resume",
+      statusStale: "The material changed — run it again",
+      statusComplete: "Analysis complete",
+      statusFailed: "That run did not finish",
+      statusIdle: "Ready to compare this job description with this resume",
+      comparing: "Against: {name}",
+      oneRunBody:
+        "One run produces the job's core judgement, the full list of differences and where to go next. It never edits your resume.",
+      reused: "Reused the result for identical material",
+      ocrCta: "Recognise the scanned PDF on this device",
+      ocrNote:
+        "Recognition happens in your browser; the resume is not uploaded. The engine is about 30 MB the first time and your browser keeps it afterwards.",
+      pasteLabel: "Resume text",
+      pastePlaceholder:
+        "Paste the resume text here. The original file is not uploaded — only this text is sent.",
+      pasteTooShort: "That is too short; it needs at least {min} characters.",
+      pasteTooLong: "That is over the length limit. Keep only the body of the resume.",
+      pasteAnalyse: "Analyse this text",
+      pasteOpen: "Paste the resume text instead",
+      ocrProgress: "Recognising the scanned resume on this device (page {page}/{total})",
+      ocrDownloading:
+        "Downloading the recognition engine (about 30 MB the first time, cached afterwards)…",
+      ocrProgressLabel: "Scanned-PDF recognition progress",
+      ocrDownloadLabel: "Recognition engine download progress",
+      cancelOcr: "Cancel local recognition",
+      viewPrevious: "See the previous result",
+      recognising: "Recognising…",
+      analysing: "Analysing…",
+      reanalyse: "Run it again",
+      start: "Start the analysis",
+      errors: {
+        consentRequired:
+          "This needs your permission to let AI read the job description and resume. Allow it in settings, then try again.",
+        sourceRequired: "Pick a comparison resume first.",
+        sourceChanged: "The comparison resume changed. Reload the page and try again.",
+        textInsufficient:
+          "Not enough resume text was readable. Go back to the resume page to preview it, and upload it again if you need to.",
+        parseFailed:
+          "This resume could not be read. Go back to the resume page to check the preview, or upload it again.",
+        downloadFailed: "That private resume could not be downloaded. Try again in a moment.",
+        unavailable:
+          "The analysis service is briefly unavailable — nothing to do with the material you uploaded. Try again shortly; contact us if it keeps happening.",
+        invalidOutput: "The result did not pass its integrity check. Run the analysis again.",
+        evidenceInvalid:
+          "The citations in the result could not be traced back, so it was not published. Run the analysis again.",
+        timeout: "The analysis service timed out. Try again in a moment.",
+        rateLimited: "A lot of requests right now. Try again in a moment.",
+        requestFailed: "The analysis service could not be reached. Try again in a moment.",
+        analysisRequestFailed: "The request failed. Try again in a moment.",
+        failed:
+          "The run failed part way and produced nothing. Try once more; if it fails again, check on the resume page that the extracted text is complete.",
+        ocrTooManyPages: "A scanned resume over 10 pages is too long. Trim it and try again.",
+        ocrUnavailable:
+          "Local recognition is unavailable. Try again, or upload a text version of the resume.",
+        ocrRequestTooLarge: "The recognised text is over the size limit. Trim it and try again.",
+        invalidOcrText:
+          "The recognised text is not usable. Run recognition again, or upload a text version.",
+        downloadRetry: "That private resume could not be downloaded. Try again.",
+        networkError: "The network is briefly unavailable. Check your connection and try again.",
+      },
+    },
     issueTypes: {
       missing: "Not covered",
       language_misaligned: "Wording not aligned to the job",
@@ -372,6 +462,13 @@ export const en = {
       "Guidance is only ever generated from the current JD, the selected resume and facts you can point at.",
   },
   applications: {
+    setup: {
+      label: "Application setup progress",
+      saved: "Save the job description",
+      resume: "Pick and preview a resume",
+      jd: "Analyse the job description",
+      gap: "Read the differences",
+    },
     stages: {
       preparing: "Preparing",
       applied: "Applied",

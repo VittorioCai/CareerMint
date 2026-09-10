@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useActionState } from "react";
 
 import { AuthFeedback } from "@/components/auth-feedback";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 import {
   requestPasswordReset,
   type AuthActionState,
@@ -11,7 +12,7 @@ import {
 
 const initialState: AuthActionState = { error: null, message: null };
 
-export function ResetRequestForm() {
+export function ResetRequestForm({ copy }: { copy: Dictionary["auth"] }) {
   const [state, action, pending] = useActionState(
     requestPasswordReset,
     initialState,
@@ -21,13 +22,13 @@ export function ResetRequestForm() {
     <form action={action} className="space-y-5">
       <AuthFeedback error={state.error} message={state.message} />
       <div>
-        <label className="form-label" htmlFor="email">账户邮箱</label>
+        <label className="form-label" htmlFor="email">{copy.resetEmail}</label>
         <input className="form-input" id="email" name="email" type="email" autoComplete="email" placeholder="name@example.com" required />
       </div>
       <button className="button-primary min-h-12 w-full px-5 font-semibold disabled:cursor-wait disabled:opacity-60" type="submit" disabled={pending}>
-        {pending ? "正在发送…" : "发送重设链接"}
+        {pending ? copy.sending : copy.sendResetLink}
       </button>
-      <Link href="/login" className="block text-center text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4">返回登录</Link>
+      <Link href="/login" className="block text-center text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4">{copy.backToSignIn}</Link>
     </form>
   );
 }

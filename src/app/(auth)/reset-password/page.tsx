@@ -11,7 +11,7 @@ export default async function ResetPasswordPage() {
       title={auth.pages.resetTitle}
       description={auth.pages.resetBody}
     >
-      <UpdatePasswordForm />
+      <UpdatePasswordForm copy={auth} />
     </AuthShell>
   );
 }

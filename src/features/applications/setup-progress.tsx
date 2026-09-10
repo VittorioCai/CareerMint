@@ -1,24 +1,30 @@
-const setupSteps = [
-  { id: "saved", label: "保存 JD" },
-  { id: "resume", label: "选择并预览简历" },
-  { id: "jd", label: "分析 JD" },
-  { id: "gap", label: "查看差距" },
-] as const;
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
-export type SetupProgressStep = (typeof setupSteps)[number]["id"];
+// The step order is the product's, not the copy's: the labels move to the
+// dictionary but the sequence — and the fact that both entry points use this
+// one list — stays here.
+const setupSteps = ["saved", "resume", "jd", "gap"] as const;
 
-export function SetupProgress({ current }: { current: SetupProgressStep }) {
-  const currentIndex = setupSteps.findIndex((step) => step.id === current);
+export type SetupProgressStep = (typeof setupSteps)[number];
+
+export function SetupProgress({
+  current,
+  copy,
+}: {
+  current: SetupProgressStep;
+  copy: Dictionary["applications"]["setup"];
+}) {
+  const currentIndex = setupSteps.indexOf(current);
 
   return (
-    <nav aria-label="申请准备进度" className="dense-surface p-3 sm:p-4">
+    <nav aria-label={copy.label} className="dense-surface p-3 sm:p-4">
       <ol className="grid gap-2 sm:grid-cols-4">
         {setupSteps.map((step, index) => {
           const active = index === currentIndex;
           const completed = index < currentIndex;
           return (
             <li
-              key={step.id}
+              key={step}
               aria-current={active ? "step" : undefined}
               className={`rounded-xl border px-3 py-3 text-xs font-semibold ${
                 active
@@ -29,9 +35,9 @@ export function SetupProgress({ current }: { current: SetupProgressStep }) {
               }`}
             >
               <span className="mr-1.5" aria-hidden="true">
-                {completed ? "✓" : index + 1}.
+                {completed ? "\u2713" : index + 1}.
               </span>
-              <span>{step.label}</span>
+              <span>{copy[step]}</span>
             </li>
           );
         })}

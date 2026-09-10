@@ -38,7 +38,7 @@ function fakeProvider(): Pick<AIProvider, "extractResumeFacts"> {
               data: {
                 title: hasAchievement
                   ? "Improved checkout conversion by 18%"
-                  : "简历内容摘要",
+                  : "Resume summary",
                 organization: null,
                 startDate: null,
                 endDate: null,

@@ -8,7 +8,7 @@ import { draftErrorMessage } from "./applications/application-draft-form";
 import { stageUpdateMessage } from "./applications/stage-update-form";
 import { resumeFileDeleteErrorCopy } from "./resume-baseline/resume-file-delete-control";
 import { accountDeleteErrorCopy } from "./privacy/privacy-controls";
-import { errorCopy as differenceErrorCopy } from "./resume-jd-difference/analysis-control";
+import { differenceErrorCopy } from "./resume-jd-difference/analysis-control";
 import { uploadErrorMessage } from "./source-assets/upload-form";
 
 /**
@@ -62,7 +62,11 @@ const transient = new Set([
  */
 const concreteAction =
   /(上传|选择|检查|压缩|精简|刷新|登录|授权|预览|设置|更换|删除|补充|识别|连接|返回|联系)|\b(upload|select|pick|choose|check|compress|trim|reload|sign in|authoris|authoriz|preview|settings|replace|delete|add|recognis|recogniz|connection|back to|contact|confirm|save as|export|leave it out|fill in|entered|different)/iu;
-const retry = /(重试|再试|重新)|\b(try again|retry|again in a moment)/iu;
+// "Run the analysis again", "Run recognition again" — the English half of
+// 重新分析 / 重新识别. Written as "run … again" rather than listed verb by
+// verb so a new one does not silently read as a message with no advice.
+const retry =
+  /(重试|再试|重新)|\b(try again|retry|again in a moment)|\brun\b[^.]{0,24}\bagain\b/iu;
 
 /**
  * The codes each resolver answers.
@@ -125,7 +129,6 @@ const UPLOAD_CODES = [
 ] as const;
 
 const tables: [string, Record<string, string>][] = [
-  ["difference", differenceErrorCopy],
   // The localized tables are built by calling the resolver for every code it
   // knows, once per language: a message that only reads well in one of them is
   // still a message that fails this rule for half the readers.
@@ -135,6 +138,10 @@ const tables: [string, Record<string, string>][] = [
       ["zh-CN", zhCN],
     ] as const
   ).flatMap(([language, dictionary]): [string, Record<string, string>][] => [
+    [
+      `difference (${language})`,
+      differenceErrorCopy(dictionary.difference.control.errors),
+    ],
     [
       `upload (${language})`,
       Object.fromEntries(
