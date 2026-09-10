@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
+import { LinkPending } from "./link-pending";
+
 function NavigationIcon({ href }: { href: string }) {
   const paths: Record<string, React.ReactNode> = {
     "/app": <path d="M4 9.2 10 4l6 5.2V16H5V9.2Z" />,
@@ -49,7 +51,10 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
         }`}
       >
         <NavigationIcon href={href} />
-        <span>{label}</span>
+        <span className="inline-flex items-center gap-1">
+          {label}
+          <LinkPending />
+        </span>
       </Link>
     );
   }
@@ -66,6 +71,7 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
     >
       <NavigationIcon href={href} />
       <span>{label}</span>
+      <LinkPending />
     </Link>
   );
 }

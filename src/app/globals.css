@@ -548,6 +548,30 @@ a.text-action {
 
 /* One item in a segmented control. 32px is right under a mouse and out of
    reach of a thumb, so the height is the only thing that differs. */
+/* The pending hint on a clicked link. See `link-pending.tsx` for why it
+   exists and why it is shaped this way.
+
+   Always in the flow at a fixed size, so it cannot shift the row it sits in —
+   this layout is held to zero CLS in CI. The 120ms delay is the whole point:
+   a prefetched navigation finishes inside it and the hint never shows, so it
+   marks a wait rather than decorating every click. The delay also outlives
+   `prefers-reduced-motion`, which collapses durations and leaves delays
+   alone, so a reader who asked for less motion still gets the signal — it
+   simply arrives without the fade. */
+.link-pending {
+  width: 5px;
+  height: 5px;
+  flex: none;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0;
+  transition: opacity var(--dur-fast) var(--ease-out) 120ms;
+}
+
+.link-pending.is-pending {
+  opacity: 0.55;
+}
+
 .segment {
   display: inline-flex;
   align-items: center;
