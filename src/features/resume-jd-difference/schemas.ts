@@ -2,6 +2,8 @@ import { z } from "zod";
 
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 
+import { isPasteReadyRewrite } from "./policy";
+
 const localIdSchema = z
   .string()
   .trim()
@@ -58,9 +60,9 @@ export const resumeTargetSectionSchema = z.enum([
 export const jobConceptSchema = z
   .object({
     id: localIdSchema,
-    labelZh: boundedText(160),
+    label: boundedText(160),
     originalTerms: z.array(boundedText(160)).min(1).max(12),
-    importanceReasonZh: boundedText(600),
+    importanceReason: boundedText(600),
     priority: differencePrioritySchema,
   })
   .strict();
@@ -69,8 +71,8 @@ export const jobGateSchema = z
   .object({
     id: localIdSchema,
     originalText: boundedText(1_000),
-    translationZh: boundedText(1_500),
-    reasonZh: boundedText(600),
+    translation: boundedText(1_500),
+    reason: boundedText(600),
   })
   .strict();
 
@@ -78,8 +80,8 @@ export const preferredItemSchema = z
   .object({
     id: localIdSchema,
     originalText: boundedText(1_000),
-    translationZh: boundedText(1_500),
-    reasonZh: boundedText(600),
+    translation: boundedText(1_500),
+    reason: boundedText(600),
   })
   .strict();
 
@@ -88,13 +90,13 @@ export const differenceIssueSchema = z
     id: localIdSchema,
     conceptId: localIdSchema.nullable(),
     jdOriginal: boundedText(1_000),
-    jdTranslationZh: boundedText(1_500),
+    jdTranslation: boundedText(1_500),
     resumeExcerpt: boundedText(1_000).nullable(),
-    resumeStatusZh: boundedText(800),
+    resumeStatus: boundedText(800),
     profileFactIds: z.array(z.uuid()).max(12),
     type: differenceIssueTypeSchema,
-    problemZh: boundedText(800),
-    reasonZh: boundedText(1_000),
+    problem: boundedText(800),
+    reason: boundedText(1_000),
     priority: differencePrioritySchema,
     isGate: z.boolean(),
     authenticity: authenticitySchema,
@@ -106,10 +108,10 @@ export const matchedItemSchema = z
     id: localIdSchema,
     conceptId: localIdSchema,
     jdOriginal: boundedText(1_000),
-    jdTranslationZh: boundedText(1_500),
+    jdTranslation: boundedText(1_500),
     resumeExcerpt: boundedText(1_000),
     profileFactIds: z.array(z.uuid()).max(12),
-    reasonZh: boundedText(800),
+    reason: boundedText(800),
   })
   .strict();
 
@@ -118,14 +120,14 @@ export const improvementDirectionSchema = z
     id: localIdSchema,
     issueId: localIdSchema,
     targetSection: resumeTargetSectionSchema,
-    targetExperienceZh: boundedText(300).nullable(),
+    targetExperience: boundedText(300).nullable(),
     conceptId: localIdSchema.nullable(),
     jdTerms: z.array(boundedText(160)).max(12),
     focusAreas: z.array(improvementFocusAreaSchema).max(6),
     synonymousJobLanguage: z.array(boundedText(160)).max(12),
     authenticity: authenticitySchema,
     needsConfirmation: z.boolean(),
-    directionZh: boundedText(800),
+    direction: boundedText(800),
   })
   .strict();
 
@@ -133,7 +135,7 @@ export const resumeJDDifferenceOutputSchema = z
   .object({
     jobCore: z
       .object({
-        missionZh: boundedText(800),
+        mission: boundedText(800),
         coreCapabilities: z.array(boundedText(240)).max(5),
         concepts: z.array(jobConceptSchema).min(1).max(24),
         gates: z.array(jobGateSchema).max(16),
@@ -142,7 +144,7 @@ export const resumeJDDifferenceOutputSchema = z
       .strict(),
     overallDifference: z
       .object({
-        summaryZh: boundedText(1_000),
+        summary: boundedText(1_000),
         topIssueIds: z.array(localIdSchema).max(3),
       })
       .strict(),
@@ -151,6 +153,60 @@ export const resumeJDDifferenceOutputSchema = z
     directions: z.array(improvementDirectionSchema).max(80),
   })
   .strict();
+
+/**
+ * The prose keys as they were spelled before there was a second output
+ * language, mapped to the names the contract uses now.
+ *
+ * The `Zh` suffix was not decoration: `looksLikePasteReadyResumeText` read it
+ * as a promise that the text was Chinese and skipped its check on any
+ * Latin-script sentence. Once the model can answer in English that promise is
+ * false, so the suffix had to go — and a run stored under the old spelling has
+ * to stay readable, which is what this is for.
+ */
+const LEGACY_PROSE_KEYS: Record<string, string> = {
+  missionZh: "mission",
+  overallSummaryZh: "overallSummary",
+  summaryZh: "summary",
+  labelZh: "label",
+  conceptLabelZh: "conceptLabel",
+  importanceReasonZh: "importanceReason",
+  translationZh: "translation",
+  jdTranslationZh: "jdTranslation",
+  resumeStatusZh: "resumeStatus",
+  problemZh: "problem",
+  reasonZh: "reason",
+  targetExperienceZh: "targetExperience",
+  directionZh: "direction",
+};
+
+function renameLegacyProseKeys(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(renameLegacyProseKeys);
+  if (!value || typeof value !== "object") return value;
+  const out: Record<string, unknown> = {};
+  for (const [key, entry] of Object.entries(value)) {
+    const renamed = LEGACY_PROSE_KEYS[key];
+    // A row already written under the new name wins, and the legacy copy is
+    // dropped rather than carried through: renaming into an occupied key
+    // would replace live text with stale text, and keeping both would fail
+    // the strict object it is about to be handed to.
+    if (renamed && renamed in value) continue;
+    out[renamed ?? key] = renameLegacyProseKeys(entry);
+  }
+  return out;
+}
+
+/**
+ * What a *stored* run parses with.
+ *
+ * Deliberately not the schema the provider is held to: a fresh response has
+ * to use the current names, or the contract would have two spellings forever
+ * and nothing would ever force the model onto one of them.
+ */
+export const storedResumeJDDifferenceOutputSchema = z.preprocess(
+  renameLegacyProseKeys,
+  resumeJDDifferenceOutputSchema,
+);
 
 export type DifferenceIssueType = z.infer<typeof differenceIssueTypeSchema>;
 export type DifferenceAuthenticity = z.infer<typeof authenticitySchema>;
@@ -202,11 +258,6 @@ function hasDuplicateIds(output: ResumeJDDifferenceOutput) {
   return new Set(ids).size !== ids.length;
 }
 
-function looksLikePasteReadyResumeText(value: string) {
-  if (/\p{Script=Han}/u.test(value)) return false;
-  const words = value.match(/[\p{L}\p{N}+#.-]+/gu) ?? [];
-  return words.length >= 8 && /[.!?]$/u.test(value.trim());
-}
 
 export function validateResumeJDDifferenceGraph(
   output: ResumeJDDifferenceOutput,
@@ -258,7 +309,7 @@ export function validateResumeJDDifferenceGraph(
         code: "unsupported-language-suggestion-not-allowed",
       };
     }
-    if (looksLikePasteReadyResumeText(direction.directionZh)) {
+    if (isPasteReadyRewrite(direction.direction)) {
       return { ok: false, code: "paste-ready-rewrite-not-allowed" };
     }
   }

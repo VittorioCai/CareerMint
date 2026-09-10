@@ -46,7 +46,7 @@ describe("JD gap V3 export query contract", () => {
 describe("resume JD difference export query contract", () => {
   it("selects the user result and public metadata without internal hashes or errors", () => {
     expect(RESUME_JD_DIFFERENCE_EXPORT_SELECT).toBe(
-      "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,status,result,ai_usage,estimated_cost_usd,completed_at,created_at",
+      "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,output_locale,status,result,ai_usage,estimated_cost_usd,completed_at,created_at",
     );
     expect(RESUME_JD_DIFFERENCE_EXPORT_SELECT).not.toMatch(
       /input_hash|source_sha256|jd_sha256|fact_fingerprint|error_code|error_message/u,
@@ -487,36 +487,37 @@ describe("buildAccountExport", () => {
           schemaVersion: "resume-jd-difference-v4",
           promptVersion: "resume-jd-difference-p1-v4.0",
           policyVersion: "resume-jd-difference-policy-v4.0",
+          outputLocale: "zh-CN",
           status: "succeeded",
           result: {
             jobCore: {
-              missionZh: "支持业务决策。",
+              mission: "支持业务决策。",
               coreCapabilities: ["分析", "SQL", "协作"],
               concepts: [{
                 id: "concept-1",
-                labelZh: "分析",
+                label: "分析",
                 originalTerms: ["analysis"],
-                importanceReasonZh: "核心职责。",
+                importanceReason: "核心职责。",
                 priority: "critical",
               }],
               gates: [],
               preferredItems: [],
             },
             overallDifference: {
-              summaryZh: "需要补足业务场景。",
+              summary: "需要补足业务场景。",
               topIssueIds: ["issue-1"],
             },
             issues: [{
               id: "issue-1",
               conceptId: "concept-1",
               jdOriginal: "Analyze customer data.",
-              jdTranslationZh: "分析客户数据。",
+              jdTranslation: "分析客户数据。",
               resumeExcerpt: "Analyzed user data.",
-              resumeStatusZh: "有相邻证据。",
+              resumeStatus: "有相邻证据。",
               profileFactIds: [],
               type: "missing_context",
-              problemZh: "缺少业务场景。",
-              reasonZh: "简历未说明分析用途。",
+              problem: "缺少业务场景。",
+              reason: "简历未说明分析用途。",
               priority: "critical",
               isGate: false,
               authenticity: "supported",
@@ -526,14 +527,14 @@ describe("buildAccountExport", () => {
               id: "direction-1",
               issueId: "issue-1",
               targetSection: "experience",
-              targetExperienceZh: "数据分析经历",
+              targetExperience: "数据分析经历",
               conceptId: "concept-1",
               jdTerms: ["customer data"],
               focusAreas: ["context"],
               synonymousJobLanguage: [],
               authenticity: "supported",
               needsConfirmation: false,
-              directionZh: "核对真实业务场景。",
+              direction: "核对真实业务场景。",
             }],
           },
           aiUsage: {
@@ -566,6 +567,7 @@ describe("buildAccountExport", () => {
           schemaVersion: "resume-jd-difference-v4",
           promptVersion: "resume-jd-difference-p1-v4.0",
           policyVersion: "resume-jd-difference-policy-v4.0",
+          outputLocale: "zh-CN",
           status: "succeeded",
           result: { secret: "OTHER USER DIFFERENCE SECRET" },
           aiUsage: null,
@@ -944,7 +946,7 @@ describe("buildAccountExport", () => {
       sourceFilename: "resume.pdf",
       status: "succeeded",
       result: expect.objectContaining({
-        overallDifference: { summaryZh: "需要补足业务场景。", topIssueIds: ["issue-1"] },
+        overallDifference: { summary: "需要补足业务场景。", topIssueIds: ["issue-1"] },
       }),
     });
     expect(differenceExport.runs[0]).not.toHaveProperty("inputHash");

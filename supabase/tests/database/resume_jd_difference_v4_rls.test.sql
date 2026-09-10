@@ -5,6 +5,21 @@ select no_plan();
 
 select has_table('public', 'resume_jd_difference_runs', 'V4 difference runs table exists');
 select has_column('public', 'resume_jd_difference_runs', 'result', 'one atomic result is stored');
+-- A stored analysis remembers its own language, because the Markdown export
+-- renders a run that may be weeks old and its headings have to match the text
+-- underneath them, not whoever is reading it now.
+select has_column(
+  'public', 'resume_jd_difference_runs', 'output_locale',
+  'a run records the language it was written in'
+);
+select col_not_null(
+  'public', 'resume_jd_difference_runs', 'output_locale',
+  'no run is left without a language'
+);
+select col_default_is(
+  'public', 'resume_jd_difference_runs', 'output_locale', 'zh-CN',
+  'rows written before the second language existed are Chinese, which they are'
+);
 select results_eq(
   $$select relrowsecurity::text from pg_class where oid = 'public.resume_jd_difference_runs'::regclass$$,
   array['true'], 'V4 run table has RLS enabled'
@@ -94,7 +109,7 @@ select throws_ok(
     current_setting('test.app_b')::uuid,
     '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
     repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
-    'provider', 'model', 'schema', 'prompt', 'policy'
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN'
   )$$,
   'P0002', 'application-or-resume-not-found',
   'another owner application is rejected'
@@ -104,7 +119,7 @@ select throws_ok(
     current_setting('test.app_a')::uuid,
     '22222222-2222-4222-8222-222222222222', 'bob-resume.pdf',
     repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
-    'provider', 'model', 'schema', 'prompt', 'policy'
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN'
   )$$,
   'P0002', 'application-or-resume-not-found',
   'another owner resume is rejected'
@@ -114,14 +129,14 @@ select set_config('test.run_a', (select id::text from public.create_or_get_resum
   current_setting('test.app_a')::uuid,
   '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
   repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
-  'provider', 'model', 'schema', 'prompt', 'policy'
+  'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN'
 )), true);
 select results_eq(
   $$select id::text from public.create_or_get_resume_jd_difference(
     current_setting('test.app_a')::uuid,
     '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
     repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
-    'provider', 'model', 'schema', 'prompt', 'policy'
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN'
   )$$,
   array[current_setting('test.run_a')],
   'the same complete input reuses one run'
@@ -131,10 +146,39 @@ select throws_ok(
     current_setting('test.app_a')::uuid,
     '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
     repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
-    'provider', 'model', 'different-schema', 'prompt', 'policy'
+    'provider', 'model', 'different-schema', 'prompt', 'policy', 'zh-CN'
   )$$,
   '23505', 'resume-jd-difference-conflict',
   'an identical hash cannot silently bind a different version'
+);
+select results_eq(
+  $$select output_locale from public.resume_jd_difference_runs
+    where id = current_setting('test.run_a')::uuid$$,
+  array['zh-CN'],
+  'the run records the language it was asked for'
+);
+-- Cannot fire through the application, because `prompt_version` already names
+-- the language and is checked first. It is here so that a later change which
+-- decouples the two cannot quietly hand back a run in the wrong language.
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('d', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'en'
+  )$$,
+  '23505', 'resume-jd-difference-conflict',
+  'one hash cannot answer two languages'
+);
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('f', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'klingon'
+  )$$,
+  '23514', null,
+  'a language the product does not ship is refused by the column, not stored'
 );
 
 select results_eq(
@@ -219,7 +263,7 @@ select set_config('test.failed_run', (select id::text from public.create_or_get_
   current_setting('test.app_a')::uuid,
   '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
   repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('e', 64),
-  'provider', 'model', 'schema', 'prompt', 'policy'
+  'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN'
 )), true);
 select public.claim_resume_jd_difference(current_setting('test.failed_run')::uuid, 0, 'queued', 120);
 select public.fail_resume_jd_difference(

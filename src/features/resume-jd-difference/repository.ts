@@ -3,10 +3,11 @@ import "server-only";
 import { z } from "zod";
 
 import type { AIUsage } from "@/features/extraction/provider";
+import { APP_LOCALES, type AppLocale } from "@/i18n/locale";
 import type { Database, Json } from "@/lib/supabase/database.types";
 import { createClient } from "@/lib/supabase/server";
 
-import { resumeJDDifferenceOutputSchema } from "./schemas";
+import { storedResumeJDDifferenceOutputSchema } from "./schemas";
 import type { ResumeJDDifferenceOutput } from "./schemas";
 
 type RunRow =
@@ -48,9 +49,14 @@ const storedRunSchema = z
     schemaVersion: z.string().trim().min(1).max(80),
     promptVersion: z.string().trim().min(1).max(80),
     policyVersion: z.string().trim().min(1).max(80),
+    // Which language this analysis was written in. A stored run's headings
+    // have to match its own text, not the language whoever opens it is
+    // reading in now — a run made before the second language existed is
+    // Chinese, and the column's default says so.
+    outputLocale: z.enum(APP_LOCALES),
     status: statusSchema,
     attemptCount: z.number().int().min(0).max(1000),
-    result: resumeJDDifferenceOutputSchema.nullable(),
+    result: storedResumeJDDifferenceOutputSchema.nullable(),
     aiUsage: aiUsageSchema.nullable(),
     estimatedCostUsd: z.number().min(0).nullable(),
     errorCode: z.string().trim().min(1).max(120).nullable(),
@@ -135,6 +141,7 @@ function toRun(row: RunRow): ResumeJDDifferenceRun {
     schemaVersion: row.schema_version,
     promptVersion: row.prompt_version,
     policyVersion: row.policy_version,
+    outputLocale: row.output_locale,
     status: row.status,
     attemptCount: row.attempt_count,
     result: row.result,
@@ -180,6 +187,7 @@ export function createResumeJDDifferenceRepository(
     schemaVersion: string;
     promptVersion: string;
     policyVersion: string;
+    outputLocale: AppLocale;
   }) {
     const supabase = await getClient();
     const { data, error } = await supabase.rpc(
@@ -197,6 +205,7 @@ export function createResumeJDDifferenceRepository(
         target_schema_version: input.schemaVersion,
         target_prompt_version: input.promptVersion,
         target_policy_version: input.policyVersion,
+        target_output_locale: input.outputLocale,
       },
     );
     if (error || !data) {

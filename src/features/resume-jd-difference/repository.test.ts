@@ -19,14 +19,14 @@ const timestamp = "2026-08-28T00:00:00.000Z";
 
 const result: ResumeJDDifferenceOutput = {
   jobCore: {
-    missionZh: "通过数据分析支持业务决策。",
+    mission: "通过数据分析支持业务决策。",
     coreCapabilities: ["业务分析", "数据分析", "跨团队协作"],
     concepts: [
       {
         id: "concept-1",
-        labelZh: "业务协作",
+        label: "业务协作",
         originalTerms: ["business stakeholders"],
-        importanceReasonZh: "岗位核心职责直接要求。",
+        importanceReason: "岗位核心职责直接要求。",
         priority: "critical",
       },
     ],
@@ -34,7 +34,7 @@ const result: ResumeJDDifferenceOutput = {
     preferredItems: [],
   },
   overallDifference: {
-    summaryZh: "简历存在相近经历，但岗位语言较弱。",
+    summary: "简历存在相近经历，但岗位语言较弱。",
     topIssueIds: ["issue-1"],
   },
   issues: [
@@ -42,13 +42,13 @@ const result: ResumeJDDifferenceOutput = {
       id: "issue-1",
       conceptId: "concept-1",
       jdOriginal: "Collaborate with business stakeholders.",
-      jdTranslationZh: "与业务相关方协作。",
+      jdTranslation: "与业务相关方协作。",
       resumeExcerpt: "Worked with business teams.",
-      resumeStatusZh: "简历有相近协作经历。",
+      resumeStatus: "简历有相近协作经历。",
       profileFactIds: [],
       type: "language_misaligned",
-      problemZh: "岗位语言未对齐。",
-      reasonZh: "职责相近但表达较弱。",
+      problem: "岗位语言未对齐。",
+      reason: "职责相近但表达较弱。",
       priority: "critical",
       isGate: false,
       authenticity: "supported",
@@ -60,14 +60,14 @@ const result: ResumeJDDifferenceOutput = {
       id: "direction-1",
       issueId: "issue-1",
       targetSection: "experience",
-      targetExperienceZh: "业务协作经历",
+      targetExperience: "业务协作经历",
       conceptId: "concept-1",
       jdTerms: ["business stakeholders"],
       focusAreas: ["action", "stakeholders"],
       synonymousJobLanguage: ["business stakeholders"],
       authenticity: "supported",
       needsConfirmation: false,
-      directionZh: "补充真实的协作对象和需求确认过程。",
+      direction: "补充真实的协作对象和需求确认过程。",
     },
   ],
 };
@@ -100,6 +100,7 @@ function row(overrides: Record<string, unknown> = {}) {
     schema_version: "resume-jd-difference-v4",
     prompt_version: "resume-jd-difference-p1-v4.0",
     policy_version: "resume-jd-difference-policy-v4.0",
+    output_locale: "zh-CN",
     status: "succeeded",
     attempt_count: 1,
     result,
@@ -168,6 +169,7 @@ describe("resume JD difference repository", () => {
       schemaVersion: "resume-jd-difference-v4",
       promptVersion: "resume-jd-difference-p1-v4.0",
       policyVersion: "resume-jd-difference-policy-v4.0",
+      outputLocale: "zh-CN",
     });
     await runs.claim(runId, 0, "queued");
     await runs.complete({
@@ -200,6 +202,7 @@ describe("resume JD difference repository", () => {
         target_schema_version: "resume-jd-difference-v4",
         target_prompt_version: "resume-jd-difference-p1-v4.0",
         target_policy_version: "resume-jd-difference-policy-v4.0",
+        target_output_locale: "zh-CN",
       },
     );
     expect(supabase.rpc).toHaveBeenNthCalledWith(

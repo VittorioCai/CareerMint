@@ -24,15 +24,19 @@ export type ResumeJDDifferencePanelProps = {
 /**
  * Blunts one thing the model sometimes says.
  *
- * "你不具备…" states a gap as a fact about the person; the product only ever
- * claims something about the material in front of it. The Chinese phrases are
- * what the Chinese prompt produces, so they stay literal — they are matching
- * model output, not interface copy — but what replaces them is copy.
+ * "你不具备…" / "You lack…" states a gap as a fact about the person; the
+ * product only ever claims something about the material in front of it.
+ *
+ * These are literal matches on model output rather than interface copy, so
+ * they are not in the dictionary — but they do have to cover both output
+ * languages, because the phrasing the prompt forbids exists in both. What
+ * replaces them is copy, and comes from the caller.
  */
+const PERSONAL_DEFICIENCY =
+  /你不具备|用户不具备|\b(?:you|the candidate|the user) (?:lack|do not have|does not have|don't have|doesn't have|are missing|is missing)\b/giu;
+
 function safeCopy(value: string, noEvidence: string) {
-  return value
-    .replaceAll("你不具备", noEvidence)
-    .replaceAll("用户不具备", noEvidence);
+  return value.replaceAll(PERSONAL_DEFICIENCY, noEvidence);
 }
 
 function resumeEvidence(
@@ -93,7 +97,7 @@ function IssueDetails({
             </span>
           </span>
           <span className="mt-2 block max-w-[64ch] text-base font-bold leading-[1.55]">
-            {safeCopy(row.jdTranslationZh, copy.noEvidence)}
+            {safeCopy(row.jdTranslation, copy.noEvidence)}
           </span>
           {/* A requirement can quote a whole paragraph. Unclamped it runs
               three lines of grey English above the Chinese judgement it is
@@ -132,19 +136,19 @@ function IssueDetails({
               {copy.resumeStatus}
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              <span className="block">{safeCopy(row.resumeStatusZh, copy.noEvidence)}</span>
+              <span className="block">{safeCopy(row.resumeStatus, copy.noEvidence)}</span>
               <span className="mt-2 block rounded-xl bg-[var(--paper)] px-3 py-2 font-normal text-[var(--ink-muted)]" lang="und">
                 {resumeEvidence(row, copy.noEvidence)}
               </span>
             </dd>
           </div>
-          {row.problemZh ? (
+          {row.problem ? (
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.1em] text-[var(--ink-muted)]">
                 {copy.problem}
               </dt>
               <dd className="mt-2 text-sm font-medium leading-[1.65]">
-                {safeCopy(row.problemZh, copy.noEvidence)}
+                {safeCopy(row.problem, copy.noEvidence)}
               </dd>
             </div>
           ) : null}
@@ -153,7 +157,7 @@ function IssueDetails({
               {copy.reason}
             </dt>
             <dd className="mt-2 text-sm font-medium leading-[1.65]">
-              {safeCopy(row.reasonZh, copy.noEvidence)}
+              {safeCopy(row.reason, copy.noEvidence)}
             </dd>
           </div>
           {citedFacts.length ? (
@@ -188,12 +192,12 @@ type PanelRow = {
   badgeMark: string;
   typeLabel: string;
   jdOriginal: string;
-  jdTranslationZh: string;
-  resumeStatusZh: string;
+  jdTranslation: string;
+  resumeStatus: string;
   resumeExcerpt: string | null;
   unsupported: boolean;
-  problemZh: string | null;
-  reasonZh: string;
+  problem: string | null;
+  reason: string;
   profileFactIds: readonly string[];
 };
 
@@ -245,12 +249,12 @@ function buildRows(
       badgeMark: "",
       typeLabel: copy.issueTypes[issue.type],
       jdOriginal: issue.jdOriginal,
-      jdTranslationZh: issue.jdTranslationZh,
-      resumeStatusZh: issue.resumeStatusZh,
+      jdTranslation: issue.jdTranslation,
+      resumeStatus: issue.resumeStatus,
       resumeExcerpt: issue.resumeExcerpt,
       unsupported: issue.authenticity === "unsupported",
-      problemZh: issue.problemZh,
-      reasonZh: issue.reasonZh,
+      problem: issue.problem,
+      reason: issue.reason,
       profileFactIds: issue.profileFactIds,
     } satisfies PanelRow;
   });
@@ -261,12 +265,12 @@ function buildRows(
     badgeMark: "",
     typeLabel: copy.hasEvidence,
     jdOriginal: item.jdOriginal,
-    jdTranslationZh: item.jdTranslationZh,
-    resumeStatusZh: copy.hasEvidenceStatus,
+    jdTranslation: item.jdTranslation,
+    resumeStatus: copy.hasEvidenceStatus,
     resumeExcerpt: item.resumeExcerpt,
     unsupported: false,
-    problemZh: null,
-    reasonZh: item.reasonZh,
+    problem: null,
+    reason: item.reason,
     profileFactIds: item.profileFactIds,
   } satisfies PanelRow));
 
@@ -345,7 +349,7 @@ export function ResumeJDDifferencePanel({
           id="resume-jd-difference-title"
           className="heading-font mt-2.5 max-w-[34ch] text-xl font-semibold leading-[1.4] sm:text-2xl"
         >
-          {safeCopy(result.overallDifference.summaryZh, copy.noEvidence)}
+          {safeCopy(result.overallDifference.summary, copy.noEvidence)}
         </h2>
 
         {/* Counts as a line of marks, using the same badge language the rows
@@ -403,7 +407,7 @@ export function ResumeJDDifferencePanel({
         </span>
         <div className="min-w-0">
           <p className="type-body font-medium">
-            {safeCopy(result.jobCore.missionZh, copy.noEvidence)}
+            {safeCopy(result.jobCore.mission, copy.noEvidence)}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
             {result.jobCore.coreCapabilities.map((capability) => (

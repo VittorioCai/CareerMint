@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildSourceSegments,
+  differenceOutputCopy,
   materializeResumeJDDifferenceOutput,
   repairProviderOutput,
   resumeJDDifferenceProviderOutputSchema,
@@ -61,25 +62,25 @@ function compactRequirement(overrides: Record<string, unknown> = {}) {
     jdSegmentId: "jd-1",
     kind: "core",
     comparisonMode: "semantic",
-    conceptLabelZh: "办公软件运用",
+    conceptLabel: "办公软件运用",
     jdTerms: ["Microsoft PowerPoint und Excel"],
-    importanceReasonZh: "岗位明确要求熟练使用这两个工具。",
+    importanceReason: "岗位明确要求熟练使用这两个工具。",
     priority: "critical",
-    translationZh: "熟练使用 Microsoft PowerPoint 和 Excel。",
+    translation: "熟练使用 Microsoft PowerPoint 和 Excel。",
     assessment: "partial",
     resumeSegmentId: "resume-1",
     profileFactIds: [],
     gapType: "missing_context",
-    resumeStatusZh: "简历提到使用过这两个工具，但没有说明场景。",
-    problemZh: "缺少使用场景和产出说明。",
-    reasonZh: "简历有直接证据，但描述过于笼统。",
+    resumeStatus: "简历提到使用过这两个工具，但没有说明场景。",
+    problem: "缺少使用场景和产出说明。",
+    reason: "简历有直接证据，但描述过于笼统。",
     improvement: {
       targetSection: "experience",
-      targetExperienceZh: "周报制作经历",
+      targetExperience: "周报制作经历",
       focusAreas: ["context", "result"],
       synonymousJobLanguage: ["Entscheidungsvorlagen"],
       needsConfirmation: false,
-      directionZh: "补充这些报告的真实受众、频率和实际用途。",
+      direction: "补充这些报告的真实受众、频率和实际用途。",
     },
     ...overrides,
   };
@@ -89,9 +90,9 @@ function compactOutput(
   requirements: unknown[],
 ): ResumeJDDifferenceProviderOutput {
   return resumeJDDifferenceProviderOutputSchema.parse({
-    missionZh: "支持客户体验团队把客户视角带进决策。",
+    mission: "支持客户体验团队把客户视角带进决策。",
     coreCapabilities: ["数据分析", "跨部门沟通", "演示materials制作"],
-    overallSummaryZh: "简历有相邻证据，但岗位语言和场景说明仍不足。",
+    overallSummary: "简历有相邻证据，但岗位语言和场景说明仍不足。",
     requirements,
   });
 }
@@ -99,6 +100,7 @@ function compactOutput(
 const materializeContext = {
   jdSegments,
   resumeSegments,
+  copy: differenceOutputCopy("zh-CN"),
   confirmedFactIds: new Set<string>(),
 };
 
@@ -147,26 +149,26 @@ describe("materializeResumeJDDifferenceOutput", () => {
 
 describe("repairProviderOutput", () => {
   const raw = () => ({
-    missionZh: "把客户视角带进决策。",
+    mission: "把客户视角带进决策。",
     coreCapabilities: ["数据分析", "沟通", "演示"],
-    overallSummaryZh: "总体判断。",
+    overallSummary: "总体判断。",
     requirements: [
       {
         jdSegmentId: "jd-1",
         kind: "core",
         comparisonMode: "semantic",
-        conceptLabelZh: "概念",
+        conceptLabel: "概念",
         jdTerms: ["term"],
-        importanceReasonZh: "理由",
+        importanceReason: "理由",
         priority: "critical",
-        translationZh: "翻译",
+        translation: "翻译",
         assessment: "partial",
         resumeSegmentId: null,
         profileFactIds: [],
         gapType: "missing_context",
-        resumeStatusZh: "状态",
-        problemZh: "问题",
-        reasonZh: "依据",
+        resumeStatus: "状态",
+        problem: "问题",
+        reason: "依据",
         improvement: null,
       },
     ],
@@ -177,7 +179,7 @@ describe("repairProviderOutput", () => {
     input.requirements[0]!.gapType = "not_a_real_gap_type";
 
     const repaired = resumeJDDifferenceProviderOutputSchema.safeParse(
-      repairProviderOutput(input),
+      repairProviderOutput(input, differenceOutputCopy("zh-CN")),
     );
 
     expect(repaired.success).toBe(true);
@@ -189,7 +191,7 @@ describe("repairProviderOutput", () => {
     input.requirements[0]!.jdTerms = ["x".repeat(400)];
 
     const repaired = resumeJDDifferenceProviderOutputSchema.safeParse(
-      repairProviderOutput(input),
+      repairProviderOutput(input, differenceOutputCopy("zh-CN")),
     );
 
     expect(repaired.success).toBe(true);

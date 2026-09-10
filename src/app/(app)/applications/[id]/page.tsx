@@ -49,7 +49,7 @@ import { ResumeJDImprovementPanel } from "@/features/resume-jd-difference/improv
 import {
   RESUME_JD_DIFFERENCE_POLICY_VERSION,
   RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
-  differencePromptVariants,
+  differencePrompt,
 } from "@/features/resume-jd-difference/prompts";
 import {
   resumeJDDifferenceRepository,
@@ -420,8 +420,14 @@ export default async function ApplicationDetailPage({
         env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production"
           ? { provider: "fake", model: "fake-resume-jd-difference-v4" }
           : { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
-      const prompt =
-        differencePromptVariants[env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT];
+      // Same prompt, same language: this recomputes the hash the analysis
+      // would run under right now, so a reader who switched languages sees
+      // the stored analysis marked out of date rather than under headings
+      // that do not match its text.
+      const prompt = differencePrompt(
+        env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT,
+        locale,
+      );
       ({ inputHash } = buildDifferenceFingerprints({
         jdText: application.jdText,
         sourceSha256: selectedResumeAssetRecord.sha256,

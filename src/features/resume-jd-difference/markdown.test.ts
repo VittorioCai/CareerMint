@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vitest";
 
+import { zhCN } from "@/i18n/dictionaries/zh-CN";
+
 import type { ResumeJDDifferenceOutput } from "./schemas";
 import {
   buildResumeJDDifferenceMarkdown,
+  markdownCopyFromDictionary,
   safeResumeJDDifferenceMarkdownFilename,
 } from "./markdown";
 
@@ -21,20 +24,20 @@ const facts = [
 
 const result: ResumeJDDifferenceOutput = {
   jobCore: {
-    missionZh: "用数据支持业务决策。",
+    mission: "用数据支持业务决策。",
     coreCapabilities: ["业务分析", "SQL", "协作"],
     concepts: [{
       id: "concept-1",
-      labelZh: "业务分析",
+      label: "业务分析",
       originalTerms: ["business analysis"],
-      importanceReasonZh: "核心职责。",
+      importanceReason: "核心职责。",
       priority: "critical",
     }],
     gates: [],
     preferredItems: [],
   },
   overallDifference: {
-    summaryZh: "主要差异是岗位语言和结果证据。",
+    summary: "主要差异是岗位语言和结果证据。",
     topIssueIds: ["issue-1"],
   },
   issues: [
@@ -42,13 +45,13 @@ const result: ResumeJDDifferenceOutput = {
       id: "issue-1",
       conceptId: "concept-1",
       jdOriginal: "Work with stakeholders | report insights.",
-      jdTranslationZh: "与相关方协作并汇报洞察。",
+      jdTranslation: "与相关方协作并汇报洞察。",
       resumeExcerpt: "Worked with business teams.",
-      resumeStatusZh: "存在相邻经历。",
+      resumeStatus: "存在相邻经历。",
       profileFactIds: [knownFactId],
       type: "language_misaligned",
-      problemZh: "岗位语言没有对齐。",
-      reasonZh: "经历相邻，但表达未覆盖协作和汇报。",
+      problem: "岗位语言没有对齐。",
+      reason: "经历相邻，但表达未覆盖协作和汇报。",
       priority: "critical",
       isGate: false,
       authenticity: "supported",
@@ -57,13 +60,13 @@ const result: ResumeJDDifferenceOutput = {
       id: "issue-2",
       conceptId: null,
       jdOriginal: "German C1 is required.",
-      jdTranslationZh: "要求德语 C1。",
+      jdTranslation: "要求德语 C1。",
       resumeExcerpt: null,
-      resumeStatusZh: "当前材料未找到相关证据",
+      resumeStatus: "当前材料未找到相关证据",
       profileFactIds: [],
       type: "gate",
-      problemZh: "语言等级需要确认。",
-      reasonZh: "简历未说明德语等级。",
+      problem: "语言等级需要确认。",
+      reason: "简历未说明德语等级。",
       priority: "critical",
       isGate: true,
       authenticity: "unsupported",
@@ -73,23 +76,23 @@ const result: ResumeJDDifferenceOutput = {
     id: "matched-1",
     conceptId: "concept-1",
     jdOriginal: "Use SQL.",
-    jdTranslationZh: "使用 SQL。",
+    jdTranslation: "使用 SQL。",
     resumeExcerpt: "Used SQL for funnel analysis.",
     profileFactIds: [],
-    reasonZh: "简历原文可回查。",
+    reason: "简历原文可回查。",
   }],
   directions: [{
     id: "direction-1",
     issueId: "issue-1",
     targetSection: "experience",
-    targetExperienceZh: "数据分析经历",
+    targetExperience: "数据分析经历",
     conceptId: "concept-1",
     jdTerms: ["stakeholder management"],
     focusAreas: ["action", "stakeholders", "result"],
     synonymousJobLanguage: ["business stakeholders"],
     authenticity: "supported",
     needsConfirmation: false,
-    directionZh: "核对真实协作对象和结果使用场景。",
+    direction: "核对真实协作对象和结果使用场景。",
   }],
 };
 
@@ -101,6 +104,7 @@ describe("resume JD difference Markdown", () => {
       exportedAt: new Date("2026-08-28T10:00:00.000Z"),
       sourceFilename: "resume.pdf",
       stale: false,
+      copy: markdownCopyFromDictionary(zhCN),
       result,
       facts,
     });
@@ -115,6 +119,7 @@ describe("resume JD difference Markdown", () => {
       exportedAt: new Date("2026-08-28T10:00:00.000Z"),
       sourceFilename: "resume.pdf",
       stale: false,
+      copy: markdownCopyFromDictionary(zhCN),
       result,
       facts: [],
     });
@@ -129,6 +134,7 @@ describe("resume JD difference Markdown", () => {
       exportedAt: new Date("2026-08-28T10:00:00.000Z"),
       sourceFilename: "../resume [final].pdf",
       stale: false,
+      copy: markdownCopyFromDictionary(zhCN),
       result,
       facts,
     });
@@ -162,6 +168,7 @@ describe("resume JD difference Markdown", () => {
       exportedAt: new Date("2026-08-28T10:00:00.000Z"),
       sourceFilename: "resume.pdf",
       stale: true,
+      copy: markdownCopyFromDictionary(zhCN),
       result,
       facts,
     });

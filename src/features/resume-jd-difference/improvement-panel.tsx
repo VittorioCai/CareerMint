@@ -63,8 +63,8 @@ function targetCopy(
 ) {
   if (!direction) return copy.verifyAsIs;
   const section = copy.targetSections[direction.targetSection];
-  return direction.targetExperienceZh
-    ? `${section} · ${direction.targetExperienceZh}`
+  return direction.targetExperience
+    ? `${section} · ${direction.targetExperience}`
     : section;
 }
 
@@ -126,10 +126,10 @@ function ImprovementItem({
             {copy.matchingDifference}
           </p>
           <p className="mt-2 type-body font-medium">
-            {issue.jdTranslationZh}
+            {issue.jdTranslation}
           </p>
           <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 type-body font-medium">
-            {gateDirection?.direction ?? direction?.directionZh ?? issue.problemZh}
+            {gateDirection?.direction ?? direction?.direction ?? issue.problem}
           </p>
           {unsupported ? (
             <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 type-body font-medium">

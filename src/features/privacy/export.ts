@@ -1,6 +1,6 @@
 import JSZip from "jszip";
 
-import { resumeJDDifferenceOutputSchema } from "@/features/resume-jd-difference/schemas";
+import { storedResumeJDDifferenceOutputSchema } from "@/features/resume-jd-difference/schemas";
 
 export const RESUME_GAP_RUN_EXPORT_SELECT =
   "id,user_id,application_id,analysis_run_id,source_asset_id,source_filename,source_sha256,provider,model,status,attempt_count,result,error_code,created_at,updated_at,started_at,finished_at";
@@ -21,7 +21,7 @@ export const JD_GAP_V3_RESULT_EXPORT_SELECT =
 export const JD_GAP_V3_ASSESSMENT_EXPORT_SELECT =
   "id,run_id,criterion_id,requirement_id,application_id,user_id,resume_evidence_status,verified_resume_excerpt,profile_fact_ids,gap_type,reason_zh,user_question_zh,created_at";
 export const RESUME_JD_DIFFERENCE_EXPORT_SELECT =
-  "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,status,result,ai_usage,estimated_cost_usd,completed_at,created_at";
+  "id,application_id,source_asset_id,source_filename,provider,model,schema_version,prompt_version,policy_version,output_locale,status,result,ai_usage,estimated_cost_usd,completed_at,created_at";
 
 type OwnedRecord = { userId: string };
 type OwnedApplication = OwnedRecord & { id: string };
@@ -209,6 +209,7 @@ type ResumeJDDifferenceExportRun = OwnedRecord & {
   schemaVersion: string;
   promptVersion: string;
   policyVersion: string;
+  outputLocale: string;
   status: string;
   result: unknown;
   aiUsage: unknown;
@@ -626,7 +627,7 @@ function publicResumeJDDifferenceRun(
   run: ResumeJDDifferenceExportRun,
   ownedAssetIds: ReadonlySet<string>,
 ) {
-  const result = resumeJDDifferenceOutputSchema.safeParse(run.result);
+  const result = storedResumeJDDifferenceOutputSchema.safeParse(run.result);
   return {
     id: run.id,
     applicationId: run.applicationId,
@@ -640,6 +641,10 @@ function publicResumeJDDifferenceRun(
     schemaVersion: boundedText(run.schemaVersion, 80),
     promptVersion: boundedText(run.promptVersion, 80),
     policyVersion: boundedText(run.policyVersion, 80),
+    // Which language this analysis is written in. Exported so the user's own
+    // copy of their data says it, rather than leaving them to guess from the
+    // text — the same reason the run row records it.
+    outputLocale: boundedText(run.outputLocale, 20),
     status: boundedText(run.status, 40),
     result: result.success ? result.data : null,
     aiUsage: publicDifferenceAIUsage(run.aiUsage),

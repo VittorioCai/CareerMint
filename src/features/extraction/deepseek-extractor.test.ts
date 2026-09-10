@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from "vitest";
 import { createDeepSeekAIProvider } from "./deepseek-extractor";
 import { resumeExtractionInstructions } from "./prompt";
 import { interviewQuestionGenerationInstructions } from "@/features/interview-preparation/generation-prompt";
-import { differencePromptVariants } from "@/features/resume-jd-difference/prompts";
+import { differencePrompt } from "@/features/resume-jd-difference/prompts";
 import type { ResumeJDDifferenceInput } from "@/features/resume-jd-difference/schemas";
 
 const resumeText =
@@ -452,33 +452,33 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     ],
   };
   const compact = {
-    missionZh: "通过报告支持业务决策。",
+    mission: "通过报告支持业务决策。",
     coreCapabilities: ["业务分析", "报告", "跨团队协作"],
-    overallSummaryZh: "简历有相近经历，但岗位语言表达较弱。",
+    overallSummary: "简历有相近经历，但岗位语言表达较弱。",
     requirements: [
       {
         jdSegmentId: "jd-1",
         kind: "core",
         comparisonMode: "semantic",
-        conceptLabelZh: "业务相关方协作",
+        conceptLabel: "业务相关方协作",
         jdTerms: ["business stakeholders"],
-        importanceReasonZh: "岗位核心职责直接要求。",
+        importanceReason: "岗位核心职责直接要求。",
         priority: "critical",
-        translationZh: "与业务相关方协作并对齐报告需求。",
+        translation: "与业务相关方协作并对齐报告需求。",
         assessment: "partial",
         resumeSegmentId: "resume-1",
         profileFactIds: [],
         gapType: "language_misaligned",
-        resumeStatusZh: "简历提到业务团队和报告，但没有说明需求对齐。",
-        problemZh: "岗位语言未对齐。",
-        reasonZh: "有相近职责证据，但表达未覆盖需求对齐动作。",
+        resumeStatus: "简历提到业务团队和报告，但没有说明需求对齐。",
+        problem: "岗位语言未对齐。",
+        reason: "有相近职责证据，但表达未覆盖需求对齐动作。",
         improvement: {
           targetSection: "experience",
-          targetExperienceZh: "每周报告经历",
+          targetExperience: "每周报告经历",
           focusAreas: ["action", "stakeholders"],
           synonymousJobLanguage: ["business stakeholders"],
           needsConfirmation: false,
-          directionZh: "补充真实的需求确认过程、协作对象和报告用途。",
+          direction: "补充真实的需求确认过程、协作对象和报告用途。",
         },
       },
     ],
@@ -490,9 +490,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
     const { provider, log } = createProvider(fetchImpl);
 
-    const result = await provider.analyzeResumeJDDifference(input, {
-      promptVariant: "p2",
-    });
+    const result = await provider.analyzeResumeJDDifference(input, { promptVariant: "p2", outputLocale: "zh-CN" });
 
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     const [url, init] = fetchImpl.mock.calls[0]!;
@@ -500,7 +498,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     expect(url).toBe("https://api.deepseek.com/responses");
     expect(body).toMatchObject({
       model: "deepseek-v4-flash",
-      instructions: differencePromptVariants.p2.instructions,
+      instructions: differencePrompt("p2", "zh-CN").instructions,
       reasoning: { effort: "none" },
       stream: false,
       max_output_tokens: 8192,
@@ -519,7 +517,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
         `<confirmed_career_facts>\n${JSON.stringify(input.confirmedFacts)}\n</confirmed_career_facts>`,
       ].join("\n"),
     );
-    expect(result.data.jobCore.missionZh).toBe(compact.missionZh);
+    expect(result.data.jobCore.mission).toBe(compact.mission);
     expect(JSON.stringify(log.mock.calls)).not.toContain(input.jdText);
     expect(JSON.stringify(log.mock.calls)).not.toContain(input.resumeText);
   });
@@ -535,7 +533,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       resumeJDDifferenceMaxTokens: 4096,
     });
 
-    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1" });
+    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     const [, init] = fetchImpl.mock.calls[0]!;
     expect(JSON.parse(String(init?.body)).max_output_tokens).toBe(4096);
@@ -548,7 +546,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
     const { provider, log } = createProvider(fetchImpl);
 
     await expect(
-      provider.analyzeResumeJDDifference(input, { promptVariant: "p1" }),
+      provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" }),
     ).rejects.toThrow("resume-jd-difference-invalid-output");
     expect(fetchImpl).toHaveBeenCalledTimes(1);
     expect(log).toHaveBeenCalledWith(
@@ -563,11 +561,11 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
   it("logs only a safe stage when V4 JSON violates the output schema", async () => {
     const fetchImpl = vi
       .fn<typeof fetch>()
-      .mockResolvedValue(responsesSuccessResponse('{"missionZh":{}}'));
+      .mockResolvedValue(responsesSuccessResponse('{"mission":{}}'));
     const { provider, log } = createProvider(fetchImpl);
 
     await expect(
-      provider.analyzeResumeJDDifference(input, { promptVariant: "p1" }),
+      provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" }),
     ).rejects.toThrow("resume-jd-difference-invalid-output");
 
     expect(log).toHaveBeenCalledWith(
@@ -576,7 +574,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
         failureStage: "content-schema:too-small:requirements",
       }),
     );
-    expect(JSON.stringify(log.mock.calls)).not.toContain('{"missionZh":{}}');
+    expect(JSON.stringify(log.mock.calls)).not.toContain('{"mission":{}}');
   });
 
   it("accepts a JSON payload the model wrapped in a markdown fence", async () => {
@@ -589,9 +587,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       );
     const { provider } = createProvider(fetchImpl);
 
-    const result = await provider.analyzeResumeJDDifference(input, {
-      promptVariant: "p1",
-    });
+    const result = await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     expect(result.data.issues).toHaveLength(1);
   });
@@ -602,7 +598,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
     const { provider } = createProvider(fetchImpl);
 
-    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1" });
+    await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     const body = JSON.parse(String(fetchImpl.mock.calls[0]![1]?.body));
     const schema = body.text.format.schema;
@@ -618,9 +614,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       .mockResolvedValue(responsesSuccessResponse(JSON.stringify(compact)));
     const { provider } = createProvider(fetchImpl);
 
-    const result = await provider.analyzeResumeJDDifference(input, {
-      promptVariant: "p1",
-    });
+    const result = await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     expect(result.data.issues[0]!.jdOriginal).toBe(input.jdText);
     expect(result.data.issues[0]!.resumeExcerpt).toBe(input.resumeText);
@@ -639,9 +633,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       );
     const { provider } = createProvider(fetchImpl);
 
-    const result = await provider.analyzeResumeJDDifference(input, {
-      promptVariant: "p1",
-    });
+    const result = await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     expect(result.data.issues).toHaveLength(1);
     expect(result.data.issues[0]!.jdOriginal).toBe(input.jdText);
@@ -657,9 +649,7 @@ describe("DeepSeek resume JD difference V4 adapter", () => {
       .mockResolvedValue(responsesSuccessResponse(withRawNewline));
     const { provider } = createProvider(fetchImpl);
 
-    const result = await provider.analyzeResumeJDDifference(input, {
-      promptVariant: "p1",
-    });
+    const result = await provider.analyzeResumeJDDifference(input, { promptVariant: "p1", outputLocale: "zh-CN" });
 
     expect(result.data.directions).toHaveLength(1);
   });

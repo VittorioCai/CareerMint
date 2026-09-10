@@ -40,33 +40,33 @@ const application = {
 
 const result = {
   jobCore: {
-    missionZh: "支持业务决策。",
+    mission: "支持业务决策。",
     coreCapabilities: ["分析", "SQL", "协作"],
     concepts: [{
       id: "concept-1",
-      labelZh: "分析",
+      label: "分析",
       originalTerms: ["analysis"],
-      importanceReasonZh: "核心任务。",
+      importanceReason: "核心任务。",
       priority: "critical",
     }],
     gates: [],
     preferredItems: [],
   },
   overallDifference: {
-    summaryZh: "需要补足场景。",
+    summary: "需要补足场景。",
     topIssueIds: ["issue-1"],
   },
   issues: [{
     id: "issue-1",
     conceptId: "concept-1",
     jdOriginal: "Analyze customer data.",
-    jdTranslationZh: "分析客户数据。",
+    jdTranslation: "分析客户数据。",
     resumeExcerpt: "Analyzed user data.",
-    resumeStatusZh: "有相邻证据。",
+    resumeStatus: "有相邻证据。",
     profileFactIds: [],
     type: "missing_context",
-    problemZh: "缺少业务场景。",
-    reasonZh: "简历未说明分析用途。",
+    problem: "缺少业务场景。",
+    reason: "简历未说明分析用途。",
     priority: "critical",
     isGate: false,
     authenticity: "supported",
@@ -76,14 +76,14 @@ const result = {
     id: "direction-1",
     issueId: "issue-1",
     targetSection: "experience",
-    targetExperienceZh: "数据分析经历",
+    targetExperience: "数据分析经历",
     conceptId: "concept-1",
     jdTerms: ["customer data"],
     focusAreas: ["context"],
     synonymousJobLanguage: [],
     authenticity: "supported",
     needsConfirmation: false,
-    directionZh: "核对真实的业务场景。",
+    direction: "核对真实的业务场景。",
   }],
 };
 
@@ -94,6 +94,9 @@ const run = {
   sourceAssetId: ids.asset,
   sourceFilename: "resume.pdf",
   status: "succeeded",
+  // The export takes its headings from the run's own language, so a run
+  // fixture without one produces a document with no labels at all.
+  outputLocale: "zh-CN" as const,
   result,
 };
 

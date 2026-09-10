@@ -51,13 +51,13 @@ function issue(
     id,
     conceptId: "concept-1",
     jdOriginal: shortJd,
-    jdTranslationZh: "岗位语言未对齐。",
+    jdTranslation: "岗位语言未对齐。",
     resumeExcerpt: "Worked with business teams on reports.",
-    resumeStatusZh: "存在相邻协作经历。",
+    resumeStatus: "存在相邻协作经历。",
     profileFactIds: [] as string[],
     type: "language_misaligned" as const,
-    problemZh: "岗位语言没有对齐。",
-    reasonZh: "简历没有明确说明需求转化过程。",
+    problem: "岗位语言没有对齐。",
+    reason: "简历没有明确说明需求转化过程。",
     priority,
     isGate: false,
     authenticity: "supported" as const,
@@ -70,14 +70,14 @@ function output(
 ): ResumeJDDifferenceOutput {
   return {
     jobCore: {
-      missionZh: "通过数据和跨团队协作支持业务决策。",
+      mission: "通过数据和跨团队协作支持业务决策。",
       coreCapabilities: ["业务分析", "数据分析", "相关方协作"],
       concepts: [
         {
           id: "concept-1",
-          labelZh: "业务分析",
+          label: "业务分析",
           originalTerms: ["business analysis"],
-          importanceReasonZh: "核心职责。",
+          importanceReason: "核心职责。",
           priority: "critical",
         },
       ],
@@ -85,7 +85,7 @@ function output(
       preferredItems: [],
     },
     overallDifference: {
-      summaryZh: "当前简历有数据经历，但岗位语言、场景和结果证据仍不完整。",
+      summary: "当前简历有数据经历，但岗位语言、场景和结果证据仍不完整。",
       topIssueIds: [],
     },
     issues: [issue("i1", "critical")],
@@ -112,6 +112,7 @@ function run(result: ResumeJDDifferenceOutput): ResumeJDDifferenceRun {
     schemaVersion: "resume-jd-difference-v4",
     promptVersion: "resume-jd-difference-p1-v5.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
+    outputLocale: "zh-CN",
     status: "succeeded",
     attemptCount: 1,
     result,
@@ -230,7 +231,7 @@ export default function DevStatesPage() {
         type: "gate",
         isGate: true,
         jdOriginal: "German C1 is required.",
-        jdTranslationZh: "岗位要求德语 C1。",
+        jdTranslation: "岗位要求德语 C1。",
       }),
     ],
     matched: [
@@ -238,10 +239,10 @@ export default function DevStatesPage() {
         id: "m1",
         conceptId: "concept-1",
         jdOriginal: "Analyze business data.",
-        jdTranslationZh: "分析业务数据。",
+        jdTranslation: "分析业务数据。",
         resumeExcerpt: "Analyzed weekly user data.",
         profileFactIds: [factId],
-        reasonZh: "简历已有直接的数据分析动作。",
+        reason: "简历已有直接的数据分析动作。",
       },
     ],
   });
@@ -293,7 +294,7 @@ export default function DevStatesPage() {
             run={run(
               output({
                 overallDifference: {
-                  summaryZh: "这份简历已经覆盖了这个岗位提出的每一项要求。",
+                  summary: "这份简历已经覆盖了这个岗位提出的每一项要求。",
                   topIssueIds: [],
                 },
                 issues: [],
@@ -302,10 +303,10 @@ export default function DevStatesPage() {
                     id: "m1",
                     conceptId: "concept-1",
                     jdOriginal: "Analyze business data.",
-                    jdTranslationZh: "分析业务数据。",
+                    jdTranslation: "分析业务数据。",
                     resumeExcerpt: "Analyzed weekly user data.",
                     profileFactIds: [factId],
-                    reasonZh: "简历已有直接的数据分析动作。",
+                    reason: "简历已有直接的数据分析动作。",
                   },
                 ],
               }),
@@ -335,7 +336,7 @@ export default function DevStatesPage() {
                 issues: [
                   issue("long", "critical", {
                     jdOriginal: longJd,
-                    jdTranslationZh:
+                    jdTranslation:
                       "这个岗位要求在三个市场同时主导产品探索，并对领导层定期汇报，同时德语 C1 是硬性门槛。",
                   }),
                 ],

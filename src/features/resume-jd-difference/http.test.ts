@@ -32,6 +32,7 @@ function run(
     schemaVersion: "resume-jd-difference-v4",
     promptVersion: "resume-jd-difference-p1-v4.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
+    outputLocale: "zh-CN" as const,
     status,
     attemptCount: status === "queued" ? 0 : 1,
     result: succeeded ? ({} as never) : null,
@@ -82,6 +83,7 @@ function dependencies() {
     getAIProcessingConsentAt: vi.fn().mockResolvedValue(timestamp),
     getOwnedAsset: vi.fn().mockResolvedValue(asset),
     listConfirmedFacts: vi.fn().mockResolvedValue(facts),
+    getOutputLocale: vi.fn().mockResolvedValue("zh-CN" as const),
     runAnalysis: vi.fn().mockResolvedValue({
       run: run("succeeded"),
       reused: false,
@@ -234,6 +236,9 @@ describe("resume JD difference POST handler", () => {
       asset: fakes.asset,
       confirmedFacts: fakes.facts,
       ocrText: "Validated OCR resume text.",
+      // Read per request, not closed over: one route handler serves every
+      // reader, so the language has to come from the request that asked.
+      outputLocale: "zh-CN",
     });
   });
 

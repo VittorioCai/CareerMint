@@ -102,14 +102,42 @@ describe("resume JD difference evidence policy", () => {
     ).toEqual([confirmedFacts[0].id]);
   });
 
-  it("detects paste-ready resume bullets but not Chinese directions", () => {
+  it("detects paste-ready resume bullets in either output language", () => {
+    // The rule used to be "any Latin-script sentence", which was a proxy for
+    // "not in the output language" — correct while every direction was
+    // Chinese, and ruinous once the model answers in English, because then
+    // every valid direction is a Latin-script sentence and the paid run is
+    // discarded.
     expect(
       isPasteReadyRewrite(
         "Collaborated with business stakeholders to align reporting needs and delivered weekly dashboards.",
       ),
     ).toBe(true);
     expect(
+      isPasteReadyRewrite(
+        "负责搭建每周业务报表体系，推动跨部门需求对齐并交付看板。",
+      ),
+    ).toBe(true);
+
+    // English guidance, which the old rule flagged and the new one must not.
+    expect(
+      isPasteReadyRewrite(
+        "Check who the real collaborators were, how the requirements got confirmed, and what the report was used for.",
+      ),
+    ).toBe(false);
+    expect(
       isPasteReadyRewrite("补充真实的协作对象、需求确认过程和报告用途。"),
+    ).toBe(false);
+
+    // An explanation of why a hard requirement cannot be reworded is advice,
+    // not a line to paste, in either language.
+    expect(
+      isPasteReadyRewrite("语言等级属于岗位门槛，不能通过调整简历措辞解决。"),
+    ).toBe(false);
+    expect(
+      isPasteReadyRewrite(
+        "A language level is a hard requirement and cannot be solved by rewording the resume.",
+      ),
     ).toBe(false);
   });
 
@@ -138,13 +166,13 @@ function issue(
     id,
     conceptId: isGate ? null : "concept-1",
     jdOriginal: "JD text",
-    jdTranslationZh: "岗位要求",
+    jdTranslation: "岗位要求",
     resumeExcerpt: null,
-    resumeStatusZh: "当前材料未找到相关证据",
+    resumeStatus: "当前材料未找到相关证据",
     profileFactIds: [],
     type: isGate ? "gate" : "missing",
-    problemZh: "问题",
-    reasonZh: "原因",
+    problem: "问题",
+    reason: "原因",
     priority,
     isGate,
     authenticity: "unsupported",

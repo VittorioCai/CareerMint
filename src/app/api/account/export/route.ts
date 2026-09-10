@@ -311,6 +311,7 @@ async function listResumeJDDifferenceRuns(userId: string) {
     schemaVersion: run.schema_version,
     promptVersion: run.prompt_version,
     policyVersion: run.policy_version,
+    outputLocale: run.output_locale,
     status: run.status,
     result: run.result,
     aiUsage: run.ai_usage,

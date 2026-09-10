@@ -8,6 +8,7 @@ import type {
   ResumeJDDifferenceInput,
   ResumeJDDifferenceOutput,
 } from "@/features/resume-jd-difference/schemas";
+import type { AppLocale } from "@/i18n/locale";
 
 export type AIUsage = {
   inputCacheHitTokens: number;
@@ -30,6 +31,6 @@ export type AIProvider = {
   ): Promise<AIResult<InterviewQuestionGenerationOutput>>;
   analyzeResumeJDDifference(
     input: ResumeJDDifferenceInput,
-    options: { promptVariant: DifferencePromptVariant },
+    options: { promptVariant: DifferencePromptVariant; outputLocale: AppLocale },
   ): Promise<AIResult<ResumeJDDifferenceOutput>>;
 };

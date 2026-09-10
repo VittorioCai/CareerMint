@@ -26,7 +26,8 @@ import {
   type DifferencePromptCandidateSummary,
 } from "../src/features/resume-jd-difference/evaluation";
 import {
-  differencePromptVariants,
+  DIFFERENCE_PROMPT_VARIANTS,
+  differencePrompt,
   type DifferencePromptVariant,
 } from "../src/features/resume-jd-difference/prompts";
 import type { DifferenceIssueType } from "../src/features/resume-jd-difference/schemas";
@@ -57,9 +58,16 @@ type CliDependencies = {
 
 export type ResumeJDDifferenceEvaluationCliOptions = Partial<CliDependencies>;
 
-const allVariants = Object.keys(
-  differencePromptVariants,
-) as DifferencePromptVariant[];
+const allVariants = DIFFERENCE_PROMPT_VARIANTS;
+
+/**
+ * The evaluation harness scores the Chinese prompt.
+ *
+ * Its fixtures and expected findings are written in Chinese, so scoring the
+ * English prompt against them would measure translation, not analysis. An
+ * English fixture set is its own piece of work.
+ */
+const EVALUATION_OUTPUT_LOCALE = "zh-CN" as const;
 
 const emptyUsage: AIUsage = {
   inputCacheHitTokens: 0,
@@ -293,7 +301,7 @@ function summarize(
     state.scores.reduce((total, score) => total + Number(score[key]), 0);
   return {
     variant,
-    promptVersion: differencePromptVariants[variant].version,
+    promptVersion: differencePrompt(variant, EVALUATION_OUTPUT_LOCALE).version,
     schemaValidRate: average(state.scores, "schemaValid"),
     hardGateFailures: [
       ...new Set(
@@ -436,7 +444,7 @@ export async function runResumeJDDifferenceEvaluationCli(
             resumeText: fixture.resumeText,
             confirmedFacts: fixture.confirmedFacts,
           },
-          { promptVariant: variant },
+          { promptVariant: variant, outputLocale: EVALUATION_OUTPUT_LOCALE },
         );
         score = evaluateDifferenceCase(fixture, result.data);
         counts = statusCounts(result.data);

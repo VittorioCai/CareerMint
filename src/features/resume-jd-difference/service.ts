@@ -7,6 +7,8 @@ import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import { extractResumeText, normalizeResumeText } from "@/features/source-assets/parsers";
 import type { SourceAsset } from "@/features/source-assets/repository";
 import { downloadSource } from "@/features/source-assets/storage";
+import type { AppLocale } from "@/i18n/locale";
+import { dictionaryFor } from "@/i18n/dictionary";
 
 import { buildDifferenceFingerprints, normalizeDocumentText } from "./hashes";
 import {
@@ -14,7 +16,7 @@ import {
   verifyConfirmedFactIds,
 } from "./policy";
 import {
-  differencePromptVariants,
+  differencePrompt,
   RESUME_JD_DIFFERENCE_POLICY_VERSION,
   RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
 } from "./prompts";
@@ -34,7 +36,24 @@ import type {
 } from "./schemas";
 
 const SAFE_ERROR_MESSAGE = "Resume and job difference analysis failed.";
-const NO_EVIDENCE = "当前材料未找到相关证据";
+
+/**
+ * The two statuses the verifier writes itself, in the run's language.
+ *
+ * When the model claims resume evidence that is not actually in the resume,
+ * the verifier overwrites `resumeStatus` — so those two sentences are ours,
+ * not the model's, and they have to be in the language the rest of the run
+ * is in. `noEvidence` is also the exact wording the prompt tells the model to
+ * use, so the two must come from the same place or the same finding would be
+ * phrased two ways in one document.
+ */
+function verifierStatuses(locale: AppLocale) {
+  const dictionary = dictionaryFor(locale);
+  return {
+    noEvidence: dictionary.difference.noEvidence,
+    profileOnly: dictionary.difference.profileOnlyStatus,
+  };
+}
 
 function stagedFailure(code: string, failureStage: string) {
   const error = new Error(code) as Error & { failureStage: string };
@@ -76,6 +95,7 @@ type DifferenceRunRepository = {
     schemaVersion: string;
     promptVersion: string;
     policyVersion: string;
+    outputLocale: AppLocale;
   }): Promise<ResumeJDDifferenceRun>;
   claim(
     runId: string,
@@ -125,6 +145,14 @@ type ServiceFact = ConfirmedFactForAnalysis & {
 export type ResumeJDDifferenceServiceInput = {
   userId: string;
   applicationId: string;
+  /**
+   * The language this analysis comes back in — the reader's, at the moment
+   * they ask for it. It reaches the cache key through the prompt version, so
+   * a run in one language is never served to a reader of the other, and
+   * switching languages marks the existing analysis out of date rather than
+   * showing it under the wrong headings.
+   */
+  outputLocale: AppLocale;
   jdText: string;
   asset: SourceAsset;
   confirmedFacts: ServiceFact[];
@@ -278,14 +306,22 @@ function verifiedDerivedTerms(input: {
   ];
 }
 
+/**
+ * Concept labels that mean "this needs literal evidence, not a paraphrase".
+ *
+ * The model writes the label in the output language, so the list has to cover
+ * both. English was missing entirely, which meant an English run treated
+ * every concept as semantically matchable — a certificate or a language level
+ * would have passed on an adjacent tool.
+ */
+const STRICT_CONCEPT_LABEL =
+  /(?:工具|框架|云平台|方法|年限|语言|学历|学位|证书|执照|许可|管理范围|量化结果|数字)|\b(?:tool|tooling|framework|cloud|platform|method|methodology|years?|language|degree|education|certificat|licen[cs]e|permit|authorization|authorisation|headcount|team size|scope|metric|quantif|number)/iu;
+
 function strictConceptText(output: ResumeJDDifferenceOutput, issue: DifferenceIssue) {
   const concept = output.jobCore.concepts.find(({ id }) => id === issue.conceptId);
   if (!concept) return null;
-  const text = `${concept.labelZh}\n${concept.originalTerms.join("\n")}`;
-  const hasStrictLabel =
-    /(?:工具|框架|云平台|方法|年限|语言|学历|学位|证书|执照|许可|管理范围|量化结果|数字)/u.test(
-      text,
-    );
+  const text = `${concept.label}\n${concept.originalTerms.join("\n")}`;
+  const hasStrictLabel = STRICT_CONCEPT_LABEL.test(text);
   const hasStrictValue = concept.originalTerms.some(
     (term) =>
       /\d/u.test(term) ||
@@ -324,8 +360,10 @@ export function verifyAndNormalizeDifferenceOutput(
     jdText: string;
     resumeText: string;
     confirmedFacts: ConfirmedFactForAnalysis[];
+    outputLocale: AppLocale;
   },
 ): ResumeJDDifferenceOutput {
+  const statuses = verifierStatuses(context.outputLocale);
   const parsed = resumeJDDifferenceOutputSchema.safeParse(candidate);
   if (!parsed.success) {
     throw stagedFailure(
@@ -446,12 +484,11 @@ export function verifyAndNormalizeDifferenceOutput(
       if (next.profileFactIds.length > 0) {
         next.type = next.isGate ? "gate" : "profile_only";
         next.authenticity = "profile_only";
-        next.resumeStatusZh =
-          "职业档案有已确认相关事实，但当前对照简历中未找到可回查的表述。";
+        next.resumeStatus = statuses.profileOnly;
       } else {
         next.type = next.isGate ? "gate" : "missing";
         next.authenticity = "unsupported";
-        next.resumeStatusZh = NO_EVIDENCE;
+        next.resumeStatus = statuses.noEvidence;
       }
     } else if (
       next.authenticity === "profile_only" &&
@@ -459,7 +496,7 @@ export function verifyAndNormalizeDifferenceOutput(
     ) {
       next.type = next.isGate ? "gate" : "missing";
       next.authenticity = "unsupported";
-      next.resumeStatusZh = NO_EVIDENCE;
+      next.resumeStatus = statuses.noEvidence;
     }
 
     authenticityByIssue.set(next.id, next.authenticity);
@@ -573,7 +610,6 @@ export function createResumeJDDifferenceService(
   dependencies: ResumeJDDifferenceServiceDependencies,
 ) {
   const promptVariant = dependencies.promptVariant ?? "p1";
-  const promptVersion = differencePromptVariants[promptVariant].version;
   const clock = dependencies.clock ?? (() => new Date());
 
   return {
@@ -581,6 +617,8 @@ export function createResumeJDDifferenceService(
       input: ResumeJDDifferenceServiceInput,
     ): Promise<ResumeJDDifferenceServiceResult> {
       assertOwnedInput(input);
+      const outputLocale = input.outputLocale;
+      const promptVersion = differencePrompt(promptVariant, outputLocale).version;
       const jdText = normalizeDocumentText(input.jdText);
       if (!jdText) throw new Error("job-description-required");
       const confirmedFacts = selectedConfirmedFacts(input.confirmedFacts);
@@ -605,6 +643,7 @@ export function createResumeJDDifferenceService(
         schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
         promptVersion,
         policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
+        outputLocale,
       });
       if (run.status === "succeeded") return { run, reused: true };
 
@@ -635,12 +674,13 @@ export function createResumeJDDifferenceService(
         const provider = dependencies.providerFactory();
         const aiResult = await provider.analyzeResumeJDDifference(
           { jdText, resumeText, confirmedFacts },
-          { promptVariant },
+          { promptVariant, outputLocale },
         );
         const result = verifyAndNormalizeDifferenceOutput(aiResult.data, {
           jdText,
           resumeText,
           confirmedFacts,
+          outputLocale,
         });
         const metadata = safeAIMetadata({
           ...aiResult,

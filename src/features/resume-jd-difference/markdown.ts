@@ -1,11 +1,46 @@
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
+import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import type {
-  DifferenceAuthenticity,
   DifferenceIssue,
   ImprovementDirection,
   ResumeJDDifferenceOutput,
 } from "./schemas";
+
+/**
+ * The labels a Markdown export needs, in the language of the *run* — not of
+ * whoever is downloading it.
+ *
+ * A stored analysis is written in one language and can be exported months
+ * later by a reader who has since switched. Taking the labels from the
+ * reader's dictionary would print English headings over Chinese findings, so
+ * the caller resolves this from the run's `outputLocale`.
+ *
+ * The authenticity, section and focus labels are the ones the improvements
+ * panel already shows on screen: an export that renamed them would describe
+ * the same analysis in two vocabularies.
+ */
+export type ResumeJDDifferenceMarkdownCopy = {
+  markdown: Dictionary["difference"]["markdown"];
+  noEvidence: Dictionary["difference"]["noEvidence"];
+  authenticity: Dictionary["improvements"]["authenticity"];
+  targetSections: Dictionary["improvements"]["targetSections"];
+  focusAreas: Dictionary["improvements"]["focusAreas"];
+  verifyExperience: Dictionary["improvements"]["verifyExperience"];
+};
+
+export function markdownCopyFromDictionary(
+  dictionary: Dictionary,
+): ResumeJDDifferenceMarkdownCopy {
+  return {
+    markdown: dictionary.difference.markdown,
+    noEvidence: dictionary.difference.noEvidence,
+    authenticity: dictionary.improvements.authenticity,
+    targetSections: dictionary.improvements.targetSections,
+    focusAreas: dictionary.improvements.focusAreas,
+    verifyExperience: dictionary.improvements.verifyExperience,
+  };
+}
 
 export type ResumeJDDifferenceMarkdownInput = {
   companyName: string;
@@ -15,32 +50,7 @@ export type ResumeJDDifferenceMarkdownInput = {
   stale: boolean;
   result: ResumeJDDifferenceOutput;
   facts: ConfirmedFactForAnalysis[];
-};
-
-const authenticityCopy: Record<DifferenceAuthenticity, string> = {
-  supported: "当前简历有可回查证据",
-  profile_only: "职业档案有已确认事实，当前简历未体现",
-  needs_confirmation: "需要本人确认",
-  unsupported: "当前材料没有可回查证据",
-};
-
-const targetSectionCopy: Record<ImprovementDirection["targetSection"], string> = {
-  summary: "个人总结",
-  experience: "工作经历",
-  project: "项目经历",
-  skills: "技能",
-  education: "教育",
-  languages: "语言",
-  other: "其他",
-};
-
-const focusCopy: Record<ImprovementDirection["focusAreas"][number], string> = {
-  action: "动作",
-  context: "场景",
-  stakeholders: "协作对象",
-  method: "方法",
-  result: "结果",
-  placement: "位置",
+  copy: ResumeJDDifferenceMarkdownCopy;
 };
 
 function escapeMarkdown(value: string) {
@@ -63,24 +73,27 @@ function issueBlock(
   issue: DifferenceIssue,
   index: number,
   factsById: Map<string, ConfirmedFactForAnalysis>,
+  copy: ResumeJDDifferenceMarkdownCopy,
 ) {
+  const labels = copy.markdown;
+  const sep = labels.labelSeparator;
   // Ids can outlive the fact they point at; name only the ones still confirmed.
   const citedTitles = issue.profileFactIds
     .map((id) => factsById.get(id)?.title)
     .filter((title): title is string => title !== undefined);
   return [
-    `### ${index + 1}. ${escapeMarkdown(issue.jdTranslationZh)}`,
+    `### ${index + 1}. ${escapeMarkdown(issue.jdTranslation)}`,
     "",
-    `- JD 原文：${escapeMarkdown(issue.jdOriginal)}`,
-    `- 中文解释：${escapeMarkdown(issue.jdTranslationZh)}`,
-    `- 简历现状：${escapeMarkdown(issue.resumeStatusZh)}`,
-    `- 简历引用：${escapeMarkdown(issue.resumeExcerpt ?? "当前材料未找到相关证据")}`,
-    `- 问题点：${escapeMarkdown(issue.problemZh)}`,
-    `- 判断依据：${escapeMarkdown(issue.reasonZh)}`,
-    `- 优先级：${escapeMarkdown(issue.priority)}`,
-    `- 真实性：${escapeMarkdown(authenticityCopy[issue.authenticity])}`,
+    `- ${labels.jdOriginal}${sep}${escapeMarkdown(issue.jdOriginal)}`,
+    `- ${labels.explanation}${sep}${escapeMarkdown(issue.jdTranslation)}`,
+    `- ${labels.resumeStatus}${sep}${escapeMarkdown(issue.resumeStatus)}`,
+    `- ${labels.resumeQuote}${sep}${escapeMarkdown(issue.resumeExcerpt ?? copy.noEvidence)}`,
+    `- ${labels.problem}${sep}${escapeMarkdown(issue.problem)}`,
+    `- ${labels.reason}${sep}${escapeMarkdown(issue.reason)}`,
+    `- ${labels.priority}${sep}${escapeMarkdown(issue.priority)}`,
+    `- ${labels.authenticity}${sep}${escapeMarkdown(copy.authenticity[issue.authenticity])}`,
     ...(citedTitles.length
-      ? [`- 档案依据：${citedTitles.map(escapeMarkdown).join(" · ")}`]
+      ? [`- ${labels.profileEvidence}${sep}${citedTitles.map(escapeMarkdown).join(" · ")}`]
       : []),
     "",
   ];
@@ -90,36 +103,43 @@ function directionBlock(
   direction: ImprovementDirection,
   issue: DifferenceIssue | undefined,
   index: number,
+  copy: ResumeJDDifferenceMarkdownCopy,
 ) {
-  const target = direction.targetExperienceZh
-    ? `${targetSectionCopy[direction.targetSection]} · ${direction.targetExperienceZh}`
-    : targetSectionCopy[direction.targetSection];
+  const labels = copy.markdown;
+  const sep = labels.labelSeparator;
+  const section = copy.targetSections[direction.targetSection];
+  const target = direction.targetExperience
+    ? `${section} · ${direction.targetExperience}`
+    : section;
   const terms =
     direction.authenticity === "unsupported"
       ? []
       : [...new Set([...direction.jdTerms, ...direction.synonymousJobLanguage])];
   return [
-    `### ${index + 1}. ${escapeMarkdown(issue?.jdTranslationZh ?? "对应差异")}`,
+    `### ${index + 1}. ${escapeMarkdown(issue?.jdTranslation ?? labels.correspondingDifference)}`,
     "",
-    `- 目标位置：${escapeMarkdown(target)}`,
-    `- 完善重点：${escapeMarkdown(direction.focusAreas.map((area) => focusCopy[area]).join(" · ") || "核实真实经历")}`,
+    `- ${labels.targetLocation}${sep}${escapeMarkdown(target)}`,
+    `- ${labels.focus}${sep}${escapeMarkdown(direction.focusAreas.map((area) => copy.focusAreas[area]).join(" · ") || copy.verifyExperience)}`,
     ...(terms.length
-      ? [`- 岗位原词 / 同义表达：${terms.map(escapeMarkdown).join("；")}`]
+      ? [`- ${labels.jobTerms}${sep}${terms.map(escapeMarkdown).join(labels.listSeparator)}`]
       : []),
-    `- 真实性：${escapeMarkdown(authenticityCopy[direction.authenticity])}`,
-    `- 方向说明：${escapeMarkdown(direction.directionZh)}`,
+    `- ${labels.authenticity}${sep}${escapeMarkdown(copy.authenticity[direction.authenticity])}`,
+    `- ${labels.directionNote}${sep}${escapeMarkdown(direction.direction)}`,
     ...(direction.authenticity === "unsupported"
-      ? ["- 提醒：如未实际做过，请不要加入简历。"]
+      ? [`- ${labels.unsupportedWarning}`]
       : []),
     "",
   ];
 }
 
-function jobCore(result: ResumeJDDifferenceOutput) {
+function jobCore(
+  result: ResumeJDDifferenceOutput,
+  copy: ResumeJDDifferenceMarkdownCopy,
+) {
   return [
-    "## 岗位核心判断",
+    `## ${copy.markdown.jobCoreHeading}`,
     "",
-    escapeMarkdown(result.jobCore.missionZh),
+    escapeMarkdown(result.jobCore.mission),
     "",
     ...result.jobCore.coreCapabilities.map(
       (capability) => `- ${escapeMarkdown(capability)}`,
@@ -131,52 +151,55 @@ function jobCore(result: ResumeJDDifferenceOutput) {
 export function buildResumeJDDifferenceMarkdown(
   input: ResumeJDDifferenceMarkdownInput,
 ) {
+  const copy = input.copy;
+  const labels = copy.markdown;
+  const sep = labels.labelSeparator;
   const factsById = new Map(input.facts.map((fact) => [fact.id, fact]));
   const issues = input.result.issues.filter((issue) => !issue.isGate);
   const gates = input.result.issues.filter((issue) => issue.isGate);
   const issueById = new Map(input.result.issues.map((issue) => [issue.id, issue]));
   const lines = [
-    `# ${escapeMarkdown(input.companyName)} · ${escapeMarkdown(input.roleTitle)} — 差异分析`,
+    `# ${escapeMarkdown(input.companyName)} · ${escapeMarkdown(input.roleTitle)} — ${labels.titleSuffix}`,
     "",
-    `- 导出时间：${input.exportedAt.toISOString()}`,
-    `- 对照简历：${safeDocumentName(input.sourceFilename)}`,
-    `- 结果状态：${input.stale ? "此结果可能已过期；材料变化后请重新分析。" : "基于导出时选定材料。"}`,
+    `- ${labels.exportedAt}${sep}${input.exportedAt.toISOString()}`,
+    `- ${labels.comparisonResume}${sep}${safeDocumentName(input.sourceFilename)}`,
+    `- ${labels.resultState}${sep}${input.stale ? labels.stale : labels.fresh}`,
     "",
-    ...jobCore(input.result),
-    "## 总体差异",
+    ...jobCore(input.result, copy),
+    `## ${labels.overallHeading}`,
     "",
-    escapeMarkdown(input.result.overallDifference.summaryZh),
+    escapeMarkdown(input.result.overallDifference.summary),
     "",
-    "## 全部具体差异",
+    `## ${labels.allDifferencesHeading}`,
     "",
     ...(issues.length
-      ? issues.flatMap((issue, index) => issueBlock(issue, index, factsById))
-      : ["当前没有识别出一般差异。", ""]),
-    "## 岗位门槛",
+      ? issues.flatMap((issue, index) => issueBlock(issue, index, factsById, copy))
+      : [labels.noIssues, ""]),
+    `## ${labels.gatesHeading}`,
     "",
     ...(gates.length
-      ? gates.flatMap((gate, index) => issueBlock(gate, index, factsById))
-      : ["当前没有识别出需要单独确认的岗位门槛。", ""]),
-    "## 完善方向",
+      ? gates.flatMap((gate, index) => issueBlock(gate, index, factsById, copy))
+      : [labels.noGates, ""]),
+    `## ${labels.directionsHeading}`,
     "",
     ...(input.result.directions.length
       ? input.result.directions.flatMap((direction, index) =>
-          directionBlock(direction, issueById.get(direction.issueId), index),
+          directionBlock(direction, issueById.get(direction.issueId), index, copy),
         )
-      : ["当前没有可发布的完善方向。", ""]),
-    "## 已匹配内容",
+      : [labels.noDirections, ""]),
+    `## ${labels.matchedHeading}`,
     "",
     ...input.result.matched.flatMap((item, index) => [
-      `### ${index + 1}. ${escapeMarkdown(item.jdTranslationZh)}`,
+      `### ${index + 1}. ${escapeMarkdown(item.jdTranslation)}`,
       "",
-      `- JD 原文：${escapeMarkdown(item.jdOriginal)}`,
-      `- 简历引用：${escapeMarkdown(item.resumeExcerpt)}`,
-      `- 判断依据：${escapeMarkdown(item.reasonZh)}`,
-      "- 真实性：当前简历有可回查证据",
+      `- ${labels.jdOriginal}${sep}${escapeMarkdown(item.jdOriginal)}`,
+      `- ${labels.resumeQuote}${sep}${escapeMarkdown(item.resumeExcerpt)}`,
+      `- ${labels.reason}${sep}${escapeMarkdown(item.reason)}`,
+      `- ${labels.authenticity}${sep}${copy.authenticity.supported}`,
       "",
     ]),
   ];
-  if (!input.result.matched.length) lines.push("当前没有已发布的匹配内容。", "");
+  if (!input.result.matched.length) lines.push(labels.noMatched, "");
   return `${lines.join("\n").trim()}\n`;
 }
 

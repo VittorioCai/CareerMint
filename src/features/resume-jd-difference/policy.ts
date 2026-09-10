@@ -98,10 +98,55 @@ export function verifyConfirmedFactIds(
   return [...new Set(candidateIds.filter((id) => confirmedIds.has(id)))];
 }
 
+/**
+ * Vocabulary that addresses the reader about what to go and check.
+ *
+ * Any direction that tells the reader to do something is, by definition, not
+ * a line they can paste — so this is the cheap exit before the shape checks
+ * below run at all.
+ */
+const READER_INSTRUCTION =
+  /(核对|补充|确认|说明|检查|回查|不要|不能|不该|无法|属于|请|是否|可以)|\b(check|verify|confirm|add|name|state|describe|explain|make sure|do not|don't|avoid|consider|review|include|spell out|point at|cannot|if you|you)\b/iu;
+
+/**
+ * A resume bullet's opening: a past-tense action verb, or the candidate
+ * speaking about themselves.
+ *
+ * This replaces "any Latin-script sentence", which was only ever a proxy for
+ * "this direction is not in the output language" — true while every direction
+ * was Chinese, and catastrophic the moment the model answers in English,
+ * because then every legitimate direction is a Latin-script sentence and the
+ * whole paid run is thrown away.
+ *
+ * Precision over recall on purpose. A false positive discards a finished
+ * analysis the user has already paid for; a false negative costs one
+ * suggestion that reads a little too finished. So this asks for a positive
+ * sign of a resume claim rather than for the absence of advice.
+ */
+const RESUME_CLAIM_OPENER =
+  /^(?:[A-Z][a-z]+(?:ed|wn|ne)\b|(?:Led|Built|Ran|Drove|Grew|Won|Set|Made|Took|Wrote|Sold|Cut|Held|Kept|Sent|Spoke|Taught|Oversaw|Rebuilt|Shipped)\b|(?:负责|主导|完成|实现|提升|搭建|带领|推动|优化|独立))/u;
+const FIRST_PERSON = /\b(?:I|my|we|our)\b/u;
+
+/**
+ * A direction that reads as a finished claim rather than as advice.
+ *
+ * "Collaborated with business stakeholders to align reporting needs and
+ * delivered weekly dashboards." is a resume bullet: it opens on a past-tense
+ * verb, runs to a full stop, and says nothing to the reader about what to do.
+ * The product never hands over a line to paste, so this disqualifies the run.
+ */
 export function isPasteReadyRewrite(value: string) {
-  if (/\p{Script=Han}/u.test(value)) return false;
-  const words = value.match(/[\p{L}\p{N}+#.-]+/gu) ?? [];
-  return words.length >= 8 && /[.!?]$/u.test(value.trim());
+  const trimmed = value.trim();
+  if (READER_INSTRUCTION.test(trimmed)) return false;
+  if (!RESUME_CLAIM_OPENER.test(trimmed) && !FIRST_PERSON.test(trimmed)) {
+    return false;
+  }
+  // A Chinese sentence has no spaces to count, so its length is its
+  // characters — one CJK glyph carries about as much as an English word.
+  const length = /\p{Script=Han}/u.test(trimmed)
+    ? trimmed.replaceAll(/[\s，。、；：]/gu, "").length
+    : (trimmed.match(/[\p{L}\p{N}+#.-]+/gu) ?? []).length;
+  return length >= 8 && /[.!?。！？]$/u.test(trimmed);
 }
 
 const priorityOrder: Record<DifferenceIssue["priority"], number> = {

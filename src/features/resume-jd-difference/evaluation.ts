@@ -218,7 +218,7 @@ export function evaluateDifferenceCase(
       : nonGateIssues.filter(({ id }) => directionIssueIds.has(id)).length /
         nonGateIssues.length;
   const pasteReadyRewriteCount = output.directions.filter((direction) =>
-    isPasteReadyRewrite(direction.directionZh),
+    isPasteReadyRewrite(direction.direction),
   ).length;
   const fabricatedFactCount = countFabricatedFacts(fixture, output);
   if (pasteReadyRewriteCount > 0) failures.push("paste-ready-rewrite");

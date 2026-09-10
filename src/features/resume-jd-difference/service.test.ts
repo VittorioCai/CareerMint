@@ -56,14 +56,14 @@ const facts: ConfirmedFactForAnalysis[] = [
 
 const output: ResumeJDDifferenceOutput = {
   jobCore: {
-    missionZh: "通过跨团队协作明确报告需求。",
+    mission: "通过跨团队协作明确报告需求。",
     coreCapabilities: ["相关方协作", "报告需求分析", "德语沟通"],
     concepts: [
       {
         id: "concept-1",
-        labelZh: "相关方协作",
+        label: "相关方协作",
         originalTerms: ["business stakeholders", "reporting needs"],
-        importanceReasonZh: "出现在岗位核心职责中。",
+        importanceReason: "出现在岗位核心职责中。",
         priority: "critical",
       },
     ],
@@ -71,21 +71,21 @@ const output: ResumeJDDifferenceOutput = {
       {
         id: "gate-1",
         originalText: "German C1 is required.",
-        translationZh: "要求德语 C1。",
-        reasonZh: "这是明确资格门槛。",
+        translation: "要求德语 C1。",
+        reason: "这是明确资格门槛。",
       },
     ],
     preferredItems: [
       {
         id: "preferred-1",
         originalText: "Tableau experience is preferred.",
-        translationZh: "有 Tableau 经验更佳。",
-        reasonZh: "JD 明确列为加分项。",
+        translation: "有 Tableau 经验更佳。",
+        reason: "JD 明确列为加分项。",
       },
     ],
   },
   overallDifference: {
-    summaryZh: "简历有相邻的业务协作经历，但岗位语言和德语等级证据仍不完整。",
+    summary: "简历有相邻的业务协作经历，但岗位语言和德语等级证据仍不完整。",
     topIssueIds: ["issue-1", "issue-2"],
   },
   issues: [
@@ -94,14 +94,14 @@ const output: ResumeJDDifferenceOutput = {
       conceptId: "concept-1",
       jdOriginal:
         "Collaborate with business stakeholders to align reporting needs.",
-      jdTranslationZh: "与业务相关方协作并对齐报告需求。",
+      jdTranslation: "与业务相关方协作并对齐报告需求。",
       resumeExcerpt:
         "Worked with business teams on weekly reports and gathered reporting needs from them.",
-      resumeStatusZh: "简历描述了与业务团队确认报告需求的经历。",
+      resumeStatus: "简历描述了与业务团队确认报告需求的经历。",
       profileFactIds: [factId],
       type: "language_misaligned",
-      problemZh: "职责相近，但没有使用岗位常用的相关方语言。",
-      reasonZh: "行为证据相邻，表达仍可更贴近 JD。",
+      problem: "职责相近，但没有使用岗位常用的相关方语言。",
+      reason: "行为证据相邻，表达仍可更贴近 JD。",
       priority: "critical",
       isGate: false,
       authenticity: "supported",
@@ -110,13 +110,13 @@ const output: ResumeJDDifferenceOutput = {
       id: "issue-2",
       conceptId: null,
       jdOriginal: "German C1 is required.",
-      jdTranslationZh: "要求德语 C1。",
+      jdTranslation: "要求德语 C1。",
       resumeExcerpt: null,
-      resumeStatusZh: "当前材料未找到相关证据",
+      resumeStatus: "当前材料未找到相关证据",
       profileFactIds: [],
       type: "gate",
-      problemZh: "当前材料没有可核验的德语 C1 证据。",
-      reasonZh: "语言等级必须严格核验。",
+      problem: "当前材料没有可核验的德语 C1 证据。",
+      reason: "语言等级必须严格核验。",
       priority: "critical",
       isGate: true,
       authenticity: "unsupported",
@@ -128,14 +128,14 @@ const output: ResumeJDDifferenceOutput = {
       id: "direction-1",
       issueId: "issue-1",
       targetSection: "experience",
-      targetExperienceZh: "业务报告经历",
+      targetExperience: "业务报告经历",
       conceptId: "concept-1",
       jdTerms: ["business stakeholders", "reporting needs"],
       focusAreas: ["action", "stakeholders", "context"],
       synonymousJobLanguage: ["business stakeholders"],
       authenticity: "supported",
       needsConfirmation: false,
-      directionZh: "核对真实协作对象，并说明需求确认发生在哪个报告场景。",
+      direction: "核对真实协作对象，并说明需求确认发生在哪个报告场景。",
     },
   ],
 };
@@ -156,6 +156,7 @@ function queuedRun(overrides: Partial<ResumeJDDifferenceRun> = {}): ResumeJDDiff
     schemaVersion: "resume-jd-difference-v4",
     promptVersion: "resume-jd-difference-p1-v4.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
+    outputLocale: "zh-CN" as const,
     status: "queued",
     attemptCount: 0,
     result: null,
@@ -255,6 +256,7 @@ function input(overrides: Record<string, unknown> = {}) {
     jdText,
     asset,
     confirmedFacts: facts,
+    outputLocale: "zh-CN" as const,
     ...overrides,
   };
 }
@@ -289,8 +291,9 @@ describe("resume JD difference service", () => {
         provider: "deepseek",
         model: "deepseek-v4-flash",
         schemaVersion: "resume-jd-difference-v4",
-        promptVersion: "resume-jd-difference-p1-v5.0",
+        promptVersion: "resume-jd-difference-p1-v6.0-zh-CN",
         policyVersion: "resume-jd-difference-policy-v4.0",
+        outputLocale: "zh-CN",
         jdSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         factFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/u),
         inputHash: expect.stringMatching(/^[0-9a-f]{64}$/u),
@@ -321,7 +324,7 @@ describe("resume JD difference service", () => {
 
     expect(dependencies.aiProvider.analyzeResumeJDDifference).toHaveBeenCalledWith(
       { jdText, resumeText, confirmedFacts: [{ ...facts[0], confirmationStatus: "confirmed" }] },
-      { promptVariant: "p1" },
+      { promptVariant: "p1", outputLocale: "zh-CN" },
     );
   });
 
@@ -480,7 +483,7 @@ describe("resume JD difference service", () => {
       profileFactIds: [],
       type: "missing",
       authenticity: "unsupported",
-      resumeStatusZh: "当前材料未找到相关证据",
+      resumeStatus: "当前材料未找到相关证据",
     });
     expect(published.directions[0]).toMatchObject({
       synonymousJobLanguage: [],
@@ -496,13 +499,13 @@ describe("resume JD difference service", () => {
     const invalid = structuredClone(output);
     invalid.jobCore.concepts[0] = {
       ...invalid.jobCore.concepts[0],
-      labelZh: "云平台工具",
+      label: "云平台工具",
       originalTerms: ["AWS"],
     };
     invalid.issues[0] = {
       ...invalid.issues[0],
       jdOriginal: "Hands-on AWS experience is required.",
-      jdTranslationZh: "要求 AWS 实践经验。",
+      jdTranslation: "要求 AWS 实践经验。",
       resumeExcerpt: "Used Azure for cloud deployment.",
       type: "language_misaligned",
       authenticity: "supported",
@@ -540,7 +543,7 @@ describe("resume JD difference service", () => {
   it("rejects paste-ready rewrite directions without a second paid attempt", async () => {
     const dependencies = fakes();
     const invalid = structuredClone(output);
-    invalid.directions[0].directionZh =
+    invalid.directions[0].direction =
       "Collaborated with business stakeholders to align reporting needs and delivered weekly dashboards.";
     dependencies.aiProvider.analyzeResumeJDDifference.mockResolvedValueOnce({
       data: invalid,

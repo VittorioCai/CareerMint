@@ -1433,6 +1433,7 @@ export type Database = {
           input_hash: string
           jd_sha256: string
           model: string
+          output_locale: string
           policy_version: string
           prompt_version: string
           provider: string
@@ -1460,6 +1461,7 @@ export type Database = {
           input_hash: string
           jd_sha256: string
           model: string
+          output_locale?: string
           policy_version: string
           prompt_version: string
           provider: string
@@ -1487,6 +1489,7 @@ export type Database = {
           input_hash?: string
           jd_sha256?: string
           model?: string
+          output_locale?: string
           policy_version?: string
           prompt_version?: string
           provider?: string
@@ -2304,6 +2307,7 @@ export type Database = {
           input_hash: string
           jd_sha256: string
           model: string
+          output_locale: string
           policy_version: string
           prompt_version: string
           provider: string
@@ -2584,6 +2588,7 @@ export type Database = {
           target_input_hash: string
           target_jd_sha256: string
           target_model: string
+          target_output_locale: string
           target_policy_version: string
           target_prompt_version: string
           target_provider: string
@@ -2606,6 +2611,7 @@ export type Database = {
           input_hash: string
           jd_sha256: string
           model: string
+          output_locale: string
           policy_version: string
           prompt_version: string
           provider: string
@@ -2934,6 +2940,7 @@ export type Database = {
           input_hash: string
           jd_sha256: string
           model: string
+          output_locale: string
           policy_version: string
           prompt_version: string
           provider: string

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Application } from "@/features/applications/schemas";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import type { SourceAsset } from "@/features/source-assets/repository";
+import type { AppLocale } from "@/i18n/locale";
 
 import type {
   ResumeJDDifferenceServiceInput,
@@ -26,6 +27,11 @@ export type ResumeJDDifferencePostDependencies = {
   getAIProcessingConsentAt(userId: string): Promise<string | null>;
   getOwnedAsset(userId: string, assetId: string): Promise<SourceAsset | null>;
   listConfirmedFacts(userId: string): Promise<ConfirmedFactForAnalysis[]>;
+  /**
+   * The language to write this analysis in — the reader's, read per request
+   * rather than closed over, because a route handler is reused across readers.
+   */
+  getOutputLocale(): Promise<AppLocale>;
   runAnalysis(
     input: ResumeJDDifferenceServiceInput,
   ): Promise<ResumeJDDifferenceServiceResult>;
@@ -195,13 +201,17 @@ export function createResumeJDDifferencePostHandler(
         );
       }
 
-      const confirmedFacts = await dependencies.listConfirmedFacts(user.id);
+      const [confirmedFacts, outputLocale] = await Promise.all([
+        dependencies.listConfirmedFacts(user.id),
+        dependencies.getOutputLocale(),
+      ]);
       const result = await dependencies.runAnalysis({
         userId: user.id,
         applicationId: application.id,
         jdText: application.jdText,
         asset,
         confirmedFacts,
+        outputLocale,
         ...(ocrText === undefined ? {} : { ocrText }),
       });
       const status =

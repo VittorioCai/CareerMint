@@ -4,9 +4,11 @@ import { applicationRepository } from "@/features/applications/repository";
 import { listConfirmedFactsForAnalysis } from "@/features/jd-analysis/repository";
 import {
   buildResumeJDDifferenceMarkdown,
+  markdownCopyFromDictionary,
   safeResumeJDDifferenceMarkdownFilename,
 } from "@/features/resume-jd-difference/markdown";
 import { resumeJDDifferenceRepository } from "@/features/resume-jd-difference/repository";
+import { dictionaryFor } from "@/i18n/dictionary";
 import { getCurrentUser } from "@/lib/auth/require-user";
 
 export const runtime = "nodejs";
@@ -89,6 +91,10 @@ export async function GET(
       stale,
       result: run.result,
       facts: await listConfirmedFactsForAnalysis(user.id),
+      // The run's language, not the reader's: a Chinese analysis exported by
+      // someone who has since switched to English still needs Chinese
+      // headings over its Chinese findings.
+      copy: markdownCopyFromDictionary(dictionaryFor(run.outputLocale)),
     });
     return new Response(markdown, {
       status: 200,

@@ -13,13 +13,16 @@ import {
   type InterviewQuestionGenerationInput,
   type InterviewQuestionGenerationOutput,
 } from "@/features/interview-preparation/generation-schemas";
+import type { AppLocale } from "@/i18n/locale";
+
 import {
-  differencePromptVariants,
+  differencePrompt,
   type DifferencePromptVariant,
 } from "@/features/resume-jd-difference/prompts";
 import { type ResumeJDDifferenceInput } from "@/features/resume-jd-difference/schemas";
 import {
   buildSourceSegments,
+  differenceOutputCopy,
   materializeResumeJDDifferenceOutput,
   repairProviderOutput,
   resumeJDDifferenceProviderOutputSchema,
@@ -753,9 +756,13 @@ export function createDeepSeekAIProvider(
     },
     async analyzeResumeJDDifference(
       input: ResumeJDDifferenceInput,
-      options: { promptVariant: DifferencePromptVariant },
+      options: { promptVariant: DifferencePromptVariant; outputLocale: AppLocale },
     ) {
-      const prompt = differencePromptVariants[options.promptVariant];
+      const prompt = differencePrompt(options.promptVariant, options.outputLocale);
+      // The repair path and the materializer both write sentences of their
+      // own when the model leaves a field out. They have to be in the same
+      // language the model was asked to answer in.
+      const copy = differenceOutputCopy(options.outputLocale);
       const jdSegments = buildSourceSegments(input.jdText, "jd");
       const resumeSegments = buildSourceSegments(input.resumeText, "resume");
       if (jdSegments.length === 0) {
@@ -781,12 +788,13 @@ export function createDeepSeekAIProvider(
             jdSegments,
             resumeSegments,
           ),
-          preprocess: repairProviderOutput,
+          preprocess: (value: unknown) => repairProviderOutput(value, copy),
         });
       try {
         return {
           ...compact,
           data: materializeResumeJDDifferenceOutput(compact.data, {
+            copy,
             jdSegments,
             resumeSegments,
             confirmedFactIds: new Set(input.confirmedFacts.map(({ id }) => id)),

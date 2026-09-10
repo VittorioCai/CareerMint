@@ -25,21 +25,21 @@ const fixtures = [fixture01, fixture02, fixture03, fixture04, fixture05, fixture
 
 const output: ResumeJDDifferenceOutput = {
   jobCore: {
-    missionZh: "用可信的数据报告支持业务决策。",
+    mission: "用可信的数据报告支持业务决策。",
     coreCapabilities: ["数据分析", "报告", "业务协作"],
     concepts: [
       {
         id: "concept-1",
-        labelZh: "利益相关方沟通",
+        label: "利益相关方沟通",
         originalTerms: ["stakeholder management"],
-        importanceReasonZh: "职责与要求均强调。",
+        importanceReason: "职责与要求均强调。",
         priority: "critical",
       },
       {
         id: "concept-2",
-        labelZh: "A/B 测试",
+        label: "A/B 测试",
         originalTerms: ["A/B testing"],
-        importanceReasonZh: "核心分析方法。",
+        importanceReason: "核心分析方法。",
         priority: "important",
       },
     ],
@@ -47,7 +47,7 @@ const output: ResumeJDDifferenceOutput = {
     preferredItems: [],
   },
   overallDifference: {
-    summaryZh: "简历有业务报告经历，但没有 A/B 测试证据。",
+    summary: "简历有业务报告经历，但没有 A/B 测试证据。",
     topIssueIds: ["issue-1"],
   },
   issues: [
@@ -55,13 +55,13 @@ const output: ResumeJDDifferenceOutput = {
       id: "issue-1",
       conceptId: "concept-2",
       jdOriginal: "Experience with A/B testing",
-      jdTranslationZh: "具备 A/B 测试经验",
+      jdTranslation: "具备 A/B 测试经验",
       resumeExcerpt: null,
-      resumeStatusZh: "当前材料未找到相关证据",
+      resumeStatus: "当前材料未找到相关证据",
       profileFactIds: [],
       type: "missing",
-      problemZh: "简历未体现 A/B 测试。",
-      reasonZh: "简历中没有该方法的可回查表述。",
+      problem: "简历未体现 A/B 测试。",
+      reason: "简历中没有该方法的可回查表述。",
       priority: "important",
       isGate: false,
       authenticity: "unsupported",
@@ -72,10 +72,10 @@ const output: ResumeJDDifferenceOutput = {
       id: "matched-1",
       conceptId: "concept-1",
       jdOriginal: "stakeholder management",
-      jdTranslationZh: "利益相关方管理",
+      jdTranslation: "利益相关方管理",
       resumeExcerpt: "Worked with business teams to align weekly reporting needs.",
       profileFactIds: [],
-      reasonZh: "职责语义一致，并有原文证据。",
+      reason: "职责语义一致，并有原文证据。",
     },
   ],
   directions: [
@@ -83,14 +83,14 @@ const output: ResumeJDDifferenceOutput = {
       id: "direction-1",
       issueId: "issue-1",
       targetSection: "experience",
-      targetExperienceZh: null,
+      targetExperience: null,
       conceptId: "concept-2",
       jdTerms: [],
       focusAreas: ["method", "context", "result"],
       synonymousJobLanguage: [],
       authenticity: "unsupported",
       needsConfirmation: true,
-      directionZh: "先确认是否真实做过实验设计、指标选择和结果评估；未做过则不要加入。",
+      direction: "先确认是否真实做过实验设计、指标选择和结果评估；未做过则不要加入。",
     },
   ],
 };
@@ -153,7 +153,7 @@ describe("resume JD difference evaluation", () => {
     });
 
     const rewrite = structuredClone(output);
-    rewrite.directions[0]!.directionZh =
+    rewrite.directions[0]!.direction =
       "Led A/B testing programs and delivered measurable commercial growth.";
     expect(evaluateDifferenceCase(syntheticFixture, rewrite)).toMatchObject({
       pasteReadyRewriteCount: 1,
@@ -175,10 +175,10 @@ describe("resume JD difference evaluation", () => {
       id: "matched-2",
       conceptId: "concept-2",
       jdOriginal: "Experience with A/B testing",
-      jdTranslationZh: "具备 A/B 测试经验",
+      jdTranslation: "具备 A/B 测试经验",
       resumeExcerpt: "Worked with business teams to align weekly reporting needs.",
       profileFactIds: [],
-      reasonZh: "错误地把一般协作当作实验经验。",
+      reason: "错误地把一般协作当作实验经验。",
     });
 
     expect(evaluateDifferenceCase(syntheticFixture, falseAlignment)).toMatchObject({

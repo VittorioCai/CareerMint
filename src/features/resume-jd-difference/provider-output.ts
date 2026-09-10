@@ -1,5 +1,9 @@
 import { z } from "zod";
 
+import type { Dictionary } from "@/i18n/dictionaries/en";
+import type { AppLocale } from "@/i18n/locale";
+import { dictionaryFor } from "@/i18n/dictionary";
+
 import {
   differenceIssueTypeSchema,
   differencePrioritySchema,
@@ -14,9 +18,28 @@ import {
 const SEGMENT_MAX_LENGTH = 1_000;
 const MAX_GATES = 16;
 const MAX_PREFERRED_ITEMS = 16;
-const NO_EVIDENCE = "当前材料未找到相关证据";
-const PROFILE_ONLY_STATUS =
-  "职业档案有已确认相关事实，但当前对照简历中未找到可回查的表述。";
+/**
+ * The sentences this module writes when the model left a field out, in the
+ * language the run is in.
+ *
+ * They used to be module constants in Chinese, which meant a repaired English
+ * run came back with one Chinese sentence in the middle of it. Resolving them
+ * from the run's locale keeps a repair invisible rather than jarring.
+ */
+export type DifferenceOutputCopy = {
+  noEvidence: string;
+  profileOnlyStatus: string;
+  fallbacks: Dictionary["difference"]["fallbacks"];
+};
+
+export function differenceOutputCopy(locale: AppLocale): DifferenceOutputCopy {
+  const { difference } = dictionaryFor(locale);
+  return {
+    noEvidence: difference.noEvidence,
+    profileOnlyStatus: difference.profileOnlyStatus,
+    fallbacks: difference.fallbacks,
+  };
+}
 
 export type DifferenceSourceSegment = {
   id: string;
@@ -34,11 +57,11 @@ const boundedText = (max: number) => z.string().trim().min(1).max(max);
 const providerImprovementSchema = z
   .object({
     targetSection: resumeTargetSectionSchema,
-    targetExperienceZh: boundedText(300).nullable(),
+    targetExperience: boundedText(300).nullable(),
     focusAreas: z.array(improvementFocusAreaSchema).max(6),
     synonymousJobLanguage: z.array(boundedText(160)).max(12),
     needsConfirmation: z.boolean(),
-    directionZh: boundedText(800),
+    direction: boundedText(800),
   })
   .strict();
 
@@ -47,11 +70,11 @@ const providerRequirementSchema = z
     jdSegmentId: sourceSegmentIdSchema,
     kind: z.enum(["core", "gate", "preferred"]),
     comparisonMode: z.enum(["semantic", "strict"]),
-    conceptLabelZh: boundedText(160),
+    conceptLabel: boundedText(160),
     jdTerms: z.array(boundedText(160)).max(12),
-    importanceReasonZh: boundedText(600),
+    importanceReason: boundedText(600),
     priority: differencePrioritySchema,
-    translationZh: boundedText(1_500),
+    translation: boundedText(1_500),
     assessment: z.enum([
       "matched",
       "partial",
@@ -62,18 +85,18 @@ const providerRequirementSchema = z
     resumeSegmentId: sourceSegmentIdSchema.nullable(),
     profileFactIds: z.array(z.uuid()).max(12),
     gapType: differenceIssueTypeSchema.nullable(),
-    resumeStatusZh: boundedText(800),
-    problemZh: boundedText(800).nullable(),
-    reasonZh: boundedText(1_000),
+    resumeStatus: boundedText(800),
+    problem: boundedText(800).nullable(),
+    reason: boundedText(1_000),
     improvement: providerImprovementSchema.nullable(),
   })
   .strict();
 
 export const resumeJDDifferenceProviderOutputSchema = z
   .object({
-    missionZh: boundedText(800),
+    mission: boundedText(800),
     coreCapabilities: z.array(boundedText(240)).max(5),
-    overallSummaryZh: boundedText(1_000),
+    overallSummary: boundedText(1_000),
     requirements: z.array(providerRequirementSchema).min(1).max(24),
   })
   .strict();
@@ -132,15 +155,15 @@ function clampTextArray(value: unknown, max: number, limit: number) {
 function repairImprovement(value: unknown) {
   const raw = asRecord(value);
   if (!raw) return null;
-  const directionZh = clampText(raw.directionZh, 800);
-  if (!directionZh) return null;
+  const direction = clampText(raw.direction, 800);
+  if (!direction) return null;
   return {
     targetSection: oneOf(
       raw.targetSection,
       resumeTargetSectionSchema.options,
       "other",
     ),
-    targetExperienceZh: clampText(raw.targetExperienceZh, 300) ?? null,
+    targetExperience: clampText(raw.targetExperience, 300) ?? null,
     focusAreas: (Array.isArray(raw.focusAreas) ? raw.focusAreas : [])
       .map((entry) => oneOf(entry, improvementFocusAreaSchema.options, null))
       .filter((entry): entry is (typeof improvementFocusAreaSchema.options)[number] =>
@@ -149,11 +172,11 @@ function repairImprovement(value: unknown) {
       .slice(0, 6),
     synonymousJobLanguage: clampTextArray(raw.synonymousJobLanguage, 160, 12),
     needsConfirmation: raw.needsConfirmation !== false,
-    directionZh,
+    direction,
   };
 }
 
-function repairRequirement(value: unknown) {
+function repairRequirement(value: unknown, copy: DifferenceOutputCopy) {
   const raw = asRecord(value);
   if (!raw) return null;
   const jdSegmentId = clampText(raw.jdSegmentId, 32);
@@ -163,41 +186,41 @@ function repairRequirement(value: unknown) {
     jdSegmentId,
     kind: oneOf(raw.kind, KINDS, "core"),
     comparisonMode: oneOf(raw.comparisonMode, COMPARISON_MODES, "strict"),
-    conceptLabelZh: clampText(raw.conceptLabelZh, 160) ?? "岗位要求",
+    conceptLabel: clampText(raw.conceptLabel, 160) ?? copy.fallbacks.conceptLabel,
     jdTerms: clampTextArray(raw.jdTerms, 160, 12),
-    importanceReasonZh: clampText(raw.importanceReasonZh, 600) ?? "岗位描述中的要求。",
+    importanceReason:
+      clampText(raw.importanceReason, 600) ?? copy.fallbacks.importanceReason,
     priority: oneOf(raw.priority, differencePrioritySchema.options, "important"),
-    translationZh:
-      clampText(raw.translationZh, 1_500) ??
-      "这段岗位原文没有生成中文解释，重新分析可以再试一次。",
+    translation:
+      clampText(raw.translation, 1_500) ?? copy.fallbacks.translation,
     assessment: oneOf(raw.assessment, ASSESSMENTS, "needs_confirmation"),
     resumeSegmentId,
     profileFactIds: (Array.isArray(raw.profileFactIds) ? raw.profileFactIds : [])
       .filter((id): id is string => typeof id === "string" && UUID_PATTERN.test(id))
       .slice(0, 12),
     gapType: oneOf(raw.gapType, differenceIssueTypeSchema.options, null),
-    resumeStatusZh: clampText(raw.resumeStatusZh, 800) ?? NO_EVIDENCE,
-    problemZh: clampText(raw.problemZh, 800) ?? null,
-    reasonZh: clampText(raw.reasonZh, 1_000) ?? "依据当前材料判断。",
+    resumeStatus: clampText(raw.resumeStatus, 800) ?? copy.noEvidence,
+    problem: clampText(raw.problem, 800) ?? null,
+    reason: clampText(raw.reason, 1_000) ?? copy.fallbacks.reason,
     improvement: repairImprovement(raw.improvement),
   };
 }
 
-export function repairProviderOutput(value: unknown): unknown {
+export function repairProviderOutput(
+  value: unknown,
+  copy: DifferenceOutputCopy,
+): unknown {
   const raw = asRecord(value);
   if (!raw) return value;
   const requirements = (Array.isArray(raw.requirements) ? raw.requirements : [])
-    .map(repairRequirement)
+    .map((entry) => repairRequirement(entry, copy))
     .filter((entry): entry is NonNullable<typeof entry> => entry !== null)
     .slice(0, 24);
   return {
-    missionZh:
-      clampText(raw.missionZh, 800) ??
-      "这次没有得出岗位核心任务的判断，重新分析可以再试一次。",
+    mission: clampText(raw.mission, 800) ?? copy.fallbacks.mission,
     coreCapabilities: clampTextArray(raw.coreCapabilities, 240, 5),
-    overallSummaryZh:
-      clampText(raw.overallSummaryZh, 1_000) ??
-      "这次没有得出总体判断，重新分析可以再试一次。",
+    overallSummary:
+      clampText(raw.overallSummary, 1_000) ?? copy.fallbacks.overallSummary,
     requirements,
   };
 }
@@ -290,6 +313,7 @@ export function materializeResumeJDDifferenceOutput(
     jdSegments: DifferenceSourceSegment[];
     resumeSegments: DifferenceSourceSegment[];
     confirmedFactIds: ReadonlySet<string>;
+    copy: DifferenceOutputCopy;
   },
 ): ResumeJDDifferenceOutput {
   const jdById = new Map(context.jdSegments.map((item) => [item.id, item.text]));
@@ -320,9 +344,9 @@ export function materializeResumeJDDifferenceOutput(
       : [boundedDerivedTerm(jdOriginal)];
     concepts.push({
       id: conceptId,
-      labelZh: item.conceptLabelZh,
+      label: item.conceptLabel,
       originalTerms: sourceTerms,
-      importanceReasonZh: item.importanceReasonZh,
+      importanceReason: item.importanceReason,
       priority: item.priority,
     });
 
@@ -331,8 +355,8 @@ export function materializeResumeJDDifferenceOutput(
       gates.push({
         id: `gate-${gates.length + 1}`,
         originalText: jdOriginal,
-        translationZh: item.translationZh,
-        reasonZh: item.importanceReasonZh,
+        translation: item.translation,
+        reason: item.importanceReason,
       });
     }
     if (
@@ -342,8 +366,8 @@ export function materializeResumeJDDifferenceOutput(
       preferredItems.push({
         id: `preferred-${preferredItems.length + 1}`,
         originalText: jdOriginal,
-        translationZh: item.translationZh,
-        reasonZh: item.importanceReasonZh,
+        translation: item.translation,
+        reason: item.importanceReason,
       });
     }
 
@@ -366,10 +390,10 @@ export function materializeResumeJDDifferenceOutput(
         id: `matched-${matched.length + 1}`,
         conceptId,
         jdOriginal,
-        jdTranslationZh: item.translationZh,
+        jdTranslation: item.translation,
         resumeExcerpt,
         profileFactIds,
-        reasonZh: item.reasonZh,
+        reason: item.reason,
       });
       continue;
     }
@@ -379,18 +403,18 @@ export function materializeResumeJDDifferenceOutput(
       id: issueId,
       conceptId,
       jdOriginal,
-      jdTranslationZh: item.translationZh,
+      jdTranslation: item.translation,
       resumeExcerpt,
-      resumeStatusZh:
+      resumeStatus:
         authenticity === "unsupported"
-          ? NO_EVIDENCE
+          ? context.copy.noEvidence
           : authenticity === "profile_only"
-            ? PROFILE_ONLY_STATUS
-            : item.resumeStatusZh,
+            ? context.copy.profileOnlyStatus
+            : item.resumeStatus,
       profileFactIds,
       type: resolveIssueType({ isGate, authenticity, gapType: item.gapType }),
-      problemZh: item.problemZh ?? "当前简历尚未完整覆盖这项岗位要求。",
-      reasonZh: item.reasonZh,
+      problem: item.problem ?? context.copy.fallbacks.problem,
+      reason: item.reason,
       priority: item.priority,
       isGate,
       authenticity,
@@ -403,7 +427,7 @@ export function materializeResumeJDDifferenceOutput(
       id: `direction-${directions.length + 1}`,
       issueId,
       targetSection: guidance?.targetSection ?? "other",
-      targetExperienceZh: guidance?.targetExperienceZh ?? null,
+      targetExperience: guidance?.targetExperience ?? null,
       conceptId,
       jdTerms: sourceTerms,
       focusAreas: guidance?.focusAreas ?? [],
@@ -414,9 +438,7 @@ export function materializeResumeJDDifferenceOutput(
       authenticity,
       needsConfirmation:
         authenticity !== "supported" || (guidance?.needsConfirmation ?? true),
-      directionZh:
-        guidance?.directionZh ??
-        "先核对是否有相关真实经历；有则补充可回查的动作、场景和结果，没有则不要加入简历。",
+      direction: guidance?.direction ?? context.copy.fallbacks.direction,
     });
   }
 
@@ -430,14 +452,14 @@ export function materializeResumeJDDifferenceOutput(
 
   return resumeJDDifferenceOutputSchema.parse({
     jobCore: {
-      missionZh: compact.missionZh,
+      mission: compact.mission,
       coreCapabilities: compact.coreCapabilities,
       concepts,
       gates,
       preferredItems,
     },
     overallDifference: {
-      summaryZh: compact.overallSummaryZh,
+      summary: compact.overallSummary,
       topIssueIds,
     },
     issues,

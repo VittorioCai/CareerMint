@@ -26,6 +26,7 @@ const mocks = vi.hoisted(() => ({
   getServerEnv: vi.fn(),
   downloadSource: vi.fn(),
   extractResumeText: vi.fn(),
+  getLocale: vi.fn(),
 }));
 
 vi.mock("server-only", () => ({}));
@@ -66,6 +67,8 @@ vi.mock("@/features/resume-jd-difference/repository", () => ({
 vi.mock("@/features/resume-jd-difference/service", () => ({
   createResumeJDDifferenceService: mocks.createResumeJDDifferenceService,
 }));
+// The route reads the reader's language per request, which means `cookies()`.
+vi.mock("@/i18n/server", () => ({ getLocale: mocks.getLocale }));
 
 function context() {
   return { params: Promise.resolve({ id: ids.application }) };
@@ -104,6 +107,7 @@ beforeEach(() => {
     createdAt: "2026-08-28T10:00:00.000Z",
   });
   mocks.listConfirmedFacts.mockResolvedValue([]);
+  mocks.getLocale.mockResolvedValue("zh-CN");
   mocks.serviceRun.mockResolvedValue({
     run: {
       id: ids.run,
@@ -177,9 +181,11 @@ describe("resume JD difference route wiring", () => {
 
     const first = await provider.analyzeResumeJDDifference(input, {
       promptVariant: "p1",
+      outputLocale: "zh-CN",
     });
     const second = await provider.analyzeResumeJDDifference(input, {
       promptVariant: "p1",
+      outputLocale: "zh-CN",
     });
     expect(first).toEqual(second);
     const parsed = resumeJDDifferenceOutputSchema.parse(first.data);
@@ -188,6 +194,46 @@ describe("resume JD difference route wiring", () => {
     expect(parsed.issues.length).toBeGreaterThan(0);
     expect(parsed.matched.length).toBeGreaterThan(0);
     expect(parsed.directions.length).toBeGreaterThan(0);
+  });
+
+  it("answers in the language it was asked for, and still passes the graph", async () => {
+    // A fake that always answered in Chinese would let the end-to-end suite
+    // agree with itself while proving nothing about the one thing a second
+    // output language adds: that the language asked for is the language back.
+    const route = await import("./route");
+    await route.POST(
+      new Request("http://test", {
+        method: "POST",
+        headers: { "x-resume-source-asset-id": ids.asset },
+      }),
+      context(),
+    );
+    const provider =
+      mocks.createResumeJDDifferenceService.mock.calls[0][0].providerFactory();
+    const input = {
+      jdText: "Collaborate with stakeholders to align reporting needs.",
+      resumeText: "Worked with business teams and gathered reporting needs.",
+      confirmedFacts: [],
+    };
+
+    const english = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+      outputLocale: "en",
+    });
+    const chinese = await provider.analyzeResumeJDDifference(input, {
+      promptVariant: "p1",
+      outputLocale: "zh-CN",
+    });
+
+    const parsed = resumeJDDifferenceOutputSchema.parse(english.data);
+    // The graph rules include the paste-ready guard, which used to reject
+    // every English direction on sight.
+    expect(validateResumeJDDifferenceGraph(parsed)).toEqual({ ok: true });
+    expect(parsed.jobCore.mission).not.toMatch(/\p{Script=Han}/u);
+    expect(parsed.directions[0]!.direction).not.toMatch(/\p{Script=Han}/u);
+    expect(
+      resumeJDDifferenceOutputSchema.parse(chinese.data).jobCore.mission,
+    ).toMatch(/\p{Script=Han}/u);
   });
 
   it("suppresses the fake in production and constructs DeepSeek lazily", async () => {

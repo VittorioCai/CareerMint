@@ -6,14 +6,9 @@ import { cache } from "react";
 import { getOwnedProfile } from "@/features/account/repository";
 import { getCurrentUser } from "@/lib/auth/require-user";
 
-import { en, type Dictionary } from "./dictionaries/en";
-import { zhCN } from "./dictionaries/zh-CN";
+import type { Dictionary } from "./dictionaries/en";
+import { dictionaryFor } from "./dictionary";
 import { LOCALE_COOKIE, resolveLocale, type AppLocale } from "./locale";
-
-const dictionaries: Record<AppLocale, Dictionary> = {
-  en,
-  "zh-CN": zhCN,
-};
 
 /**
  * The language for this request.
@@ -47,10 +42,5 @@ export const getLocale = cache(async (): Promise<AppLocale> => {
 
 /** The whole dictionary for this request's language. */
 export const getDictionary = cache(async (): Promise<Dictionary> => {
-  return dictionaries[await getLocale()];
+  return dictionaryFor(await getLocale());
 });
-
-/** The dictionary for one language, for callers that already resolved it. */
-export function dictionaryFor(locale: AppLocale): Dictionary {
-  return dictionaries[locale];
-}
