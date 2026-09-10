@@ -3,19 +3,19 @@ import { z } from "zod";
 import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import { normalizeForMatching } from "@/features/extraction/evidence";
 
-export const INTERVIEW_QUESTION_CATEGORIES = [
-  "common",
-  "function",
-  "industry",
-  "job_specific",
-] as const;
-export const INTERVIEW_PREPARATION_STATUSES = [
-  "not_started",
-  "outlined",
-  "practiced",
-  "ready",
-] as const;
-export const INTERVIEW_QUESTION_SOURCES = ["builtin", "manual", "ai"] as const;
+import {
+  INTERVIEW_PREPARATION_STATUSES,
+  INTERVIEW_QUESTION_CATEGORIES,
+  INTERVIEW_QUESTION_SOURCES,
+} from "./vocabulary";
+
+// Re-exported so existing server-side importers keep working, and so the
+// enums below still derive from one source.
+export {
+  INTERVIEW_PREPARATION_STATUSES,
+  INTERVIEW_QUESTION_CATEGORIES,
+  INTERVIEW_QUESTION_SOURCES,
+};
 
 export const interviewQuestionCategorySchema = z.enum(
   INTERVIEW_QUESTION_CATEGORIES,

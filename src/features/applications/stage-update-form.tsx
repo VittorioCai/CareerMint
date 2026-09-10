@@ -6,10 +6,9 @@ import { type FormEvent, useState } from "react";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import type { ApplicationActionState } from "./actions";
-import {
-  APPLICATION_STAGES,
-  type ApplicationStage,
-} from "./schemas";
+// From `./stages`, not `./schemas`: this is a client component, and
+// `./schemas` imports zod.
+import { APPLICATION_STAGES, type ApplicationStage } from "./stages";
 
 /** Server error codes to the sentence that explains each one. */
 export function stageUpdateMessage(

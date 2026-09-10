@@ -1,21 +1,10 @@
 import { z } from "zod";
 
-export const APPLICATION_STAGES = [
-  "preparing",
-  "applied",
-  "hr",
-  "interview",
-  "offer",
-  "rejected",
-  "withdrawn",
-] as const;
+import { APPLICATION_STAGES, WORKPLACE_MODES } from "./stages";
 
-export const WORKPLACE_MODES = [
-  "unspecified",
-  "onsite",
-  "hybrid",
-  "remote",
-] as const;
+// Re-exported so existing server-side importers keep working, and so the
+// enums below still derive from one source.
+export { APPLICATION_STAGES, WORKPLACE_MODES };
 
 export const applicationStageSchema = z.enum(APPLICATION_STAGES);
 export const workplaceModeSchema = z.enum(WORKPLACE_MODES);

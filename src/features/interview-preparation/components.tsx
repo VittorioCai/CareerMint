@@ -9,12 +9,14 @@ import type { ConfirmedFactForAnalysis } from "@/features/jd-analysis/schemas";
 import type { InterviewActionState } from "./actions";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 
+import type { InterviewQuestion } from "./schemas";
+// From `./vocabulary`, not `./schemas`: this is a client component, and
+// `./schemas` imports zod.
 import {
   INTERVIEW_PREPARATION_STATUSES,
   type InterviewPreparationStatus,
-  type InterviewQuestion,
   type InterviewQuestionCategory,
-} from "./schemas";
+} from "./vocabulary";
 
 type BoundAction = (formData: FormData) => Promise<InterviewActionState>;
 
