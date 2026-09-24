@@ -116,12 +116,12 @@ export function HomeView({
 
         <div className="relative mx-auto w-full max-w-[620px] lg:mx-0">
           <div className="soft-surface relative overflow-hidden">
-            <div className="flex items-center justify-between border-b border-[var(--line)] px-5 py-4">
+            <div className="flex items-center justify-between gap-3 border-b border-[var(--line)] px-5 py-4">
               <div>
                 <p className="text-xs font-semibold uppercase tracking-[0.13em] text-[var(--ink-muted)]">{landing.demo.workspace}</p>
                 <p className="heading-font mt-1 text-xl font-semibold">{landing.demo.role}</p>
               </div>
-              <div className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold">{landing.demo.pending}</div>
+              <div className="shrink-0 whitespace-nowrap rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold">{landing.demo.pending}</div>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px]">

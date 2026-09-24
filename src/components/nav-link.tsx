@@ -46,7 +46,7 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
         // 56px of height rather than the label's own box.
         className={`${shared} type-micro min-h-14 flex-col items-center justify-center gap-1 ${
           selected
-            ? "font-semibold text-[var(--accent-ink)]"
+            ? "font-semibold text-[var(--ink)]"
             : "font-medium text-[var(--ink-muted)]"
         }`}
       >
@@ -65,8 +65,8 @@ export function NavLink({ href, label, compact = false }: NavLinkProps) {
       aria-current={selected ? "page" : undefined}
       className={`${shared} min-h-11 items-center gap-3 rounded-lg px-3 py-2.5 text-sm ${
         selected
-          ? "bg-[var(--surface-muted)] font-semibold text-[var(--ink)]"
-          : "font-medium text-[var(--ink-muted)] hover:bg-[color-mix(in_srgb,var(--surface-muted)_60%,transparent)] hover:text-[var(--ink)]"
+          ? "bg-[var(--paper)] font-semibold text-[var(--ink)] shadow-[inset_0_0_0_1px_var(--line)]"
+          : "font-medium text-[var(--ink-muted)] hover:bg-[color-mix(in_srgb,var(--paper)_60%,transparent)] hover:text-[var(--ink)]"
       }`}
     >
       <NavigationIcon href={href} />

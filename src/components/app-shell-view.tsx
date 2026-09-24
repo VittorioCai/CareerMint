@@ -85,8 +85,8 @@ export function AppShellView({
               </Link>
 
               <details className="group relative">
-                <summary data-testid="account-menu" aria-label={shell.accountMenu} className="press flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
-                  <span className="flex size-6 items-center justify-center rounded-full bg-[var(--sev-minor)] text-xs font-semibold">{displayEmail.slice(0, 1).toUpperCase()}</span>
+                <summary data-testid="account-menu" aria-label={shell.accountMenu} className="press flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
+                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-semibold">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
                   <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>

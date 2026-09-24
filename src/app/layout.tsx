@@ -1,4 +1,4 @@
-import { Inter } from "next/font/google";
+import { Inter, Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
@@ -8,21 +8,37 @@ import { getDictionary, getLocale } from "@/i18n/server";
 import "./globals.css";
 
 /**
- * The fallback for readers without San Francisco. Every Apple device resolves
- * `-apple-system` first (see `--font-system` in globals.css) and never paints
- * this face; everywhere else Inter is the nearest open match to SF.
- *
  * Self-hosted through next/font rather than fontsource, for one reason: it
  * generates a metric-matched fallback face, so the text does not move when the
  * real font arrives. `font-display: swap` on its own reflows the whole page.
- *
- * Nunito Sans is gone with the sticker direction: headings now ask the system
- * for SF Pro Display, which costs no request and so cannot shift layout.
  */
 const inter = Inter({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-inter",
+});
+
+/**
+ * Preloaded, which it was not while this product had one language.
+ *
+ * The old reasoning was sound and is now wrong in every part: the first paint
+ * was Chinese, which no Latin face covers, so Nunito Sans was reached only by
+ * the Latin runs inside a Chinese heading — 30 KB on the critical path to set
+ * "Product Analyst". English is the default now, so this face carries the
+ * whole of every page's largest text.
+ *
+ * And "arriving late costs no layout shift" held only for the vertical
+ * metrics the fallback matches. It says nothing about advance widths, so a
+ * heading sitting near a wrap boundary changes line count when the real font
+ * lands: the English sign-in title measured 100px in the fallback and 150px
+ * in Nunito Sans, moving the form 50px down for a CLS of 0.021 against a
+ * budget of 0.001. Reserving space for the taller case would have been
+ * guessing at a number that changes with every string and every width.
+ */
+const nunitoSans = Nunito_Sans({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-nunito-sans",
 });
 
 /**
@@ -49,7 +65,7 @@ export default async function RootLayout({
     <html
       lang={HTML_LANG[locale]}
       data-scroll-behavior="smooth"
-      className={inter.variable}
+      className={`${inter.variable} ${nunitoSans.variable}`}
     >
       <body>{children}</body>
     </html>

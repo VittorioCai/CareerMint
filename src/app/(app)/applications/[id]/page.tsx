@@ -474,8 +474,8 @@ export default async function ApplicationDetailPage({
             {application.location ? <span className="text-xs font-bold text-[var(--ink-muted)]">{application.location}</span> : null}
           </div>
           <h1
-            className={`heading-font mt-3 break-words font-semibold ${
-              differenceWorkflow ? "text-xl sm:text-2xl" : "type-page-title"
+            className={`heading-font mt-3 break-words ${
+              differenceWorkflow ? "text-xl font-semibold sm:text-2xl" : "type-page-title"
             }`}
           >
             {application.roleTitle}

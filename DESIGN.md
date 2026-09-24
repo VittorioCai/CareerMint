@@ -1,44 +1,47 @@
 ---
 name: 求职搭子
-description: 可信、清晰、可追溯的海外求职工作台（Apple 风格）
+description: 可信、清晰、可追溯的海外求职贴纸工作台
 colors:
-  canvas: "#f5f5f7"
-  paper: "#ffffff"
-  surface-muted: "#e8e8ed"
-  ink: "#1d1d1f"
-  ink-muted: "#636366"
-  ink-soft: "#86868b"
-  line: "#d2d2d7"
-  accent: "#0071e3"
-  accent-ink: "#0066cc"
-  mint-strong: "#1d7a36"
-  danger: "#d70015"
+  canvas-warm: "#fffaf2"
+  mint-sidebar: "#bdebd7"
+  mint-strong: "#55a982"
+  cream-action: "#fff2a8"
+  coral-urgent: "#ff796d"
+  mist-blue-info: "#c8ddff"
+  ink-green: "#293733"
+  ink-muted: "#596761"
+  ink-soft: "#94a09b"
+  line-soft: "#dbe0dc"
+  paper-warm: "#fffdf8"
+  error-red: "#b83b36"
 typography:
   display:
-    fontFamily: "-apple-system, SF Pro Display, Inter, PingFang SC, system-ui, sans-serif"
-    fontSize: "clamp(2.5rem, 5.5vw, 4.5rem)"
-    fontWeight: 600
-    lineHeight: 1.12
+    fontFamily: "Nunito Sans Variable, Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "3rem"
+    fontWeight: 900
+    lineHeight: 1
+    letterSpacing: "-0.04em"
   headline:
-    fontFamily: "-apple-system, SF Pro Display, Inter, PingFang SC, system-ui, sans-serif"
+    fontFamily: "Nunito Sans Variable, Inter Variable, ui-sans-serif, system-ui, sans-serif"
     fontSize: "1.875rem"
-    fontWeight: 600
+    fontWeight: 900
     lineHeight: 1.15
   body:
-    fontFamily: "-apple-system, SF Pro Text, Inter, PingFang SC, system-ui, sans-serif"
-    fontSize: "1rem"
-    fontWeight: 400
-    lineHeight: 1.75
+    fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 500
+    lineHeight: 1.6
   label:
-    fontFamily: "-apple-system, SF Pro Text, Inter, PingFang SC, system-ui, sans-serif"
-    fontSize: "0.6875rem"
-    fontWeight: 600
+    fontFamily: "Inter Variable, ui-sans-serif, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 800
     lineHeight: 1.2
     letterSpacing: "0.12em"
 rounded:
   control: "12px"
-  surface: "18px"
-  pill: "980px"
+  surface: "14px"
+  sticker: "16px"
+  pill: "999px"
 spacing:
   xs: "8px"
   sm: "12px"
@@ -47,123 +50,152 @@ spacing:
   xl: "32px"
 components:
   button-primary:
-    backgroundColor: "{colors.accent}"
-    textColor: "#ffffff"
-    rounded: "{rounded.pill}"
+    backgroundColor: "{colors.cream-action}"
+    textColor: "{colors.ink-green}"
+    rounded: "{rounded.control}"
+    padding: "12px 20px"
   button-secondary:
-    backgroundColor: "{colors.surface-muted}"
-    textColor: "{colors.ink}"
-    rounded: "{rounded.pill}"
+    backgroundColor: "{colors.paper-warm}"
+    textColor: "{colors.ink-green}"
+    rounded: "{rounded.control}"
+    padding: "12px 20px"
   input:
-    backgroundColor: "{colors.paper}"
-    textColor: "{colors.ink}"
+    backgroundColor: "{colors.paper-warm}"
+    textColor: "{colors.ink-green}"
     rounded: "{rounded.control}"
     padding: "12px 14px"
   status-chip:
-    backgroundColor: "{colors.surface-muted}"
-    textColor: "{colors.ink-muted}"
+    backgroundColor: "{colors.mist-blue-info}"
+    textColor: "{colors.ink-green}"
     rounded: "{rounded.pill}"
     padding: "4px 8px"
 ---
 
 # Design System: 求职搭子
 
-所有取值以 `src/app/globals.css` 的 token 为准；本文件说明它们的含义和使用规则。
+> 当前实现以 `src/app/globals.css` 的 token 为准。
 
-组件类（`.button-*`、`.status-chip`、`.type-*` 等）位于 `@layer components`，同一元素上的 Tailwind utility 会覆盖它们：组件类给出默认值，utility 表达这一处的状态。只有手机 44px 触控高度和减少动效两条规则刻意留在层外，以压过 utility。排版角色（`.type-*`）已经决定字重和行宽，不要再叠加 `font-*` 或 `max-w-*`。
+**实现约定.** 组件类（`.button-*`、`.status-chip`、`.type-*` 等）位于 `@layer components`，同一元素上的 Tailwind utility 会覆盖它们：组件类给出默认值，utility 表达这一处的状态。只有手机 44px 触控高度和减少动效两条规则刻意留在层外，以压过 utility。排版角色（`.type-*`）已经决定字重和行宽，不要再叠加 `font-*` 或 `max-w-*`。
+
+**借用的 Apple 做法.** 风格以本文件为准，只借四处：顶栏与手机标签栏为半透明毛玻璃（`.chrome-bar`，72% 画布色 + `saturate(180%) blur(20px)`，不支持时回退为不透明画布）；正文在 Apple 设备上使用系统字体（SF / 苹方），其他平台仍为 Inter，标题保持 Nunito Sans；弹窗遮罩轻度模糊；字体使用灰阶抗锯齿。内容表面不使用毛玻璃。
 
 ## 1. Overview
 
-**Creative North Star: “Apple 式的安静工作台”**
+**Creative North Star: “贴纸求职工作台”**
 
-界面参照 apple.com 与 Apple Human Interface Guidelines：冷灰画布、白色表面靠柔和光影浮起、唯一的蓝色表示“可以操作”，其余颜色只出现在有状态的地方。内容先于装饰，排版与留白承担层级，而不是描边和色块。
+界面像一张被认真整理过的求职桌面：薄荷色侧栏提供稳定方向，奶油黄标记下一步，珊瑚红只提醒真正需要关注的内容。贴纸语言提供亲和力，但数据密集区域保持安静、平整和容易扫描。
+
+设计必须让任务先于装饰。列表、表格、正文预览和长 JD 使用细分隔与暖纸白；粗描边和错位阴影只留给当前导航、关键操作、核心状态和少量品牌时刻。界面明确拒绝聊天框中心化、层层嵌套卡片和没有优先级的信息堆积。
 
 **Key Characteristics:**
 
-- 系统字体（San Francisco / PingFang），非 Apple 设备回退到 Inter
-- 一种强调色：Apple 蓝，只用于主操作、链接、焦点和当前位置
-- 胶囊按钮、18px 圆角表面、1px 细分隔
-- 顶栏与手机标签栏为半透明毛玻璃，内容从下方透出
-- 深色模式使用 Apple 分组背景层级（#000 → #1c1c1e → #2c2c2e），靠变亮而非阴影表达层次
-- 以渐进披露控制信息密度；原文、翻译、证据三层清晰分离
+- 温暖但不幼稚的薄荷贴纸语言
+- 以渐进披露控制信息密度
+- 原文、翻译、证据三层清晰分离
+- 状态优先、装饰克制
+- 桌面高效，手机保留关键操作
 
 ## 2. Colors
 
-### Accent
+完整色板承担固定语义：薄荷稳定导航，奶油黄推动行动，珊瑚红提示风险，雾霾蓝解释信息，暖白承载密集内容。
 
-- **Apple 蓝 `--accent`**：主按钮底色（白字 4.70:1）、焦点环、选区、手机标签栏当前项。
-- **链接蓝 `--accent-ink`**：以蓝色书写的文字，在所有底色上保持 ≥4.5:1。
+### Primary
 
-### Semantic
+- **工作台薄荷绿**：用于主侧栏、完成状态和可信事实提示。
+- **行动奶油黄**：用于主按钮、当前步骤和最重要的下一步。
 
-- **严重度 `--sev-*`**：关键 → 门槛 → 重要 → 次要 → 已对上，明度单调，灰度下顺序仍可辨（由单测守护）。
-- **危险 `--danger`**：Apple 红，删除等不可逆操作为实心按钮。
-- **完成 `--mint-strong`**：Apple 绿，用于已确认、已完成。
+### Secondary
+
+- **紧急珊瑚红**：仅用于缺失证据、失败状态和 AI 入口。
+- **解释雾霾蓝**：用于信息提示、焦点环和部分匹配状态。
 
 ### Neutral
 
-- **画布 `--canvas`** #f5f5f7、**表面 `--paper`** 白、**凹槽 `--surface-muted`** #e8e8ed。
-- **墨色 `--ink`** #1d1d1f；**次要文字 `--ink-muted`** 在三种底色上都 ≥4.5:1。
+- **暖白画布**：页面背景，降低长时间阅读的眩光。
+- **暖纸白**：表单、表格、编辑器和信息密集区的表面。
+- **墨绿黑**：正文、标题和关键描边。
+- **柔和分隔线**：表格、列表与折叠内容的轻量边界。
 
-**The Fixed Meaning Rule.** 同一种颜色在不同页面必须表达同一种状态；蓝色只表示“可操作 / 当前位置”，不得用作装饰。
+**The Fixed Meaning Rule.** 同一种颜色在不同页面必须表达同一种状态，不得把珊瑚红用于普通装饰。
 
 ## 3. Typography
 
-**Font:** `-apple-system`（SF Pro Text / Display），中文 PingFang SC，其他平台回退 Inter。SF 无法自托管，直接向系统请求，不产生网络请求和布局偏移。
+**Display Font:** Nunito Sans Variable（后备为 Inter Variable 和系统无衬线）  
+**Body Font:** Inter Variable（后备为系统无衬线）
 
-**Character:** 标题 600 字重、克制；正文 400。中英文混排不使用负字距（CJK 字形会粘连）。
+**Character:** 标题粗圆、友好而确定；正文克制、紧凑并适合中英文混排。德文长词允许自然换行，不压缩字号。
 
-层级见 `globals.css` 的 `.type-*` 角色：display / title / page-title / section / heading / body / caption / micro / eyebrow。叙述文本宽度上限 40em。
+### Hierarchy
+
+- **Display**（900，48px，1.0）：仅用于页面主标题。
+- **Headline**（900，30px，1.15）：用于工作区主要板块。
+- **Title**（800，20px，1.3）：用于折叠组和关键内容标题。
+- **Body**（500，15px，1.6）：用于说明和证据，叙述文本限制在约 70 个字符宽度。
+- **Label**（800，12px，0.12em）：用于步骤、类别和简短状态；中文标签不强制大写。
+
+**The One Display Voice Rule.** 粗圆标题只建立层级，不进入按钮、表格数据或长段正文。
 
 ## 4. Elevation
 
-- **浅色**：表面用极淡的双层阴影（`--elevation-1/2`）从画布浮起；表格、正文、预览保持平整。
-- **深色**：黑色阴影在黑底上不可见，表面改为比底色更亮并加 1px 内描边。
-- **Chrome**：顶栏与手机标签栏为 `.chrome-bar`（72% 画布色 + `saturate(180%) blur(20px)`）；不支持 backdrop-filter 时回退为不透明画布。弹窗遮罩同样轻度模糊。
+系统采用结构性阴影而不是环境阴影。大多数表面保持平整，通过底色和细分隔建立层次；关键操作和选中贴纸使用短距离、无模糊的错位阴影。
+
+### Shadow Vocabulary
+
+- **关键按钮**（`4px 4px 0 #293733`）：仅用于当前主操作。
+- **核心贴纸**（`8px 8px 0 #293733`）：仅用于首页主状态等少量品牌表面。
+- **选中态**（`2px 2px 0 #293733`）：用于当前导航和步骤。
+
+**The Flat-by-Default Rule.** 表格、正文、预览和折叠列表禁止使用阴影；如果一个页面超过三个明显阴影，必须重新检查层级。
 
 ## 5. Components
 
 ### Buttons
 
-- **Shape:** 胶囊（980px 圆角），无描边、无阴影。
-- **Primary:** Apple 蓝底白字；一个工作区只突出一个主动作。
-- **Secondary:** 凹槽灰底、墨色文字。
-- **Danger:** Apple 红实心。
-- **Hover / Active:** 悬停改变色调，按下降低不透明度；按钮不上浮、不缩放。
-
-### Inputs / Fields
-
-白底、1px `--line` 细边、12px 圆角；聚焦时边框变蓝并出现 4px 半透明蓝色光晕。错误同时显示文字。
+- **Shape:** 清晰圆角（12px），2px 墨绿描边。
+- **Primary:** 奶油黄底、墨绿文字、4px 错位阴影；一个工作区只突出一个主动作。
+- **Hover / Focus:** 160ms 状态过渡；键盘焦点使用 3px 雾霾蓝外圈。
+- **Secondary:** 暖纸白底，无静态阴影；危险操作使用错误红文字并通过二次确认升级。
 
 ### Chips
 
-胶囊圆角、状态色填充；必须包含符号或文字，不能只靠颜色区分状态。
+- **Style:** 胶囊圆角、1px 墨绿描边、短标签。
+- **State:** 必须包含符号或文字，不能只靠颜色区分“有证据”“部分匹配”“没有证据”和“需要判断”。
 
 ### Cards / Containers
 
-18px 圆角，白色表面，默认只用 `--elevation-1`；只有承载结论的表面使用 `--elevation-2`。
+- **Corner Style:** 密集表面 14px，品牌贴纸 16px。
+- **Background:** 暖纸白用于密集数据，功能性色块只用于摘要和行动。
+- **Shadow Strategy:** 默认无阴影；只按 Elevation 规则提升关键表面。
+- **Border:** 普通内容使用 1px 柔和线，关键贴纸使用 2px 墨绿线。
+- **Internal Padding:** 手机 16px，桌面 20–24px。
+
+### Inputs / Fields
+
+- **Style:** 暖纸白背景、1.5px 柔和墨线、12px 圆角。
+- **Focus:** 边框转墨绿并出现 3px 雾霾蓝焦点环。
+- **Error / Disabled:** 错误同时显示文字；禁用态保留标签但降低对比度。
 
 ### Navigation
 
-桌面左侧导航当前项为凹槽灰底；手机底部标签栏当前项为蓝色文字，半透明毛玻璃背景。
+桌面保持左侧主导航和顶部工具区。当前项使用暖纸白、粗描边和短错位阴影；普通项无阴影。手机端折叠导航并保留当前工作区标签顺序。
 
-### Segmented Controls
+### Progressive Disclosure Rows
 
-凹槽灰轨道，选中段为白色表面加轻阴影，与 iOS 分段控件一致。
+JD 要求、翻译和证据使用可键盘操作的折叠行。折叠状态先显示要求、优先级和匹配状态；展开后依次显示中文翻译、匹配理由、简历证据、职业事实和原始 JD 片段。
 
 ## 6. Do's and Don'ts
 
 ### Do:
 
-- **Do** 让排版和留白建立层级，颜色只表达状态和可操作性。
 - **Do** 把“没有证据”和“需要判断”排在有证据内容之前。
 - **Do** 在长列表中使用细分隔和折叠，保持首屏可扫描。
-- **Do** 每次改色都复核 4.5:1（正文）与 3:1（非文字指示）对比度。
+- **Do** 为删除、导出、确认和长任务提供明确反馈。
+- **Do** 在手机端把正文、建议和证据拆成顺序清晰的视图。
 
 ### Don't:
 
 - **Don't** 做以聊天框为中心、把结构化任务藏进对话的通用 AI 工具。
-- **Don't** 引入第二种强调色，或把蓝色用在不可点击的元素上。
-- **Don't** 给内容卡片加粗描边、错位阴影或层层嵌套。
-- **Don't** 在内容表面上使用毛玻璃——半透明只属于悬浮在内容之上的 chrome。
+- **Don't** 做卡片层层嵌套、每个元素都有粗描边和阴影的幼稚贴纸界面。
+- **Don't** 做信息无优先级、证据和原文一次性全部展开的拥挤后台。
+- **Don't** 使用紫色渐变、玻璃拟态和模板化 SaaS 仪表盘。
 - **Don't** 用颜色单独表达状态，也不要用动画装饰静态内容。
