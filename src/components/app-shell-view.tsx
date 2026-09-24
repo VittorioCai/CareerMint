@@ -61,7 +61,7 @@ export function AppShellView({
       </div>
 
       <div className="min-w-0 md:col-start-2">
-        <header className="sticky top-0 z-10 border-b border-[var(--line)] bg-[color:var(--canvas)]/95 px-4 py-3 backdrop-blur-sm sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-10 border-b border-[var(--line)] chrome-bar px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/app" className="-my-1 flex min-h-11 min-w-11 shrink-0 items-center gap-2 md:hidden" aria-label={shell.homeLink}>
               <span aria-hidden="true" className="logo-mark size-9" />
@@ -85,8 +85,8 @@ export function AppShellView({
               </Link>
 
               <details className="group relative">
-                <summary data-testid="account-menu" aria-label={shell.accountMenu} className="press flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-[10px] border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
-                  <span className="flex size-6 items-center justify-center rounded-lg bg-[var(--sev-minor)] text-xs font-semibold">{displayEmail.slice(0, 1).toUpperCase()}</span>
+                <summary data-testid="account-menu" aria-label={shell.accountMenu} className="press flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-2.5 [&::-webkit-details-marker]:hidden">
+                  <span className="flex size-6 items-center justify-center rounded-full bg-[var(--sev-minor)] text-xs font-semibold">{displayEmail.slice(0, 1).toUpperCase()}</span>
                   <span className="hidden max-w-36 truncate text-xs font-medium lg:inline">{displayEmail}</span>
                   <span aria-hidden="true" className="text-xs text-[var(--ink-muted)] transition-transform duration-[var(--dur-base)] ease-[var(--ease-out)] group-open:rotate-180">⌄</span>
                 </summary>
@@ -131,7 +131,7 @@ export function AppShellView({
           one without. */}
       <nav
         aria-label={shell.primaryNavigation}
-        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-[var(--line)] bg-[color:var(--canvas)]/95 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:hidden"
+        className="fixed inset-x-0 bottom-0 z-20 grid grid-cols-4 border-t border-[var(--line)] chrome-bar pb-[env(safe-area-inset-bottom)] md:hidden"
       >
         {appNavigation.map((item) => (
           <NavLink

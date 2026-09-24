@@ -1,22 +1,30 @@
 @import "tailwindcss";
 
 :root {
-  /* Direction B: surfaces float on a warm ground, and colour appears only
-     where something has a state. The two things the old palette got right —
-     a chosen warm neutral and a green-black rather than #000 — are kept; the
-     candy fills are not. */
-  --canvas: #f4f3f0;
+  /* Apple direction: a cool neutral ground, white surfaces that lift with
+     soft light, one blue that means "you can act on this", and colour
+     otherwise only where something has a state. The neutrals and the blue are
+     Apple's own (apple.com and the HIG system colours), nudged only where a
+     pair failed the 4.5:1 floor. */
+  --canvas: #f5f5f7;
   --paper: #ffffff;
   --white: #ffffff;
-  --surface-muted: #eceae5;
+  --surface-muted: #e8e8ed;
 
-  --ink: #1f2320;
-  /* Clears 4.5:1 on all three grounds — paper, canvas and the muted trough —
-     with margin. The warmer ground of the old palette let a lighter grey pass;
-     this one does not, and the checker said so on 104 nodes. */
-  --ink-muted: #5c635d;
-  --ink-soft: #8b928e;
-  --line: #e4e3df;
+  --ink: #1d1d1f;
+  /* Apple's #6e6e73 reads 4.15:1 on the muted trough; one step darker clears
+     all three grounds — paper, canvas and trough — with margin. */
+  --ink-muted: #636366;
+  --ink-soft: #86868b;
+  --line: #d2d2d7;
+
+  /* The one accent. The fill carries white text at 4.70:1; text set in the
+     accent uses the deeper link blue, which holds 4.5:1 on every ground. */
+  --accent: #0071e3;
+  --accent-hover: #0062c4;
+  --accent-ink: #0066cc;
+  --accent-tint: #e8f1fc;
+  --on-accent: #ffffff;
 
   /* Severity, monotonic in lightness so the order survives greyscale, a
      colour-blind reader, and a printer. The old set was scrambled: 重要 was
@@ -27,38 +35,41 @@
   --sev-gate-ink: #5c2018;
   --sev-important: #fbf1dc;
   --sev-important-ink: #7a5a12;
-  --sev-minor: #f0f1f0;
-  --sev-minor-ink: #5d6560;
-  --sev-matched: #e6f4ec;
-  --sev-matched-ink: #1f6b47;
+  --sev-minor: #f0f0f3;
+  --sev-minor-ink: #636366;
+  --sev-matched: #e7f5eb;
+  --sev-matched-ink: #1d6b33;
 
   /* Destructive actions are solid, not tinted: a pale fill behind white text
      is unreadable, and a pale fill behind dark text does not read as a button
      you should think twice about. */
-  --danger: #a5342a;
-  --danger-hover: #8c2b22;
-  --danger-tint: #fdeceb;
-  --danger-line: #f0c7c1;
+  --danger: #d70015;
+  --danger-hover: #b8000f;
+  --danger-tint: #fff0f0;
+  --danger-line: #f5c2c2;
 
   /* Kept so the brand mark and the few remaining accents still resolve. */
   --mint: #bdebd7;
-  --mint-strong: #2f8f63;
+  --mint-strong: #1d7a36;
   --cream: #fff2a8;
 
-  /* The focus ring is ink, and it flips with the theme because --ink does.
-     It replaces a pale blue that measured 1.24:1 against the canvas — a ring
-     nobody could see, which the old presence-only test happily passed. Ink is
-     14.34:1 there, and `outline-offset` keeps it off the primary button's own
-     dark surface, so it reads on every ground this palette has. */
-  --focus-ring: var(--ink);
-  --focus-halo: rgba(31, 35, 32, 0.14);
-  --error: #a5342a;
+  /* The focus ring is the accent, as it is everywhere on Apple platforms:
+     4.31:1 against the canvas, over the 3:1 a non-text indicator needs, and
+     `outline-offset` keeps it off the primary button's own blue surface. */
+  --focus-ring: var(--accent);
+  --focus-halo: rgba(0, 113, 227, 0.22);
+  --error: #d70015;
 
-  --elevation-1: 0 1px 2px rgba(31, 35, 32, 0.05);
-  --elevation-2: 0 1px 2px rgba(31, 35, 32, 0.05), 0 12px 32px -22px rgba(31, 35, 32, 0.5);
-  --elevation-row: 0 1px 2px rgba(31, 35, 32, 0.05), 0 8px 22px -20px rgba(31, 35, 32, 0.5);
+  --elevation-1: 0 1px 2px rgba(0, 0, 0, 0.04), 0 1px 1px rgba(0, 0, 0, 0.02);
+  --elevation-2: 0 2px 6px rgba(0, 0, 0, 0.04), 0 12px 32px -12px rgba(0, 0, 0, 0.14);
+  --elevation-row: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 22px -16px rgba(0, 0, 0, 0.16);
 
-  --ease-out: cubic-bezier(0.22, 0.7, 0.2, 1);
+  /* Translucent chrome: the header and tab bar let content blur through,
+     the way a Safari toolbar does. */
+  --chrome: rgba(245, 245, 247, 0.72);
+  --chrome-filter: saturate(180%) blur(20px);
+
+  --ease-out: cubic-bezier(0.25, 0.1, 0.25, 1);
   --ease-spring: cubic-bezier(0.34, 1.3, 0.5, 1);
   --dur-fast: 140ms;
   --dur-base: 220ms;
@@ -74,97 +85,130 @@
  * light ink, and the lightness order has to reverse with them so the ramp
  * still runs 关键 → 已对上. And elevation cannot be a shadow: a black shadow
  * on a near-black ground is invisible, so surfaces lift by getting lighter
- * than the ground instead of by casting onto it.
+ * than the ground instead of by casting onto it — Apple's grouped
+ * backgrounds, #000 → #1c1c1e → #2c2c2e.
  *
  * The accessibility floor runs against this palette too, which is the only
  * reason to trust it.
  */
 :root:not([data-theme="light"]) {
   @media (prefers-color-scheme: dark) {
-    --canvas: #161a18;
-    --paper: #1f2422;
-    --white: #1f2422;
-    --surface-muted: #2a302d;
+    --canvas: #000000;
+    --paper: #1c1c1e;
+    --white: #1c1c1e;
+    --surface-muted: #2c2c2e;
 
-    --ink: #e8ece9;
-    --ink-muted: #a3aca7;
-    --ink-soft: #79837e;
-    --line: #303734;
+    --ink: #f5f5f7;
+    --ink-muted: #a1a1a6;
+    --ink-soft: #6e6e73;
+    --line: #38383a;
 
-    --sev-critical: #3a1f1b;
-    --sev-critical-ink: #f4a99c;
-    --sev-gate: #45211a;
-    --sev-gate-ink: #f8bfb2;
-    --sev-important: #362c15;
-    --sev-important-ink: #e3c377;
-    --sev-minor: #2b312e;
-    --sev-minor-ink: #b3bcb7;
-    --sev-matched: #16302442;
-    --sev-matched-ink: #86d3ab;
+    --accent: #0071e3;
+    --accent-hover: #0062c4;
+    --accent-ink: #2997ff;
+    --accent-tint: #0a2540;
+    --on-accent: #ffffff;
 
-    --danger: #e2695b;
-    --danger-hover: #ef7d70;
-    --danger-tint: #3a1f1b;
-    --danger-line: #5c322b;
+    --sev-critical: #3a1d1b;
+    --sev-critical-ink: #ffa89f;
+    --sev-gate: #45201b;
+    --sev-gate-ink: #ffbfb5;
+    --sev-important: #362b14;
+    --sev-important-ink: #ffd27a;
+    --sev-minor: #2c2c2e;
+    --sev-minor-ink: #b8b8bd;
+    --sev-matched: #13301c;
+    --sev-matched-ink: #7ee29a;
 
-    --mint: #2f8f63;
-    --mint-strong: #86d3ab;
-    --cream: #e3c377;
-    --error: #e2695b;
+    --danger: #ff453a;
+    --danger-hover: #ff6961;
+    --danger-tint: #2e1816;
+    --danger-line: #5c2b27;
 
-    --focus-halo: rgba(232, 236, 233, 0.18);
+    --mint: #1d7a36;
+    --mint-strong: #30d158;
+    --cream: #ffd27a;
+    --error: #ff453a;
+
+    --focus-ring: var(--accent-ink);
+    --focus-halo: rgba(41, 151, 255, 0.3);
 
     /* Light, not shadow. */
-    --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-    --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
-    --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+    --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+    --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
+    --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+    --chrome: rgba(22, 22, 23, 0.72);
   }
 }
 
 :root[data-theme="dark"] {
-  --canvas: #161a18;
-  --paper: #1f2422;
-  --white: #1f2422;
-  --surface-muted: #2a302d;
+  --canvas: #000000;
+  --paper: #1c1c1e;
+  --white: #1c1c1e;
+  --surface-muted: #2c2c2e;
 
-  --ink: #e8ece9;
-  --ink-muted: #a3aca7;
-  --ink-soft: #79837e;
-  --line: #303734;
+  --ink: #f5f5f7;
+  --ink-muted: #a1a1a6;
+  --ink-soft: #6e6e73;
+  --line: #38383a;
 
-  --sev-critical: #3a1f1b;
-  --sev-critical-ink: #f4a99c;
-  --sev-gate: #45211a;
-  --sev-gate-ink: #f8bfb2;
-  --sev-important: #362c15;
-  --sev-important-ink: #e3c377;
-  --sev-minor: #2b312e;
-  --sev-minor-ink: #b3bcb7;
-  --sev-matched: #163024;
-  --sev-matched-ink: #86d3ab;
+  --accent: #0071e3;
+  --accent-hover: #0062c4;
+  --accent-ink: #2997ff;
+  --accent-tint: #0a2540;
+  --on-accent: #ffffff;
 
-  --danger: #e2695b;
-  --danger-hover: #ef7d70;
-  --danger-tint: #3a1f1b;
-  --danger-line: #5c322b;
+  --sev-critical: #3a1d1b;
+  --sev-critical-ink: #ffa89f;
+  --sev-gate: #45201b;
+  --sev-gate-ink: #ffbfb5;
+  --sev-important: #362b14;
+  --sev-important-ink: #ffd27a;
+  --sev-minor: #2c2c2e;
+  --sev-minor-ink: #b8b8bd;
+  --sev-matched: #13301c;
+  --sev-matched-ink: #7ee29a;
 
-  --mint: #2f8f63;
-  --mint-strong: #86d3ab;
-  --cream: #e3c377;
-  --error: #e2695b;
+  --danger: #ff453a;
+  --danger-hover: #ff6961;
+  --danger-tint: #2e1816;
+  --danger-line: #5c2b27;
 
-  --focus-halo: rgba(232, 236, 233, 0.18);
+  --mint: #1d7a36;
+  --mint-strong: #30d158;
+  --cream: #ffd27a;
+  --error: #ff453a;
+
+  --focus-ring: var(--accent-ink);
+  --focus-halo: rgba(41, 151, 255, 0.3);
 
   /* Light, not shadow. */
-  --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
-  --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.05), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
-  --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --elevation-1: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --elevation-2: inset 0 0 0 1px rgba(255, 255, 255, 0.06), 0 16px 40px -28px rgba(0, 0, 0, 0.9);
+  --elevation-row: inset 0 0 0 1px rgba(255, 255, 255, 0.05);
+
+  --chrome: rgba(22, 22, 23, 0.72);
+}
+
+/* San Francisco wherever the reader has it — every Apple device — and Inter,
+   its closest open relative, everywhere else. The CJK faces follow so a
+   Chinese run lands on PingFang next to SF rather than on whatever the
+   browser's default happens to be. SF cannot be self-hosted; asking the
+   system for it costs nothing and cannot shift layout. */
+:root {
+  --font-system: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Icons",
+    var(--font-inter), "Helvetica Neue", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
+  --font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display",
+    var(--font-inter), "Helvetica Neue", "PingFang SC", "Hiragino Sans GB",
+    "Microsoft YaHei", ui-sans-serif, system-ui, sans-serif;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-sans: var(--font-system);
 }
 
 * {
@@ -183,8 +227,10 @@ body {
   margin: 0;
   background: var(--canvas);
   color: var(--ink);
-  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-system);
   text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 button,
@@ -205,18 +251,34 @@ button {
 }
 
 ::selection {
-  background: var(--cream);
+  background: color-mix(in srgb, var(--accent) 24%, transparent);
   color: var(--ink);
 }
 
 .heading-font {
-  font-family: var(--font-nunito-sans), var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  font-family: var(--font-display);
 }
 
+/* Plain ground: Apple lets the type and the product carry a page, not a
+   pattern behind it. */
 .landing-shell {
   background-color: var(--canvas);
-  background-image: radial-gradient(color-mix(in srgb, var(--ink) 16%, transparent) 0.8px, transparent 0.8px);
-  background-size: 18px 18px;
+}
+
+/* The header and the phone's tab bar. Content scrolls underneath and shows
+   through, blurred and saturated, which is what makes chrome read as chrome
+   rather than as one more card. Browsers without backdrop-filter get the
+   opaque canvas, which is the old look and still correct. */
+.chrome-bar {
+  background: var(--canvas);
+}
+
+@supports (backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px)) {
+  .chrome-bar {
+    background: var(--chrome);
+    -webkit-backdrop-filter: var(--chrome-filter);
+    backdrop-filter: var(--chrome-filter);
+  }
 }
 
 /* Two people at one desk. The cream disc carries a small ink shadow so the
@@ -269,7 +331,7 @@ button {
 }
 
 .dense-surface {
-  border-radius: 14px;
+  border-radius: 18px;
   background: var(--paper);
   box-shadow: var(--elevation-1);
 }
@@ -305,7 +367,7 @@ button {
  */
 .type-display {
   font-size: clamp(2.5rem, 5.5vw, 4.5rem);
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.12;
   letter-spacing: 0;
   text-wrap: balance;
@@ -313,7 +375,7 @@ button {
 
 .type-title {
   font-size: 2rem;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
   letter-spacing: 0;
   text-wrap: balance;
@@ -327,7 +389,7 @@ button {
 
 .type-page-title {
   font-size: 1.625rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.15;
 }
@@ -340,7 +402,7 @@ button {
 
 .type-section {
   font-size: 1.25rem;
-  font-weight: 700;
+  font-weight: 600;
   letter-spacing: 0;
   line-height: 1.3;
 }
@@ -407,7 +469,7 @@ button {
 /* The page keeps exactly one sticker — the one carrying the conclusion. Every
    other container lifts off the canvas with light instead of a hard offset. */
 .soft-surface {
-  border-radius: 16px;
+  border-radius: 18px;
   background: var(--paper);
   box-shadow: var(--elevation-2);
 }
@@ -474,7 +536,7 @@ button {
 .form-input {
   width: 100%;
   min-height: 3rem;
-  border: 1.5px solid var(--ink-soft);
+  border: 1px solid var(--line);
   border-radius: 12px;
   background: var(--white);
   padding: 0.75rem 0.875rem;
@@ -488,7 +550,7 @@ select.form-input {
      reads as a different component vocabulary next to every other field. */
   appearance: none;
   padding-right: 2.5rem;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%23293733' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20' fill='none' stroke='%2386868b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 8l5 5 5-5'/%3E%3C/svg%3E");
   background-repeat: no-repeat;
   background-position: right 0.75rem center;
   background-size: 1.125rem 1.125rem;
@@ -510,12 +572,12 @@ input[type="date"].form-input::-webkit-calendar-picker-indicator:hover {
 }
 
 .form-input:hover {
-  border-color: var(--ink-muted);
+  border-color: var(--ink-soft);
 }
 
 .form-input:focus {
-  border-color: var(--ink);
-  box-shadow: 0 0 0 3px var(--focus-halo);
+  border-color: var(--accent);
+  box-shadow: 0 0 0 4px var(--focus-halo);
   outline: none;
 }
 
@@ -592,21 +654,22 @@ a.text-action {
   }
 }
 
+/* Apple's buttons are capsules: the shape alone says "this is pressable",
+   so they need no outline and no shadow to compete with the content. */
 .button-primary,
 .button-secondary {
-  border-radius: 10px;
+  border-radius: 980px;
   transition:
     background-color var(--dur-fast) var(--ease-out),
     box-shadow var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+    opacity var(--dur-fast) var(--ease-out);
 }
 
-/* The primary action is the darkest thing on the page, which is the only
+/* The primary action is the one blue thing on the page, which is the only
    emphasis this palette needs now that nothing else is filled. */
 .button-primary {
-  background: var(--ink);
-  color: var(--canvas);
-  box-shadow: var(--elevation-1);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 .button-secondary {
@@ -615,21 +678,20 @@ a.text-action {
 }
 
 .button-primary:hover {
-  background: #333a36;
+  background: var(--accent-hover);
 }
 
 .button-secondary:hover {
-  background: #e2e0da;
+  background: color-mix(in srgb, var(--surface-muted) 88%, var(--ink));
 }
 
 .button-danger {
-  border-radius: 10px;
+  border-radius: 980px;
   background: var(--danger);
   color: var(--paper);
-  box-shadow: var(--elevation-1);
   transition:
     background-color var(--dur-fast) var(--ease-out),
-    transform var(--dur-fast) var(--ease-out);
+    opacity var(--dur-fast) var(--ease-out);
 }
 
 .button-danger:hover {
@@ -637,12 +699,12 @@ a.text-action {
 }
 
 .button-danger:active {
-  transform: translateY(1px);
+  opacity: 0.85;
 }
 
 .button-primary:active,
 .button-secondary:active {
-  transform: translateY(1px);
+  opacity: 0.85;
 }
 
 .status-chip {
@@ -799,7 +861,9 @@ a.text-action {
 }
 
 .modal-dialog::backdrop {
-  background: rgb(0 0 0 / 0.45);
+  background: rgb(0 0 0 / 0.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 /* A live region is the "enter" category by definition: it exists to announce
@@ -829,6 +893,12 @@ a.text-action {
   transition-duration: 60ms;
 }
 
+/* A capsule button does not lift: on Apple platforms a control answers the
+   pointer by changing tone, and only content surfaces move. */
+.press:is(.button-primary, .button-secondary, .button-danger):hover {
+  transform: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
@@ -851,10 +921,10 @@ a.text-action {
    shadow is visible only while there is more content that way. */
 .scroll-x-affordance {
   background-image:
-    linear-gradient(to right, var(--canvas) 40%, rgba(255, 250, 242, 0)),
-    linear-gradient(to left, var(--canvas) 40%, rgba(255, 250, 242, 0)),
-    radial-gradient(farthest-side at 0 50%, rgba(41, 55, 51, 0.26), rgba(41, 55, 51, 0)),
-    radial-gradient(farthest-side at 100% 50%, rgba(41, 55, 51, 0.26), rgba(41, 55, 51, 0));
+    linear-gradient(to right, var(--canvas) 40%, transparent),
+    linear-gradient(to left, var(--canvas) 40%, transparent),
+    radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, 0.18), transparent),
+    radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, 0.18), transparent);
   background-position: 0 0, 100% 0, 0 0, 100% 0;
   background-repeat: no-repeat;
   background-size: 56px 100%, 56px 100%, 28px 100%, 28px 100%;

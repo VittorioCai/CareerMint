@@ -87,12 +87,12 @@ export function HomeView({
             {landing.body}
           </p>
 
-          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-            <Link href="/login" className="button-primary inline-flex min-h-14 items-center justify-center gap-3 px-6 text-base font-semibold">
+          <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
+            <Link href="/login" className="button-primary inline-flex min-h-14 items-center justify-center gap-3 whitespace-nowrap px-5 text-base font-semibold">
               {landing.primaryCta}
               <ArrowIcon />
             </Link>
-            <a href="#how-it-works" className="button-secondary inline-flex min-h-14 items-center justify-center px-6 text-base font-semibold">
+            <a href="#how-it-works" className="button-secondary inline-flex min-h-14 items-center justify-center whitespace-nowrap px-5 text-base font-semibold">
               {landing.secondaryCta}
             </a>
           </div>
