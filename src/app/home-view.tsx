@@ -51,11 +51,14 @@ export function HomeView({
       <nav className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-5 py-5 sm:px-8 lg:px-10" aria-label={common.productName}>
         <Link href="/" className="group flex items-center gap-3" aria-label={common.productName}>
           <span aria-hidden="true" className="logo-mark size-10" />
-          <span className="heading-font text-xl font-semibold">{common.productName}</span>
+          {/* The mark alone carries the brand on a phone: beside the language
+              switch and the sign-in button there is no room for the wordmark
+              too, and the link's own label still names the product. */}
+          <span className="heading-font hidden text-xl font-semibold sm:inline">{common.productName}</span>
           <span className="hidden rounded-full border border-[color:var(--ink-soft)] bg-[var(--paper)] px-2.5 py-1 type-eyebrow sm:inline">{landing.beta}</span>
         </Link>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* The front door needs it most: this is where a Chinese speaker
               first meets the English default. */}
           <LanguageSwitch
@@ -64,14 +67,21 @@ export function HomeView({
             onFailure={dictionary.shell.localeNotSaved}
           />
           <span className="hidden text-sm font-medium text-[var(--ink-muted)] md:inline">{landing.navNote}</span>
-          <Link href="/login" className="button-primary inline-flex min-h-11 items-center gap-2 px-4 text-sm font-semibold sm:px-5">
-            {landing.signIn}
-            <ArrowIcon />
+          {/* The full invitation does not fit a phone's header beside the
+              logo and the language switch, so the phone shows the short verb.
+              The accessible name stays the full phrase at every width, and it
+              contains the visible text, so voice control still finds it. */}
+          <Link href="/login" aria-label={landing.signIn} className="button-primary inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap px-4 text-sm font-semibold sm:px-5">
+            <span className="md:hidden">{dictionary.auth.signIn}</span>
+            <span className="hidden md:inline">{landing.signIn}</span>
+            <span className="hidden md:contents">
+              <ArrowIcon />
+            </span>
           </Link>
         </div>
       </nav>
 
-      <section className="mx-auto grid w-full max-w-[1180px] gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
+      <section className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
         <div className="relative z-10 max-w-[620px]">
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold shadow-[var(--elevation-1)]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[var(--paper)]"><CheckIcon /></span>
@@ -114,7 +124,7 @@ export function HomeView({
               <div className="rounded-full bg-[var(--surface-muted)] px-3 py-1.5 text-xs font-semibold">{landing.demo.pending}</div>
             </div>
 
-            <div className="grid sm:grid-cols-[1fr_180px]">
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_180px]">
               <div className="p-5 sm:p-6">
                 <div className="mb-5 flex items-center justify-between">
                   <p className="text-sm font-semibold">{landing.demo.requirements}</p>

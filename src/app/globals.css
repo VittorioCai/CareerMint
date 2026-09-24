@@ -233,11 +233,16 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-button,
-input,
-textarea,
-select {
-  font: inherit;
+/* In the base layer, where a reset belongs. Unlayered, this outranked every
+   Tailwind utility — `text-sm` or `font-semibold` on a <button> silently lost
+   to it, and the button took its parent's size instead. */
+@layer base {
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
 }
 
 a,
@@ -642,6 +647,9 @@ a.text-action {
   border-radius: 8px;
   padding: 0 0.875rem;
   font-size: 0.875rem;
+  /* A segment's label is one word or two; squeezed, it stacks 中 over 文
+     rather than shrinking the row around it. */
+  white-space: nowrap;
   transition:
     background-color var(--dur-fast) var(--ease-out),
     color var(--dur-fast) var(--ease-out),
