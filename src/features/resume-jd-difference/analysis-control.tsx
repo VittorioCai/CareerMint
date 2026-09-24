@@ -191,11 +191,11 @@ function AnalysisControlState({
             <h2 id="difference-control-title" className="heading-font mt-1 text-2xl font-bold">
               {copy.baselineTitle}
             </h2>
-            <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+            <p className="mt-2 type-caption text-[var(--ink-muted)]">
               {copy.baselineBody}
             </p>
             {hasPreviousResult ? (
-              <p className="mt-2 type-body font-medium">
+              <p className="mt-2 type-body">
                 {copy.previousShown}
               </p>
             ) : null}
@@ -388,7 +388,7 @@ function AnalysisControlState({
               <h2 id="difference-control-title" className="heading-font mt-3 text-2xl font-bold">
                 {copy.comparing.replace("{name}", asset.originalName)}
               </h2>
-              <p className="mt-2 max-w-3xl type-caption font-medium text-[var(--ink-muted)]">
+              <p className="mt-2 type-caption text-[var(--ink-muted)]">
                 {copy.oneRunBody}
               </p>
             </>
@@ -531,7 +531,7 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="press button-primary inline-flex min-h-10 items-center justify-center rounded-full px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-65"
+          className="press button-primary inline-flex min-h-10 items-center justify-center px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
           onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
         >

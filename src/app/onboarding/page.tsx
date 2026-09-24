@@ -41,7 +41,7 @@ export default async function OnboardingPage() {
         <section className="mt-9">
           <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[var(--ink-muted)]">{onboarding.pageEyebrow}</p>
           <h1 className="heading-font mt-2 max-w-3xl type-page-title">{onboarding.pageTitle}</h1>
-          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-3 type-caption text-[var(--ink-muted)]">
             {onboarding.pageBody}
           </p>
         </section>

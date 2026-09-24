@@ -125,14 +125,14 @@ function ImprovementItem({
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
             {copy.matchingDifference}
           </p>
-          <p className="mt-2 type-body font-medium">
+          <p className="mt-2 type-body">
             {issue.jdTranslation}
           </p>
-          <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 type-body font-medium">
+          <p className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-3 type-body">
             {gateDirection?.direction ?? direction?.direction ?? issue.problem}
           </p>
           {unsupported ? (
-            <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 type-body font-medium">
+            <p className="mt-3 rounded-xl border border-[var(--danger-line)] bg-[var(--danger-tint)] px-4 py-3 type-body">
               {copy.unsupportedWarning}
             </p>
           ) : null}
@@ -216,7 +216,7 @@ function Prerequisite({
       <h2 className="heading-font text-2xl font-bold">
         {stale ? copy.staleNotice : copy.missingNotice}
       </h2>
-      <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
+      <p className="mt-2 type-caption text-[var(--ink-muted)]">
         {copy.prerequisiteBody}
       </p>
       <Link
@@ -274,7 +274,7 @@ export function ResumeJDImprovementPanel({
         <h2 id="improvement-panel-title" className="heading-font mt-1 text-2xl font-bold sm:text-3xl">
           {copy.title}
         </h2>
-        <p className="mt-3 type-body font-medium">
+        <p className="mt-3 type-body">
           {copy.body}
         </p>
       </header>
@@ -288,7 +288,7 @@ export function ResumeJDImprovementPanel({
               <h2 id={`improvement-group-${group}`} className="heading-font text-2xl font-bold">
                 {copy.groups[group]}
               </h2>
-              <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">
+              <p className="mt-1 type-caption text-[var(--ink-muted)]">
                 {copy.groupIntros[group]}
               </p>
             </div>
@@ -313,7 +313,7 @@ export function ResumeJDImprovementPanel({
             {copy.eyebrow}
           </p>
           <h2 className="heading-font mt-1 text-xl font-semibold">{copy.nextTitle}</h2>
-          <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-2 type-caption text-[var(--ink-muted)]">
             {copy.nextBody}
           </p>
         </div>

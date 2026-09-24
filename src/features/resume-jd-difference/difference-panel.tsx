@@ -445,7 +445,7 @@ export function ResumeJDDifferencePanel({
           {copy.jobWants}
         </span>
         <div className="min-w-0">
-          <p className="type-body font-medium">
+          <p className="type-body">
             {safeCopy(result.jobCore.mission, copy.noEvidence)}
           </p>
           <div className="mt-2.5 flex flex-wrap gap-2">
@@ -469,7 +469,7 @@ export function ResumeJDDifferencePanel({
           >
             {nothingToFix ? copy.allMatchedTitle : copy.listTitle}
           </h2>
-          <span className="type-caption font-medium text-[var(--ink-muted)]">
+          <span className="type-caption text-[var(--ink-muted)]">
             {nothingToFix
               ? copy.allMatchedHint
               : copy.listHint}
@@ -494,7 +494,7 @@ export function ResumeJDDifferencePanel({
           <h2 className="heading-font text-lg font-semibold">
             {nothingToFix ? copy.nextInterview : copy.nextImprovements}
           </h2>
-          <p className="mt-1.5 max-w-[62ch] type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-1.5 type-caption text-[var(--ink-muted)]">
             {nothingToFix
               ? copy.nextInterviewBody
               : copy.nextImprovementsBody}
@@ -502,7 +502,7 @@ export function ResumeJDDifferencePanel({
         </div>
         <Link
           href={`/applications/${applicationId}?tab=${nothingToFix ? "interview" : "improvements"}`}
-          className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center rounded-full px-6 text-base font-bold"
+          className="button-primary inline-flex min-h-12 shrink-0 items-center justify-center px-6 text-base font-bold"
         >
           {nothingToFix ? copy.goInterview : copy.goImprovements}
         </Link>

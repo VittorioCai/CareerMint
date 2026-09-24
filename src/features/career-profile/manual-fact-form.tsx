@@ -89,7 +89,7 @@ export function ManualFactForm({
     ) : (
       <button
         type="button"
-        className="press button-primary inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-bold"
+        className="press button-primary inline-flex min-h-11 items-center px-5 text-sm font-bold"
         onClick={() => setOpen(true)}
       >
         {copy.addFact}

@@ -70,6 +70,8 @@ components:
 
 所有取值以 `src/app/globals.css` 的 token 为准；本文件说明它们的含义和使用规则。
 
+组件类（`.button-*`、`.status-chip`、`.type-*` 等）位于 `@layer components`，同一元素上的 Tailwind utility 会覆盖它们：组件类给出默认值，utility 表达这一处的状态。只有手机 44px 触控高度和减少动效两条规则刻意留在层外，以压过 utility。排版角色（`.type-*`）已经决定字重和行宽，不要再叠加 `font-*` 或 `max-w-*`。
+
 ## 1. Overview
 
 **Creative North Star: “Apple 式的安静工作台”**

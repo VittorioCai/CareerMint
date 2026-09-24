@@ -96,7 +96,7 @@ export function ResumeFileDeleteControl({
           setError(null);
           setExpanded(true);
         }}
-        className="button-secondary min-h-9 px-3 text-xs font-semibold text-[var(--danger)]"
+        className="button-secondary min-h-9 px-3 text-xs font-semibold text-[var(--danger-ink)]"
       >
         {copy.deleteFile.replace("{name}", originalName)}
       </button>

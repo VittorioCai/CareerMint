@@ -17,7 +17,7 @@ export default async function ProfilePage() {
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.15em] text-[var(--ink-muted)]">{profile.pageEyebrow}</p>
           <h1 className="heading-font mt-2 type-page-title">{profile.pageTitle}</h1>
-          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-3 type-caption text-[var(--ink-muted)]">
             {profile.pageBody}
           </p>
         </div>

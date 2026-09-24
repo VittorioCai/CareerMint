@@ -91,7 +91,7 @@ export function PrivacyControls({ copy, common }: {
       <section className="dense-surface p-5 sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">{copy.portabilityEyebrow}</p>
         <h2 className="heading-font mt-2 text-2xl font-bold">{copy.downloadTitle}</h2>
-        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {copy.downloadBody}
         </p>
         <a href="/api/account/export" className="button-primary mt-5 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
@@ -102,10 +102,10 @@ export function PrivacyControls({ copy, common }: {
       <section className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5 sm:p-7">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--error)]">{copy.dangerEyebrow}</p>
         <h2 className="heading-font mt-2 text-2xl font-bold">{copy.deleteTitle}</h2>
-        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {copy.deleteBody}
         </p>
-        <button type="button" className="button-secondary press mt-5 min-h-11 px-5 text-sm font-semibold text-[var(--danger)]" onClick={() => setDialogOpen(true)}>
+        <button type="button" className="button-secondary press mt-5 min-h-11 px-5 text-sm font-semibold text-[var(--danger-ink)]" onClick={() => setDialogOpen(true)}>
           {copy.deleteCta}
         </button>
       </section>
@@ -116,7 +116,7 @@ export function PrivacyControls({ copy, common }: {
         onClose={dismissDialog}
       >
         <h2 className="heading-font text-2xl font-bold">{copy.confirmTitle}</h2>
-        <p className="mt-3 type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-3 type-caption text-[var(--ink-muted)]">
           {beforeWord}
           <strong className="text-[var(--ink)]">{CONFIRMATION_WORD}</strong>
           {afterWord}

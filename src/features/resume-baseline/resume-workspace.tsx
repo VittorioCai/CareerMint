@@ -28,11 +28,11 @@ export function ResumeWorkspace({
     <div className="space-y-6">
       <header>
         <h2 id="resume-gap-page-title" className="heading-font text-3xl font-bold">{copy.workspaceTitle}</h2>
-        <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">{copy.workspaceBody}</p>
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">{copy.workspaceBody}</p>
       </header>
       {baselineSelector}
       <section className="dense-surface min-w-0 p-5 sm:p-6" aria-labelledby="resume-next-step-title">
-        <p id="resume-next-step-title" className="type-caption font-medium text-[var(--ink-muted)]">
+        <p id="resume-next-step-title" className="type-caption text-[var(--ink-muted)]">
           {mode === "no-baseline"
             ? copy.workspaceHint
             : copy.workspaceReady}

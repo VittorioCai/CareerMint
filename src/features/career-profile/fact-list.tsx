@@ -69,7 +69,7 @@ export function FactList({
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
             <p className="heading-font text-lg font-semibold">{copy.emptyTitle}</p>
-            <p className="mx-auto mt-2 max-w-[42ch] type-caption text-[var(--ink-muted)]">
+            <p className="mx-auto mt-2 type-caption text-[var(--ink-muted)]">
               {copy.emptyBody}
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">

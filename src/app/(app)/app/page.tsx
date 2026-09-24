@@ -40,7 +40,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-5 sm:p-7">
         <span className="status-chip severity-important">{home.firstStep}</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">{home.uploadTitle}</h2>
-        <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {home.uploadBody}
         </p>
         <div className="mt-6 max-w-2xl">
@@ -53,7 +53,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip severity-minor">{home.processing}</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">{home.processingTitle}</h2>
-        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {home.processingBody}
         </p>
         <progress className="mt-6 h-2 w-full max-w-xl accent-[var(--ink)]" />
@@ -67,7 +67,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--paper)] p-6 sm:p-8">
         <span className="status-chip bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]">{home.needsYou}</span>
         <h2 className="heading-font mt-4 text-2xl font-bold">{home.reviewTitle}</h2>
-        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {home.reviewBody.replace("{count}", String(pendingFacts.length))}
         </p>
         <div className="mt-5 h-3 max-w-xl overflow-hidden rounded-full bg-[var(--surface-muted)]">
@@ -83,7 +83,7 @@ export default async function DashboardPage() {
       <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
         <span className="status-chip bg-[var(--paper)]">{home.checked}</span>
         <h2 className="heading-font mt-4 text-3xl font-bold">{home.readyTitle}</h2>
-        <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {home.readyBody.replace("{count}", String(confirmedCount))}
         </p>
         <Link href="/applications/new" className="button-primary mt-6 inline-flex min-h-11 items-center px-5 text-sm font-semibold">
@@ -102,7 +102,7 @@ export default async function DashboardPage() {
             ? home.greeting.replace("{name}", profile.displayName)
             : home.greetingNoName}
         </h1>
-        <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-3 type-caption text-[var(--ink-muted)]">
           {profile.targetRole
             ? home.currentTarget.replace("{role}", profile.targetRole)
             : home.noTarget}

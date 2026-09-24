@@ -153,7 +153,7 @@ function Overview({
       </div>
       <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">{detail.deleteEyebrow}</p>
-        <p className="mt-2 type-caption font-medium text-[var(--ink-muted)]">
+        <p className="mt-2 type-caption text-[var(--ink-muted)]">
           {detail.deleteBody}
         </p>
         <div className="mt-4">
@@ -198,7 +198,7 @@ function Timeline({
                   )}
             </p>
             {event.note ? (
-              <p className="mt-1 type-caption font-medium text-[var(--ink-muted)]">{event.note}</p>
+              <p className="mt-1 type-caption text-[var(--ink-muted)]">{event.note}</p>
             ) : null}
           </div>
         </li>
@@ -271,7 +271,7 @@ function InterviewPanel({
         <div>
           <span className="status-chip bg-[var(--paper)]">{detail.interviewChip}</span>
           <h2 className="heading-font mt-3 text-2xl font-bold">{detail.interviewTitle}</h2>
-          <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-2 type-caption text-[var(--ink-muted)]">
             {detail.interviewBody.replace("{count}", String(commonCount))}
           </p>
         </div>

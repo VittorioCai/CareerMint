@@ -212,7 +212,7 @@ export function BaselineSelector({
           <h2 id="baseline-selector-title" className="heading-font mt-1 text-2xl font-bold">
             {title}
           </h2>
-          <p className="mt-2 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-2 type-caption text-[var(--ink-muted)]">
             {copy.baselineBody}
           </p>
         </div>
@@ -367,7 +367,7 @@ export function BaselineSelector({
             </p>
             <button
               type="button"
-              className="press button-primary mt-3 inline-flex min-h-11 items-center rounded-xl px-5 text-sm font-bold disabled:cursor-wait disabled:opacity-60"
+              className="press button-primary mt-3 inline-flex min-h-11 items-center px-5 text-sm font-bold disabled:cursor-wait disabled:opacity-60"
               disabled={busy}
               onClick={() => void upload(selectedFile ?? undefined)}
             >

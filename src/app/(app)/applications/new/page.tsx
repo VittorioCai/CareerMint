@@ -16,13 +16,13 @@ export default async function NewApplicationPage() {
           <h1 className="heading-font mt-2 type-page-title">
             {appsCopy.newPageTitle}
           </h1>
-          <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+          <p className="mt-3 type-caption text-[var(--ink-muted)]">
             {appsCopy.newPageBody}
           </p>
         </div>
         <aside className="rounded-2xl border border-[var(--line)] bg-[var(--surface-muted)] p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.12em]">{appsCopy.dataBoundary}</p>
-          <p className="mt-2 type-body font-medium">
+          <p className="mt-2 type-body">
             {appsCopy.dataBoundaryBody}
           </p>
         </aside>

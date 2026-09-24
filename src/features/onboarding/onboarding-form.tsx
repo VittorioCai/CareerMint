@@ -192,7 +192,7 @@ export function OnboardingForm({
           <section>
             <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">{copy.factsEyebrow}</p>
             <h3 className="heading-font mt-2 text-2xl font-bold">{copy.factsTitle}</h3>
-            <p className="mt-3 max-w-2xl type-caption font-medium text-[var(--ink-muted)]">
+            <p className="mt-3 type-caption text-[var(--ink-muted)]">
               {copy.factsBody}
             </p>
             {factCount > 0 || uploaded ? (

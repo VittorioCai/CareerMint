@@ -142,7 +142,7 @@ function EmptyApplications({
     <article className="soft-surface bg-[var(--sev-matched)] p-6 sm:p-8">
       <span className="status-chip bg-[var(--paper)]">{copy.emptyChip}</span>
       <h2 className="heading-font mt-4 text-2xl font-bold">{copy.emptyTitle}</h2>
-      <p className="mt-2 max-w-xl type-caption font-medium text-[var(--ink-muted)]">
+      <p className="mt-2 type-caption text-[var(--ink-muted)]">
         {copy.emptyBody}
       </p>
       <Link
