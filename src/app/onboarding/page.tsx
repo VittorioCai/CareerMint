@@ -5,6 +5,7 @@ import {
   completeOnboardingAction,
   saveAccountPreferencesAction,
 } from "@/features/account/actions";
+import { LogoMark } from "@/components/logo-mark";
 import { getOwnedProfile } from "@/features/account/repository";
 import type { AccountPreferences } from "@/features/account/schemas";
 import { careerFactRepository } from "@/features/career-profile/repository";
@@ -33,7 +34,7 @@ export default async function OnboardingPage() {
       <div className="mx-auto w-full max-w-5xl min-w-0">
         <header className="flex items-center justify-between gap-4">
           <Link href="/" className="flex items-center gap-3">
-            <span aria-hidden="true" className="logo-mark size-10" />
+            <LogoMark className="size-10" />
             <span className="heading-font text-lg font-semibold">{common.productName}</span>
           </Link>
           <span className="rounded-full border border-[var(--ink)] bg-[var(--paper)] px-3 py-1 text-xs font-semibold">{onboarding.privateBadge}</span>

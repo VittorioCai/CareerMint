@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+import { LogoMark } from "@/components/logo-mark";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { LanguageSwitch } from "@/i18n/language-switch";
 import type { AppLocale } from "@/i18n/locale";
@@ -50,7 +51,7 @@ export function HomeView({
     <main className="landing-shell min-h-screen overflow-hidden">
       <nav className="mx-auto flex w-full max-w-[1180px] items-center justify-between px-5 py-5 sm:px-8 lg:px-10" aria-label={common.productName}>
         <Link href="/" className="group flex items-center gap-3" aria-label={common.productName}>
-          <span aria-hidden="true" className="logo-mark size-10" />
+          <LogoMark className="size-10" />
           {/* The mark alone carries the brand on a phone: beside the language
               switch and the sign-in button there is no room for the wordmark
               too, and the link's own label still names the product. */}

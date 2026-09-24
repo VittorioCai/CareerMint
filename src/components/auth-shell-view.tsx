@@ -5,6 +5,8 @@ import type { Dictionary } from "@/i18n/dictionaries/en";
 import { LanguageSwitch } from "@/i18n/language-switch";
 import type { AppLocale } from "@/i18n/locale";
 
+import { LogoMark } from "./logo-mark";
+
 export type AuthShellProps = {
   eyebrow: string;
   title: string;
@@ -36,7 +38,7 @@ export function AuthShellView({
             cookie and nothing else. */}
         <div className="flex items-center justify-between gap-4">
           <Link href="/" className="group flex w-fit items-center gap-3" aria-label={auth.backToHome}>
-            <span aria-hidden="true" className="logo-mark size-10" />
+            <LogoMark className="size-10" />
             <span className="heading-font text-xl font-semibold">{common.productName}</span>
           </Link>
           <LanguageSwitch

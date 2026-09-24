@@ -7,6 +7,7 @@ import { LanguageSwitch } from "@/i18n/language-switch";
 import type { AppLocale } from "@/i18n/locale";
 
 import { appNavigation } from "./app-navigation";
+import { LogoMark } from "./logo-mark";
 import { NavLink } from "./nav-link";
 
 type AppShellProps = {
@@ -33,7 +34,7 @@ export function AppShellView({
         className="fixed inset-y-0 left-0 z-20 hidden w-[244px] flex-col border-r border-[var(--line)] bg-[var(--canvas)] p-4 md:flex"
       >
         <Link href="/app" className="group flex items-center gap-3 px-2 py-2" aria-label={shell.homeLink}>
-          <span aria-hidden="true" className="logo-mark size-10" />
+          <LogoMark className="size-10" />
           <div>
             <span className="heading-font block text-base font-semibold leading-none">{common.productName}</span>
             <span className="mt-1 block type-eyebrow text-[var(--ink-muted)]">{common.productTagline}</span>
@@ -64,7 +65,7 @@ export function AppShellView({
         <header className="sticky top-0 z-10 border-b border-[var(--line)] chrome-bar px-4 py-3 sm:px-6 lg:px-8">
           <div className="flex items-center gap-3">
             <Link href="/app" className="-my-1 flex min-h-11 min-w-11 shrink-0 items-center gap-2 md:hidden" aria-label={shell.homeLink}>
-              <span aria-hidden="true" className="logo-mark size-9" />
+              <LogoMark className="size-9" />
               <span className="heading-font hidden text-base font-semibold sm:inline">{common.productName}</span>
             </Link>
 
