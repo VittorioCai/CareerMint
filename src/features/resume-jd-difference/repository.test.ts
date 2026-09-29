@@ -212,6 +212,7 @@ describe("resume JD difference repository", () => {
         target_run_id: runId,
         expected_attempt_count: 0,
         expected_status: "queued",
+        // The repository's own default. The service passes a shorter one.
         stale_after_seconds: 120,
       },
     );

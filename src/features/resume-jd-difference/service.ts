@@ -38,6 +38,16 @@ import type {
 const SAFE_ERROR_MESSAGE = "Resume and job difference analysis failed.";
 
 /**
+ * How long a claimed run is left alone before another request may take it.
+ *
+ * The route is killed at 60 seconds and the provider call times out at 50.
+ * At 120 a run whose function had died stayed unclaimable for another minute:
+ * the reader saw a network error, pressed the button again, and was told the
+ * analysis was still running by a run that nothing was running.
+ */
+const RUN_LEASE_SECONDS = 75;
+
+/**
  * The two statuses the verifier writes itself, in the run's language.
  *
  * When the model claims resume evidence that is not actually in the resume,
@@ -648,7 +658,7 @@ export function createResumeJDDifferenceService(
         run.id,
         run.attemptCount,
         run.status,
-        120,
+        RUN_LEASE_SECONDS,
       );
       if (!claimed) {
         const current = await dependencies.runs.getOwned(input.userId, run.id);

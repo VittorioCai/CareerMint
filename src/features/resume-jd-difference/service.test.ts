@@ -615,6 +615,21 @@ describe("resume JD difference service", () => {
     expect(logs).not.toContain(resumeText);
   });
 
+  it("frees an abandoned run soon after the route that held it is gone", async () => {
+    const dependencies = fakes();
+
+    await createResumeJDDifferenceService(dependencies).run(input());
+
+    // The route dies at 60 seconds. A lease much longer than that leaves a
+    // run that nothing is running unclaimable.
+    expect(dependencies.runs.claim).toHaveBeenCalledWith(
+      expect.any(String),
+      expect.any(Number),
+      expect.any(String),
+      75,
+    );
+  });
+
   it("deduplicates an interleaved claim without constructing a provider", async () => {
     const dependencies = fakes();
     dependencies.runs.claim.mockResolvedValueOnce(false);
