@@ -79,6 +79,76 @@ describe("POST /api/source-assets", () => {
     expect(fakes.uploadSource).not.toHaveBeenCalled();
   });
 
+  it("refuses a body that declares more than a resume can be, before reading it", async () => {
+    const fakes = createFakes();
+    const post = createSourceAssetPostHandler(fakes);
+    const body = vi.fn();
+
+    const response = await post(
+      new Request("http://localhost/api/source-assets", {
+        method: "POST",
+        headers: {
+          "content-type": "multipart/form-data; boundary=x",
+          "content-length": String(11 * 1024 * 1024),
+        },
+        // A high-water mark of zero, so the stream asks for nothing until
+        // something reads from it.
+        body: new ReadableStream({ pull: body }, { highWaterMark: 0 }),
+        duplex: "half",
+      } as RequestInit),
+    );
+
+    expect(response.status).toBe(413);
+    await expect(response.json()).resolves.toEqual({ error: "file-too-large" });
+    // Not one byte: the point is that the memory is never spent.
+    expect(body).not.toHaveBeenCalled();
+    expect(fakes.validateResumeFile).not.toHaveBeenCalled();
+  });
+
+  it("cuts off a body that grows past the limit without having declared it", async () => {
+    const fakes = createFakes();
+    const post = createSourceAssetPostHandler(fakes);
+    const megabyte = new Uint8Array(1024 * 1024);
+    let sent = 0;
+
+    const response = await post(
+      new Request("http://localhost/api/source-assets", {
+        method: "POST",
+        headers: { "content-type": "multipart/form-data; boundary=x" },
+        body: new ReadableStream({
+          pull(controller) {
+            sent += 1;
+            // Forty megabytes on offer. A length can be left out, so the
+            // header is not the only thing that has to be believed.
+            if (sent > 40) controller.close();
+            else controller.enqueue(megabyte);
+          },
+        }),
+        duplex: "half",
+      } as RequestInit),
+    );
+
+    expect(response.status).toBe(413);
+    expect(sent).toBeLessThan(15);
+    expect(fakes.validateResumeFile).not.toHaveBeenCalled();
+  });
+
+  it("answers a body that is not a form without throwing", async () => {
+    const fakes = createFakes();
+    const post = createSourceAssetPostHandler(fakes);
+
+    const response = await post(
+      new Request("http://localhost/api/source-assets", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: "{}",
+      }),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "missing-file" });
+  });
+
   it("stores one user-prefixed source without exposing its path", async () => {
     const fakes = createFakes();
     const post = createSourceAssetPostHandler(fakes);
