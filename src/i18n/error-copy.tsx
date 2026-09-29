@@ -2,9 +2,15 @@
 
 import { createContext, useContext, type ReactNode } from "react";
 
+import type { StandaloneFrameCopy } from "@/components/standalone-frame";
+
 import type { Dictionary } from "./dictionaries/en";
 
-export type ErrorCopy = Dictionary["errorPages"] & { retry: string };
+export type ErrorCopy = Dictionary["errorPages"] & {
+  retry: string;
+  /** What the page around a root-level error needs: see StandaloneFrame. */
+  frame: StandaloneFrameCopy;
+};
 
 const ErrorCopyContext = createContext<ErrorCopy | null>(null);
 

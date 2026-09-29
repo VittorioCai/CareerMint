@@ -5,12 +5,15 @@ import { useEffect } from "react";
 
 import { useErrorCopy } from "@/i18n/error-copy";
 
+import { StandaloneFrame } from "./standalone-frame";
+
 /**
  * What a route shows when rendering it threw.
  *
  * Shared by the root boundary and the one inside the signed-in shell. They
- * differ in what is still standing around them — the shell keeps its sidebar
- * and language switch — and in where "back" leads.
+ * differ in what is still standing around them and in where "back" leads.
+ * The shell keeps its sidebar and language switch. At the root nothing is
+ * left, so the page brings a header of its own.
  */
 export function RouteError({
   error,
@@ -32,7 +35,7 @@ export function RouteError({
   // error travel up to global-error, which carries its own.
   if (!copy) throw error;
 
-  return (
+  const body = (
     <div className="mx-auto w-full max-w-[560px] px-5 py-16" role="alert">
       <p className="type-eyebrow text-[var(--ink-muted)]">{copy.errorEyebrow}</p>
       <h1 className="type-title heading-font mt-3">{copy.errorTitle}</h1>
@@ -60,5 +63,11 @@ export function RouteError({
         </Link>
       </div>
     </div>
+  );
+
+  return home === "site" ? (
+    <StandaloneFrame frame={copy.frame}>{body}</StandaloneFrame>
+  ) : (
+    body
   );
 }

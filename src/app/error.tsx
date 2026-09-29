@@ -9,9 +9,5 @@ export default function RootError({
   error: Error & { digest?: string };
   retry: () => void;
 }) {
-  return (
-    <main className="min-h-screen bg-[var(--canvas)]">
-      <RouteError error={error} retry={retry} home="site" />
-    </main>
-  );
+  return <RouteError error={error} retry={retry} home="site" />;
 }

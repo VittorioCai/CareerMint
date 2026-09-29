@@ -2,6 +2,7 @@ import { Inter, Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { standaloneFrameCopy } from "@/components/standalone-frame";
 import { ErrorCopyProvider } from "@/i18n/error-copy";
 import { HTML_LANG } from "@/i18n/locale";
 import { getDictionary, getLocale } from "@/i18n/server";
@@ -70,7 +71,11 @@ export default async function RootLayout({
     >
       <body>
         <ErrorCopyProvider
-          copy={{ ...dictionary.errorPages, retry: dictionary.common.retry }}
+          copy={{
+            ...dictionary.errorPages,
+            retry: dictionary.common.retry,
+            frame: standaloneFrameCopy(locale, dictionary),
+          }}
         >
           {children}
         </ErrorCopyProvider>

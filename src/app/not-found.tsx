@@ -1,11 +1,18 @@
 import { RouteNotFound } from "@/components/route-not-found";
-import { getDictionary } from "@/i18n/server";
+import {
+  StandaloneFrame,
+  standaloneFrameCopy,
+} from "@/components/standalone-frame";
+import { getDictionary, getLocale } from "@/i18n/server";
 
 export default async function NotFound() {
-  const { errorPages } = await getDictionary();
+  const [locale, dictionary] = await Promise.all([
+    getLocale(),
+    getDictionary(),
+  ]);
   return (
-    <main className="min-h-screen bg-[var(--canvas)]">
-      <RouteNotFound copy={errorPages} home="site" />
-    </main>
+    <StandaloneFrame frame={standaloneFrameCopy(locale, dictionary)}>
+      <RouteNotFound copy={dictionary.errorPages} home="site" />
+    </StandaloneFrame>
   );
 }
