@@ -100,7 +100,7 @@ export const en = {
   landing: {
     beta: "Beta",
     signIn: "Sign in or create an account",
-    navNote: "Build the profile first, then compare it with each job",
+    navNote: "Profile first, then job by job",
     badge: "No invented experience — just your real strengths, stated clearly",
     headlineTop: "Give every application",
     headlineBottom: "something to stand on",

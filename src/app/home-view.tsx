@@ -13,6 +13,15 @@ function ArrowIcon() {
   );
 }
 
+function PendingIcon() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5" fill="none">
+      <path d="M7.4 7.6a2.7 2.7 0 1 1 3.9 2.4c-.8.4-1.3 1-1.3 1.9" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="10" cy="14.6" r="1.1" fill="currentColor" />
+    </svg>
+  );
+}
+
 function CheckIcon() {
   return (
     <svg aria-hidden="true" viewBox="0 0 20 20" className="size-5" fill="none">
@@ -41,10 +50,16 @@ export function HomeView({
     { index: "03", title: landing.workflow.threeTitle, detail: landing.workflow.threeBody },
   ];
 
+  // One state, one colour, one mark. The two rows with evidence used to wear
+  // different chips, and the row still waiting to be confirmed was ticked.
+  const states = {
+    evidence: { status: landing.demo.hasEvidence, tone: "mint", icon: <CheckIcon /> },
+    confirm: { status: landing.demo.needsConfirmation, tone: "yellow", icon: <PendingIcon /> },
+  };
   const requirements = [
-    { label: landing.demo.growthExperiments, status: landing.demo.hasEvidence, tone: "mint" },
-    { label: landing.demo.crossTeam, status: landing.demo.hasEvidence, tone: "blue" },
-    { label: landing.demo.germanB2, status: landing.demo.needsConfirmation, tone: "yellow" },
+    { label: landing.demo.growthExperiments, ...states.evidence },
+    { label: landing.demo.crossTeam, ...states.evidence },
+    { label: landing.demo.germanB2, ...states.confirm },
   ];
 
   return (
@@ -135,10 +150,12 @@ export function HomeView({
                   {requirements.map((item) => (
                     <div key={item.label} className="flex items-center justify-between gap-3 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3.5">
                       <div className="flex min-w-0 items-center gap-3">
-                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--paper)]"><CheckIcon /></span>
-                        <span className="truncate text-sm font-bold">{item.label}</span>
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-lg border border-[var(--line)] bg-[var(--paper)]">{item.icon}</span>
+                        {/* Wraps rather than truncates: at 375px the English
+                            labels were cut to "Growth experimen…". */}
+                        <span className="min-w-0 break-words text-sm font-bold">{item.label}</span>
                       </div>
-                      <span className={`status-chip status-${item.tone}`}>{item.status}</span>
+                      <span className={`status-chip status-${item.tone} shrink-0 whitespace-nowrap`}>{item.status}</span>
                     </div>
                   ))}
                 </div>
@@ -167,7 +184,10 @@ export function HomeView({
                   <span className="h-full flex-1 rounded-full bg-[var(--surface-muted)]" />
                 </div>
                 <p className="mt-2 text-xs font-bold text-[var(--ink-muted)]">{landing.demo.progressNote}</p>
-                <button type="button" className="button-secondary mt-6 w-full px-3 py-2.5 text-sm font-semibold">{landing.demo.viewSuggestions}</button>
+                {/* A picture of a button. It was a real one that did nothing,
+                    which is a stop on the way through the page for anyone
+                    using a keyboard. */}
+                <span className="button-secondary mt-6 flex w-full items-center justify-center px-3 py-2.5 text-center text-sm font-semibold">{landing.demo.viewSuggestions}</span>
               </aside>
             </div>
           </div>
