@@ -311,6 +311,9 @@ export const zhCN: Dictionary = {
       analysing: "正在分析…",
       reanalyse: "重新分析",
       start: "开始差异分析",
+      consentNeeded: "开始分析前，需要先允许 AI 数据处理。",
+      goToSettings: "前往账户设置",
+      stalled: "这次分析没有在应有的时间内完成，可以重新开始。",
       errors: {
         consentRequired: "需要先允许 AI 处理 JD 与简历，授权后再试。",
         sourceRequired: "请先选择一份对照简历。",
@@ -413,6 +416,7 @@ export const zhCN: Dictionary = {
     hasEvidenceStatus: "简历里已经有对得上的表述。",
     complete: "分析已完成",
     stale: "结果已过期",
+    estimatedCost: "预计成本 {amount}",
     textSource: {
       ocr: "基于本机识别的文字",
       paste: "基于你粘贴的文字",

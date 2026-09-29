@@ -452,7 +452,7 @@ export default async function ApplicationDetailPage({
             : [],
         }))
       : Promise.resolve({ run: null, candidates: [] }),
-    activeTab === "interview"
+    activeTab === "interview" || activeTab === "difference"
       ? getAIProcessingConsentAt(user.id)
       : Promise.resolve("not-requested"),
     differenceWorkflow && application.resumeSourceAssetId
@@ -626,6 +626,7 @@ export default async function ApplicationDetailPage({
                   } : null}
                   freshness={differenceView.freshness}
                   hasPreviousResult={Boolean(differenceView.previousSucceeded)}
+                  consentRequired={!consentAt}
                 />
               }
             />

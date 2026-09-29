@@ -21,6 +21,21 @@ export type DifferenceBrowserOcrHook = (
 const MIN_PASTED_RESUME_CHARS = 40;
 const MAX_PASTED_RESUME_CHARS = 100_000;
 
+/**
+ * How often a waiting control asks the page whether the run has finished.
+ */
+export const RUN_POLL_INTERVAL_MS = 4_000;
+
+/**
+ * How long it waits before offering to start again.
+ *
+ * A run whose function died stays "running" in the database; nothing will
+ * ever change it except another request. The service frees such a run after
+ * 75 seconds, so this is that and a margin — sooner, and the retry would be
+ * told the run was still going.
+ */
+export const RUN_STALLED_AFTER_MS = 80_000;
+
 declare global {
   var __JOB_BUDDY_E2E_OCR__: DifferenceBrowserOcrHook | undefined;
 }
@@ -51,6 +66,11 @@ export type ResumeJDDifferenceAnalysisControlProps = {
   initialRun: ResumeJDDifferenceControlRun | null;
   freshness: Freshness;
   hasPreviousResult?: boolean;
+  /**
+   * The reader has not yet allowed AI to process their material. The route
+   * refuses without it; knowing here means the refusal is never asked for.
+   */
+  consentRequired?: boolean;
   request?: typeof fetch;
   refresh?: () => void;
   ocrPdf?: DifferenceBrowserOcrHook;
@@ -148,6 +168,7 @@ function AnalysisControlState({
   initialRun,
   freshness,
   hasPreviousResult = false,
+  consentRequired = false,
   request = fetch,
   refresh,
   ocrPdf = defaultOcrPdf,
@@ -163,6 +184,7 @@ function AnalysisControlState({
     initialRun?.status === "failed" ? initialRun.errorCode : null,
   );
   const [reused, setReused] = useState(false);
+  const [stalled, setStalled] = useState(false);
   const [ocrActive, setOcrActive] = useState(false);
   const [pasteOpen, setPasteOpen] = useState(false);
   const [pastedText, setPastedText] = useState("");
@@ -179,6 +201,25 @@ function AnalysisControlState({
     },
     [],
   );
+
+  // A run that was accepted but is not finished — this request's or an
+  // earlier one's. The response that said so was the last the control heard:
+  // it set the status and returned, and the button stayed disabled until the
+  // reader thought to reload. It asks again now, and the page answers by
+  // handing this component a run in a new state, which remounts it.
+  const waiting = (status === "queued" || status === "running") && !stalled;
+  useEffect(() => {
+    if (!waiting) return;
+    const poll = window.setInterval(refreshPage, RUN_POLL_INTERVAL_MS);
+    const giveUp = window.setTimeout(
+      () => setStalled(true),
+      RUN_STALLED_AFTER_MS,
+    );
+    return () => {
+      window.clearInterval(poll);
+      window.clearTimeout(giveUp);
+    };
+  }, [waiting, refreshPage]);
 
   if (!asset) {
     return (
@@ -215,8 +256,7 @@ function AnalysisControlState({
   const busy =
     ocrActive ||
     status === "submitting" ||
-    status === "queued" ||
-    status === "running";
+    ((status === "queued" || status === "running") && !stalled);
   const completed = status === "succeeded";
   const stale = status === "stale";
   // Once the paste box is open the upload error is stale advice — it tells the
@@ -239,10 +279,11 @@ function AnalysisControlState({
     signal?: AbortSignal,
     continueFromOcr = false,
   ) {
-    if (busy && !continueFromOcr) return;
+    if ((busy && !continueFromOcr) || consentRequired) return;
     setStatus("submitting");
     setError(null);
     setReused(false);
+    setStalled(false);
     try {
       const init: RequestInit =
         supplied === undefined
@@ -406,6 +447,25 @@ function AnalysisControlState({
               {visibleError}
             </p>
           ) : null}
+          {stalled ? (
+            <p role="status" className="mt-3 text-sm font-semibold">
+              {copy.stalled}
+            </p>
+          ) : null}
+          {/* Said before the button is pressed, with the way to fix it. The
+              analysis used to be started, refused by the route, and explained
+              afterwards in a sentence with no link in it. */}
+          {consentRequired ? (
+            <p role="status" className="mt-3 text-sm font-semibold">
+              {copy.consentNeeded}{" "}
+              <Link
+                href="/settings/account"
+                className="underline decoration-[var(--ink-soft)] underline-offset-4"
+              >
+                {copy.goToSettings}
+              </Link>
+            </p>
+          ) : null}
           {canRecoverWithOcr && !ocrActive ? (
             <div className="mt-3">
               <button
@@ -534,8 +594,10 @@ function AnalysisControlState({
         </div>
         <button
           type="button"
-          className="press button-primary inline-flex min-h-10 items-center justify-center px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-65"
-          disabled={busy}
+          className={`press button-primary inline-flex min-h-10 items-center justify-center px-5 text-sm font-semibold disabled:opacity-65 ${
+            busy ? "disabled:cursor-wait" : "disabled:cursor-not-allowed"
+          }`}
+          disabled={busy || consentRequired}
           onClick={() => {
             const recognised = cachedOcrTextRef.current;
             void analyze(

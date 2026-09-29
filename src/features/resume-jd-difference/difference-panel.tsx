@@ -312,6 +312,19 @@ function tally(
     .filter((entry) => entry.count > 0);
 }
 
+/**
+ * A fraction of a cent, usually, so two decimals would round most runs to
+ * nothing. Four keeps the figure honest without pretending to more.
+ */
+function formatUsd(amount: number, locale: AppLocale) {
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency: "USD",
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 4,
+  }).format(amount);
+}
+
 export function ResumeJDDifferencePanel({
   applicationId,
   run,
@@ -408,6 +421,21 @@ export function ResumeJDDifferencePanel({
             <>
               <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
               <span>{copy.textSource[run.resumeTextSource]}</span>
+            </>
+          )}
+          {/* What the run cost, where the run is. The interview questions
+              have always said; this, the dearer of the two, did not. Absent
+              when no price schedule covered the model that answered — a
+              guess would be worse than nothing. */}
+          {run.estimatedCostUsd === null ? null : (
+            <>
+              <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+              <span>
+                {copy.estimatedCost.replace(
+                  "{amount}",
+                  formatUsd(run.estimatedCostUsd, readerLocale ?? run.outputLocale),
+                )}
+              </span>
             </>
           )}
         </p>

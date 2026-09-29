@@ -556,6 +556,33 @@ describe("ResumeJDDifferencePanel", () => {
     expect(screen.queryByText("分析已完成")).not.toBeInTheDocument();
   });
 
+  it("says what the run cost, and nothing when that is not known", () => {
+    const { rerender } = render(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={{ ...succeededRun(), estimatedCostUsd: 0.001635 }}
+        readerLocale="zh-CN"
+        facts={facts}
+      />,
+    );
+    // Four places: two would round most runs to nothing.
+    expect(screen.getByText("预计成本 US$0.0016")).toBeVisible();
+
+    rerender(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={{ ...succeededRun(), estimatedCostUsd: null }}
+        readerLocale="zh-CN"
+        facts={facts}
+      />,
+    );
+    // No price schedule covered the model that answered. A guess would be
+    // worse than saying nothing.
+    expect(screen.queryByText(/预计成本/u)).toBeNull();
+  });
+
   it("says which text a result was read from when it was not the file's", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel

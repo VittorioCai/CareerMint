@@ -339,6 +339,10 @@ export const en = {
       analysing: "Analysing…",
       reanalyse: "Run it again",
       start: "Start the analysis",
+      consentNeeded: "The analysis needs AI data processing allowed first.",
+      goToSettings: "Go to account settings",
+      stalled:
+        "That run has not finished in the time it should take. You can start it again.",
       errors: {
         consentRequired:
           "This needs your permission to let AI read the job description and resume. Allow it in settings, then try again.",
@@ -451,6 +455,8 @@ export const en = {
     hasEvidenceStatus: "The resume already says something that lines up.",
     complete: "Analysis complete",
     stale: "Result out of date",
+    // {amount} is already formatted as money, in the reader's locale.
+    estimatedCost: "Estimated cost {amount}",
     // The file could not be read, so the analysis is of text the browser
     // supplied. Said on the result, because its excerpts are from that text.
     textSource: {

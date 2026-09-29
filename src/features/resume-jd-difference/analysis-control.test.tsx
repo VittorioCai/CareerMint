@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 const router = { refresh: vi.fn() };
 
@@ -8,7 +8,11 @@ vi.mock("next/navigation", () => ({ useRouter: () => router }));
 
 import { zhCN } from "@/i18n/dictionaries/zh-CN";
 
-import { ResumeJDDifferenceAnalysisControl } from "./analysis-control";
+import {
+  ResumeJDDifferenceAnalysisControl,
+  RUN_POLL_INTERVAL_MS,
+  RUN_STALLED_AFTER_MS,
+} from "./analysis-control";
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const asset = {
@@ -391,5 +395,113 @@ describe("a stale run with a result still on screen", () => {
     });
 
     expect(screen.getByText(/材料已变化，请重新分析/u)).toBeVisible();
+  });
+});
+
+describe("a run that was accepted and has not finished", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    vi.useFakeTimers();
+  });
+  afterEach(() => vi.useRealTimers());
+
+  const running = { status: "running" as const, errorCode: null };
+
+  it("asks the page again, rather than waiting to be reloaded", () => {
+    const { refresh } = renderControl({
+      initialRun: running,
+      freshness: "current",
+    });
+
+    // The response that said "running" used to be the last the control
+    // heard: the button stayed disabled until the reader thought to reload.
+    expect(
+      screen.getByRole("button", { name: zhCN.difference.control.analysing }),
+    ).toBeDisabled();
+    expect(refresh).not.toHaveBeenCalled();
+
+    act(() => void vi.advanceTimersByTime(RUN_POLL_INTERVAL_MS));
+    expect(refresh).toHaveBeenCalledTimes(1);
+    act(() => void vi.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 2));
+    expect(refresh).toHaveBeenCalledTimes(3);
+  });
+
+  it("offers to start again once the run has been given up on", () => {
+    const { refresh } = renderControl({
+      initialRun: running,
+      freshness: "current",
+    });
+
+    act(() => void vi.advanceTimersByTime(RUN_STALLED_AFTER_MS));
+
+    // A run whose function died stays "running" for ever. After the lease
+    // the service will let another request take it, so the button comes back.
+    expect(screen.getByRole("status")).toHaveTextContent(
+      zhCN.difference.control.stalled,
+    );
+    expect(screen.getByRole("button", { name: "开始差异分析" })).toBeEnabled();
+
+    const asked = refresh.mock.calls.length;
+    act(() => void vi.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 3));
+    expect(refresh).toHaveBeenCalledTimes(asked);
+  });
+
+  it("stops asking once the page answers with a finished run", () => {
+    const props = {
+      applicationId,
+      copy: zhCN.difference.control,
+      common: zhCN.common,
+      asset,
+      freshness: "current" as const,
+      request: vi.fn<typeof fetch>(),
+      refresh: vi.fn(),
+    };
+    const { rerender } = render(
+      <ResumeJDDifferenceAnalysisControl {...props} initialRun={running} />,
+    );
+    act(() => void vi.advanceTimersByTime(RUN_POLL_INTERVAL_MS));
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <ResumeJDDifferenceAnalysisControl
+        {...props}
+        initialRun={{ status: "succeeded", errorCode: null }}
+      />,
+    );
+    act(() => void vi.advanceTimersByTime(RUN_POLL_INTERVAL_MS * 5));
+
+    expect(props.refresh).toHaveBeenCalledTimes(1);
+    expect(screen.getByRole("button", { name: "重新分析" })).toBeEnabled();
+  });
+});
+
+describe("before AI processing has been allowed", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it("says so, with the way to allow it, and asks for nothing", async () => {
+    const user = userEvent.setup();
+    const { request } = renderControl({ consentRequired: true });
+
+    const start = screen.getByRole("button", { name: "开始差异分析" });
+    expect(start).toBeDisabled();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      zhCN.difference.control.consentNeeded,
+    );
+    expect(
+      screen.getByRole("link", { name: zhCN.difference.control.goToSettings }),
+    ).toHaveAttribute("href", "/settings/account");
+
+    await user.click(start);
+    // It used to be started, refused by the route, and explained afterwards.
+    expect(request).not.toHaveBeenCalled();
+  });
+
+  it("says nothing of it once it has been", () => {
+    renderControl();
+
+    expect(screen.getByRole("button", { name: "开始差异分析" })).toBeEnabled();
+    expect(
+      screen.queryByText(zhCN.difference.control.consentNeeded),
+    ).toBeNull();
   });
 });
