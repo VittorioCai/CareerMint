@@ -1,10 +1,53 @@
 import type { NextConfig } from "next";
 
+/**
+ * Sent with every response.
+ *
+ * Framing is limited to this origin rather than forbidden: the resume preview
+ * is an iframe of our own route. `X-Frame-Options` says the same thing to
+ * browsers that predate `frame-ancestors`.
+ *
+ * There is deliberately no `script-src` here. A policy strict enough to mean
+ * something needs a per-request nonce from the proxy, and has to be proven
+ * against the OCR runtime (WebAssembly, a worker) and the PDF.js worker first;
+ * one loose enough to be safe to add blind — `'unsafe-inline'` — would stop
+ * very little. That is its own change.
+ */
+const securityHeaders = [
+  {
+    key: "Strict-Transport-Security",
+    value: "max-age=63072000; includeSubDomains",
+  },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "X-Frame-Options", value: "SAMEORIGIN" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  // Nothing here asks for any of the three. OCR reads a file the user chose;
+  // it never opens a camera.
+  {
+    key: "Permissions-Policy",
+    value: "camera=(), microphone=(), geolocation=()",
+  },
+];
+
 const nextConfig: NextConfig = {
   allowedDevOrigins: ["127.0.0.1"],
   serverExternalPackages: ["mammoth", "@napi-rs/canvas"],
   async headers() {
     return [
+      { source: "/:path*", headers: securityHeaders },
+      {
+        // The file routes set a stricter policy of their own — `sandbox`,
+        // `default-src 'none'` — and two policies are enforced together, so
+        // this one stays off them rather than risk replacing theirs.
+        source: "/((?!api/source-assets/).*)",
+        headers: [
+          {
+            key: "Content-Security-Policy",
+            value:
+              "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'",
+          },
+        ],
+      },
       {
         // The OCR runtime and models are 11 MB over the wire even gzipped, and
         // the default for /public is `max-age=0` — a revalidation round trip
