@@ -71,18 +71,18 @@ code lands when you say so, which is what makes this order enforceable.
 Changing one in Vercel does not affect anything already running. It takes a
 new deployment.
 
-Two of them must agree, and nothing reports it when they do not:
+Two of them must agree, and only the server log says so when they do not:
 
 - `AI_TEXT_MODEL`
 - the `model` field inside `AI_PRICE_SCHEDULE_JSON`
 
-Every service compares them — `safeAIMetadata` in
-`resume-jd-difference/service.ts`, and the same comparison in the extraction
-and interview-generation services. When they differ the schedule is dropped
-and the run's cost is recorded as `null`. A typo does not fail; it silently
-stops costing anything. `price-schedule-example.test.ts` keeps `.env.example`
-honest as the worked example, but it cannot see Vercel — check the pair by hand
-after changing either.
+Every service compares them through `priceScheduleFor` in
+`features/ai/pricing.ts`. When they differ the schedule is dropped and the
+run's cost is recorded as `null`. The run still succeeds and the interface
+shows nothing; what is left is one `ai-price-schedule-model-mismatch` error
+per run in the log, naming both sides. `price-schedule-example.test.ts` keeps
+`.env.example` honest as the worked example, but it cannot see Vercel — after
+changing either, check the pair by hand or search the log for that error.
 
 `AI_TEXT_MODEL` is also part of `input_hash`, so changing it makes every cached
 analysis stale once. That is correct behaviour, not a bug: a run made against a

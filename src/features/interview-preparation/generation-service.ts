@@ -1,5 +1,5 @@
 import type { AIPriceSchedule } from "@/features/ai/pricing";
-import { estimateAITextCost } from "@/features/ai/pricing";
+import { estimateAITextCost, priceScheduleFor } from "@/features/ai/pricing";
 import type { AIProvider, AIUsage } from "@/features/extraction/provider";
 import { ZodError } from "zod";
 
@@ -308,11 +308,9 @@ export function createInterviewQuestionGenerationService(
           commonPrompts: input.commonPrompts,
           output: aiResult.data,
         });
-        const scheduleMatches =
-          dependencies.priceSchedule?.provider === aiResult.provider &&
-          dependencies.priceSchedule.model === aiResult.model;
-        const estimatedCost = scheduleMatches
-          ? estimateAITextCost(aiResult.usage, dependencies.priceSchedule!, clock())
+        const schedule = priceScheduleFor(dependencies.priceSchedule, aiResult);
+        const estimatedCost = schedule
+          ? estimateAITextCost(aiResult.usage, schedule, clock())
           : null;
 
         completeInput = {
@@ -325,9 +323,7 @@ export function createInterviewQuestionGenerationService(
             model: aiResult.model,
             requestId,
             usage: aiResult.usage,
-            priceScheduleVersion: scheduleMatches
-              ? dependencies.priceSchedule!.version
-              : null,
+            priceScheduleVersion: schedule ? schedule.version : null,
           },
           estimatedCost,
           requestId,

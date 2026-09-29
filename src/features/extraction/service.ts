@@ -1,5 +1,5 @@
 import type { AIPriceSchedule } from "@/features/ai/pricing";
-import { estimateAITextCost } from "@/features/ai/pricing";
+import { estimateAITextCost, priceScheduleFor } from "@/features/ai/pricing";
 import type {
   FailJobInput,
   ProcessingJob,
@@ -141,24 +141,16 @@ export function createResumeExtractionService(
           }
         }
 
-        const scheduleMatches =
-          dependencies.priceSchedule?.provider === aiResult.provider &&
-          dependencies.priceSchedule.model === aiResult.model;
-        const estimatedCost = scheduleMatches
-          ? estimateAITextCost(
-              aiResult.usage,
-              dependencies.priceSchedule!,
-              clock(),
-            )
+        const schedule = priceScheduleFor(dependencies.priceSchedule, aiResult);
+        const estimatedCost = schedule
+          ? estimateAITextCost(aiResult.usage, schedule, clock())
           : null;
         const aiUsage: ResumeExtractionJobResult["ai"] = {
           provider: aiResult.provider,
           model: aiResult.model,
           requestId: aiResult.requestId,
           usage: aiResult.usage,
-          priceScheduleVersion: scheduleMatches
-            ? dependencies.priceSchedule!.version
-            : null,
+          priceScheduleVersion: schedule ? schedule.version : null,
         };
 
         return await dependencies.jobs.succeedJob({

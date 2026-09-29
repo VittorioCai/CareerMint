@@ -1,7 +1,7 @@
 import "server-only";
 
 import type { AIPriceSchedule } from "@/features/ai/pricing";
-import { estimateAITextCost } from "@/features/ai/pricing";
+import { estimateAITextCost, priceScheduleFor } from "@/features/ai/pricing";
 import type { AIProvider, AIUsage } from "@/features/extraction/provider";
 import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 import { extractResumeText, normalizeResumeText } from "@/features/source-assets/parsers";
@@ -566,11 +566,7 @@ function safeAIMetadata(input: {
     throw new Error("resume-jd-difference-failed");
   }
 
-  const schedule =
-    input.schedule?.provider === input.provider &&
-    input.schedule.model === input.model
-      ? input.schedule
-      : undefined;
+  const schedule = priceScheduleFor(input.schedule, input);
   const scheduleVersion = schedule
     ? safeIdentifier(schedule.version, 80)
     : null;

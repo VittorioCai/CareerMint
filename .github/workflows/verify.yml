@@ -18,7 +18,7 @@ jobs:
       SUPABASE_SECRET_KEY: ci-placeholder-secret-key
       DEEPSEEK_API_KEY: ci-placeholder-deepseek-key
       AI_TEXT_PROVIDER: deepseek
-      AI_TEXT_MODEL: deepseek-v4-flash
+      AI_TEXT_MODEL: deepseek-flash
       E2E_FAKE_EXTRACTOR: "0"
     steps:
       - uses: actions/checkout@v4
@@ -81,7 +81,7 @@ jobs:
             echo "SUPABASE_SECRET_KEY=$secret_key"
             echo "E2E_FAKE_EXTRACTOR=1"
             echo "AI_TEXT_PROVIDER=deepseek"
-            echo "AI_TEXT_MODEL=ci-placeholder-model"
+            echo "AI_TEXT_MODEL=deepseek-flash"
             echo "DEEPSEEK_API_KEY=ci-placeholder-deepseek-key"
           } >> "$GITHUB_ENV"
       - run: pnpm exec playwright install --with-deps chromium

@@ -64,6 +64,37 @@ export function parsePriceSchedule(raw: string): AIPriceSchedule {
   return schedule;
 }
 
+/**
+ * The schedule, if it prices the model that actually answered.
+ *
+ * A mismatch used to be silent: the schedule was dropped and the run's cost
+ * recorded as null, so a typo in `AI_PRICE_SCHEDULE_JSON` or `AI_TEXT_MODEL`
+ * looked exactly like a run that cost nothing. The run still succeeds — a
+ * pricing mistake is no reason to fail the user's analysis — but it now says
+ * so where someone reading the logs will see it. Identifiers only; no usage
+ * and no content.
+ */
+export function priceScheduleFor(
+  schedule: AIPriceSchedule | undefined,
+  answered: { provider: string; model: string },
+): AIPriceSchedule | undefined {
+  if (!schedule) return undefined;
+  if (
+    schedule.provider === answered.provider &&
+    schedule.model === answered.model
+  ) {
+    return schedule;
+  }
+  console.error("ai-price-schedule-model-mismatch", {
+    scheduleVersion: schedule.version,
+    scheduleProvider: schedule.provider,
+    scheduleModel: schedule.model,
+    answeredProvider: answered.provider,
+    answeredModel: answered.model,
+  });
+  return undefined;
+}
+
 function isInsideWindow(atMinutes: number, window: Window) {
   const start = minutes(window.start);
   const end = minutes(window.end);

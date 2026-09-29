@@ -1,6 +1,10 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
-import { estimateAITextCost, parsePriceSchedule } from "./pricing";
+import {
+  estimateAITextCost,
+  parsePriceSchedule,
+  priceScheduleFor,
+} from "./pricing";
 
 const validSchedule = {
   version: "synthetic-v1",
@@ -93,5 +97,40 @@ describe("AI price schedules", () => {
         }),
       ),
     ).toThrow("overlapping-peak-windows");
+  });
+});
+
+describe("priceScheduleFor", () => {
+  const schedule = parsePriceSchedule(JSON.stringify(validSchedule));
+
+  it("returns the schedule for the model it prices, without logging", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      priceScheduleFor(schedule, {
+        provider: "example-provider",
+        model: "example-model",
+      }),
+    ).toBe(schedule);
+    expect(priceScheduleFor(undefined, { provider: "p", model: "m" })).toBeUndefined();
+    expect(error).not.toHaveBeenCalled();
+    error.mockRestore();
+  });
+
+  it("drops a schedule for another model and says so", () => {
+    const error = vi.spyOn(console, "error").mockImplementation(() => {});
+    expect(
+      priceScheduleFor(schedule, {
+        provider: "example-provider",
+        model: "example-modle",
+      }),
+    ).toBeUndefined();
+    expect(error).toHaveBeenCalledWith(
+      "ai-price-schedule-model-mismatch",
+      expect.objectContaining({
+        scheduleModel: "example-model",
+        answeredModel: "example-modle",
+      }),
+    );
+    error.mockRestore();
   });
 });
