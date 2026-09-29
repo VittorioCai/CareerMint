@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 
 import { ApplicationList } from "@/features/applications/application-list";
+import { APPLICATION_NEXT_STEPS } from "@/features/applications/next-step";
+import { NextStepCard } from "@/features/applications/next-step-card";
 import type { Application } from "@/features/applications/schemas";
 import { FactList } from "@/features/career-profile/fact-list";
 import { zhCN } from "@/i18n/dictionaries/zh-CN";
@@ -346,6 +348,22 @@ export default function DevStatesPage() {
             facts={facts}
             stale
           />
+        </State>
+
+        <State name="下一步 · 四种" note="首页带上申请的名字，申请自己的页面不带">
+          <div className="space-y-4">
+            {APPLICATION_NEXT_STEPS.map((step, index) => (
+              <NextStepCard
+                key={step}
+                application={application(0, {
+                  companyName: index === 3 ? longCompany : "Northstar GmbH",
+                })}
+                step={step}
+                copy={zhCN.applications.nextStep}
+                named={index % 2 === 1}
+              />
+            ))}
+          </div>
         </State>
 
         <State name="投递列表 · 空" note="新账号看到的第一屏">

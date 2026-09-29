@@ -610,6 +610,32 @@ export const en = {
       other: "{count} days in this stage",
     },
     nextAction: "Next: {action}",
+    // What an application needs from its owner, worked out from its state.
+    nextStep: {
+      eyebrow: "Next step",
+      steps: {
+        chooseResume: {
+          title: "Choose the resume to compare with",
+          body: "This application has no comparison resume yet, so there is nothing to set the job against.",
+          cta: "Choose a resume",
+        },
+        analyse: {
+          title: "Compare the resume with this job",
+          body: "The resume is chosen. The analysis runs when you start it, and not before.",
+          cta: "Go to the differences",
+        },
+        readGuidance: {
+          title: "Read what to improve before you apply",
+          body: "The analysis is done. The guidance says which experience to check and which real details to add.",
+          cta: "Read the guidance",
+        },
+        prepareInterview: {
+          title: "Prepare for the interview",
+          body: "This application has reached the interview stage.",
+          cta: "Open interview prep",
+        },
+      },
+    },
     deleteRecord: "Delete record",
     confirmDelete: "Confirm deletion",
     deleting: "Deleting…",

@@ -556,6 +556,31 @@ export const zhCN: Dictionary = {
       other: "在此阶段 {count} 天",
     },
     nextAction: "下一步：{action}",
+    nextStep: {
+      eyebrow: "下一步",
+      steps: {
+        chooseResume: {
+          title: "选择这次要对照的简历",
+          body: "这份申请还没有对照简历，岗位没有可以比较的对象。",
+          cta: "去选简历",
+        },
+        analyse: {
+          title: "把简历和这个岗位对照一遍",
+          body: "简历已经选好。分析只在你点击开始后运行。",
+          cta: "去差异分析",
+        },
+        readGuidance: {
+          title: "投递前，看看该补什么",
+          body: "分析已经完成。完善建议会告诉你该核对哪段经历、补足哪些真实信息。",
+          cta: "查看完善建议",
+        },
+        prepareInterview: {
+          title: "准备面试",
+          body: "这份申请已经到了面试阶段。",
+          cta: "打开面试准备",
+        },
+      },
+    },
     deleteRecord: "删除记录",
     confirmDelete: "确认删除记录",
     deleting: "正在删除…",

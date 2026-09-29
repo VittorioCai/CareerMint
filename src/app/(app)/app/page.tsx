@@ -3,10 +3,13 @@ import { redirect } from "next/navigation";
 
 import { getOwnedProfile } from "@/features/account/repository";
 import { dashboardJDActionLabel } from "@/features/applications/dashboard-copy";
+import { mostPressingNextStep } from "@/features/applications/next-step";
+import { NextStepCard } from "@/features/applications/next-step-card";
 import { applicationRepository } from "@/features/applications/repository";
 import { summarizeApplications } from "@/features/applications/summary";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { listOwnedJobs } from "@/features/jobs/repository";
+import { resumeJDDifferenceRepository } from "@/features/resume-jd-difference/repository";
 import { listAssets } from "@/features/source-assets/repository";
 import { DashboardUpload } from "@/features/source-assets/dashboard-upload";
 import { getDictionary } from "@/i18n/server";
@@ -17,12 +20,18 @@ export default async function DashboardPage() {
   const profile = await getOwnedProfile(user.id);
   if (!profile?.onboardingCompletedAt) redirect("/onboarding");
 
-  const [assets, facts, jobs, applications] = await Promise.all([
-    listAssets(user.id),
-    careerFactRepository.list(user.id),
-    listOwnedJobs(user.id),
-    applicationRepository.list(user.id),
-  ]);
+  const [assets, facts, jobs, applications, analysedApplicationIds] =
+    await Promise.all([
+      listAssets(user.id),
+      careerFactRepository.list(user.id),
+      listOwnedJobs(user.id),
+      applicationRepository.list(user.id),
+      // What is next is a convenience. If it cannot be worked out the page
+      // still has everything else to show.
+      resumeJDDifferenceRepository
+        .listAnalysedApplicationIds(user.id)
+        .catch(() => new Set<string>()),
+    ]);
 
   const activeJob = jobs.find(
     (job) => job.status === "queued" || job.status === "running",
@@ -32,6 +41,7 @@ export default async function DashboardPage() {
   );
   const confirmedCount = facts.length - pendingFacts.length;
   const applicationSummary = summarizeApplications(applications);
+  const next = mostPressingNextStep(applications, analysedApplicationIds);
   const { applications: appsCopy, home, resume } = await getDictionary();
 
   let primaryState;
@@ -77,6 +87,18 @@ export default async function DashboardPage() {
           {home.reviewCta}
         </Link>
       </article>
+    );
+  } else if (next) {
+    // The profile is in order and an application is waiting on something.
+    // This used to be the branch below whatever the applications needed, so
+    // someone with twenty of them was offered the chance to add a JD.
+    primaryState = (
+      <NextStepCard
+        application={next.application}
+        step={next.step}
+        copy={appsCopy.nextStep}
+        named
+      />
     );
   } else {
     primaryState = (

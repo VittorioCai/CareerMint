@@ -44,6 +44,11 @@ import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirm
 import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { ResumeJDDifferenceAnalysisControl } from "@/features/resume-jd-difference/analysis-control";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
+import {
+  applicationNextStep,
+  type ApplicationNextStep,
+} from "@/features/applications/next-step";
+import { NextStepCard } from "@/features/applications/next-step-card";
 import { currentDifferenceInputs } from "@/features/resume-jd-difference/current-input";
 import { ResumeJDImprovementPanel } from "@/features/resume-jd-difference/improvement-panel";
 import {
@@ -77,12 +82,14 @@ function formatDate(value: string | null, locale: AppLocale) {
 
 function Overview({
   application,
+  nextStep,
   appsCopy,
   locale,
   common,
   detail,
 }: {
   application: Application;
+  nextStep: ApplicationNextStep | null;
   appsCopy: Dictionary["applications"];
   locale: AppLocale;
   common: Dictionary["common"];
@@ -90,6 +97,13 @@ function Overview({
 }) {
   return (
     <div className="space-y-5">
+      {nextStep ? (
+        <NextStepCard
+          application={application}
+          step={nextStep}
+          copy={appsCopy.nextStep}
+        />
+      ) : null}
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Six one-line values do not need six bordered cards: as a grid of
             articles they stretched to a uniform height and took 450px to say
@@ -343,6 +357,7 @@ export default async function ApplicationDetailPage({
   const differenceWorkflow =
     activeTab === "difference" || activeTab === "improvements";
   const [
+    analysed,
     events,
     resumeAssets,
     interviewQuestions,
@@ -353,6 +368,15 @@ export default async function ApplicationDetailPage({
     assetUsageApplications,
     assetUsageFacts,
   ] = await Promise.all([
+    // For the overview's next step. A convenience: if it cannot be read the
+    // page says the analysis is still to do, which is the safe way to be
+    // wrong.
+    activeTab === "overview"
+      ? resumeJDDifferenceRepository
+          .getLatestSucceeded(user.id, id)
+          .then(Boolean)
+          .catch(() => false)
+      : Promise.resolve(false),
     applicationRepository.listEvents(user.id, id),
     activeTab === "resume" || differenceWorkflow
       ? listAssets(user.id)
@@ -483,6 +507,7 @@ export default async function ApplicationDetailPage({
       <div className="mt-6">
         {activeTab === "overview" ? <Overview
               application={application}
+              nextStep={applicationNextStep(application, analysed)}
               appsCopy={appsCopy}
               common={common}
               detail={detail}

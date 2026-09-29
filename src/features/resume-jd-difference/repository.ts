@@ -355,6 +355,22 @@ export function createResumeJDDifferenceRepository(
     return data ? toRun(data as RunRow) : null;
   }
 
+  /**
+   * The applications that have an analysis to read, whether or not it is
+   * still current. Ids only: this is asked on the home page, for every
+   * application at once, and a result is tens of kilobytes.
+   */
+  async function listAnalysedApplicationIds(userId: string) {
+    const supabase = await getClient();
+    const { data, error } = await supabase
+      .from("resume_jd_difference_runs")
+      .select("application_id")
+      .eq("user_id", userId)
+      .eq("status", "succeeded");
+    if (error) throw new ResumeJDDifferenceRepositoryError(stableError(error));
+    return new Set((data ?? []).map((row) => row.application_id));
+  }
+
   async function getByInputHash(userId: string, inputHash: string) {
     const supabase = await getClient();
     const { data, error } = await supabase
@@ -396,6 +412,7 @@ export function createResumeJDDifferenceRepository(
     getOwned,
     getLatest,
     getLatestSucceeded,
+    listAnalysedApplicationIds,
     getByInputHash,
     getView,
   };
