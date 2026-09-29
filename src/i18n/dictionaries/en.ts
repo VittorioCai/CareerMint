@@ -149,6 +149,7 @@ export const en = {
       "About five minutes. You can skip the upload and the AI analysis; when you enter the job desk is your call.",
     privateBadge: "Private setup",
     stepsLabel: "Setup steps",
+    stepNumber: "STEP {number}",
     steps: { goals: "Job goals", resume: "Upload a resume", facts: "Check the facts" },
     goalsEyebrow: "01 · Set the direction",
     goalsTitle: "Point the later suggestions at what you actually want",
@@ -698,6 +699,10 @@ export const en = {
     status: "Status",
     allStatuses: "All statuses",
     applyFilter: "Apply",
+    groupEyebrows: {
+      common: "Reusable in every job",
+      incremental: "Incremental preparation",
+    },
     countSuffix: "questions",
     variantCount: "{count} phrasing variants",
     factCount: "{count} linked facts",

@@ -91,7 +91,7 @@ export function OnboardingForm({
             }`}
           >
             <span className="text-xs font-semibold text-[var(--ink-muted)]">
-              STEP {item.number}
+              {copy.stepNumber.replace("{number}", String(item.number))}
             </span>
             <h2 className="heading-font mt-1 text-lg font-semibold">{item.label}</h2>
           </li>

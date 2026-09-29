@@ -158,7 +158,9 @@ export default async function InterviewPage({
                 <div className="flex items-end justify-between gap-3">
                   <div>
                     <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--ink-muted)]">
-                      {group.category === "common" ? "Reusable in every job" : "Incremental preparation"}
+                      {group.category === "common"
+                        ? interview.groupEyebrows.common
+                        : interview.groupEyebrows.incremental}
                     </p>
                     <h2 className="heading-font mt-1 text-2xl font-bold">
                       {interview.categories[group.category]}
