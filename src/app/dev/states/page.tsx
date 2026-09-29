@@ -209,16 +209,6 @@ function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
 const longCompany =
   "Norddeutsche Landesbank Girozentrale Digital Solutions GmbH & Co. KG";
 
-// The fixtures are not wired to anything: this page renders states, it does
-// not exercise them.
-async function noopDelete(formData: FormData) {
-  "use server";
-  return {
-    ok: true as const,
-    applicationId: String(formData.get("applicationId") ?? ""),
-  };
-}
-
 export default function DevStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
 
@@ -359,22 +349,18 @@ export default function DevStatesPage() {
         <State name="投递列表 · 空" note="新账号看到的第一屏">
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={[]}
             view="table"
-            deleteApplication={noopDelete}
           />
         </State>
 
         <State name="投递列表 · 一条（表格）" note="表格是默认，因为它撑得住一条">
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={[application(0)]}
             view="table"
-            deleteApplication={noopDelete}
           />
         </State>
 
@@ -384,11 +370,9 @@ export default function DevStatesPage() {
         >
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={[application(0)]}
             view="board"
-            deleteApplication={noopDelete}
           />
         </State>
 
@@ -398,7 +382,6 @@ export default function DevStatesPage() {
         >
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={[
               application(1, {
@@ -411,7 +394,6 @@ export default function DevStatesPage() {
               }),
             ]}
             view="table"
-            deleteApplication={noopDelete}
           />
         </State>
 
@@ -421,7 +403,6 @@ export default function DevStatesPage() {
         >
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={[
               application(2, {
@@ -431,20 +412,17 @@ export default function DevStatesPage() {
               }),
             ]}
             view="board"
-            deleteApplication={noopDelete}
           />
         </State>
 
         <State name="投递列表 · 二十条" note="密度上限：分组、排序和横向滚动">
           <ApplicationList
             copy={zhCN.applications}
-            common={zhCN.common}
             locale="zh-CN"
             applications={Array.from({ length: 20 }, (_, index) =>
               application(index + 3),
             )}
             view="board"
-            deleteApplication={noopDelete}
           />
         </State>
 

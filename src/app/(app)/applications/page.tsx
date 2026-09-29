@@ -5,10 +5,7 @@ import {
   ApplicationList,
   filterApplications,
 } from "@/features/applications/application-list";
-import {
-  deleteApplicationAction,
-  rememberApplicationViewAction,
-} from "@/features/applications/actions";
+import { rememberApplicationViewAction } from "@/features/applications/actions";
 import { applicationRepository } from "@/features/applications/repository";
 import {
   APPLICATION_STAGES,
@@ -29,7 +26,7 @@ export default async function ApplicationsPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const user = await requireUser();
-  const { applications: appsCopy, common } = await getDictionary();
+  const { applications: appsCopy } = await getDictionary();
   const locale = await getLocale();
   const raw = await searchParams;
   const store = await cookies();
@@ -149,11 +146,9 @@ export default async function ApplicationsPage({
       <div className="mt-5">
         <ApplicationList
           copy={appsCopy}
-          common={common}
           locale={locale}
           applications={visibleApplications}
           view={filter.view}
-          deleteApplication={deleteApplicationAction.bind(null, {})}
         />
       </div>
     </section>

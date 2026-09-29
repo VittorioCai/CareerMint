@@ -5,9 +5,6 @@ import type { Dictionary } from "@/i18n/dictionaries/en";
 import { formatDay } from "@/i18n/format";
 import type { AppLocale } from "@/i18n/locale";
 
-import { ApplicationDeleteControl } from "./application-delete-control";
-import type { ApplicationActionState } from "./actions";
-
 import {
   APPLICATION_STAGES,
   type Application,
@@ -57,7 +54,28 @@ function StageChip({
   );
 }
 
-type DeleteApplication = (formData: FormData) => Promise<ApplicationActionState>;
+const DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * How long an application has sat in its stage, in whole days.
+ *
+ * "Updated on" says when something last changed, which is not the question a
+ * list of applications is asked. The question is which of these has gone
+ * quiet, and that is how long it has been where it is.
+ */
+export function stageAgeLabel(
+  stageChangedAt: string,
+  now: Date,
+  copy: Dictionary["applications"],
+) {
+  const changed = new Date(stageChangedAt).getTime();
+  const days = Number.isFinite(changed)
+    ? Math.max(0, Math.floor((now.getTime() - changed) / DAY))
+    : 0;
+  if (days === 0) return copy.stageAge.today;
+  if (days === 1) return copy.stageAge.one;
+  return copy.stageAge.other.replace("{count}", String(days));
+}
 
 /**
  * A table cannot drop a cell, so an empty one is marked rather than blank.
@@ -76,24 +94,30 @@ function NoValue() {
   return <span aria-hidden="true">–</span>;
 }
 
+/**
+ * One application, as a way into its workspace.
+ *
+ * The card used to end in "Delete record", and that was the only thing on it
+ * that looked like an action: the way in was the card itself, unmarked.
+ * Deleting is on the application's own page, where what would be lost is on
+ * screen. The list is for finding an application and opening it.
+ */
 function ApplicationCard({
   application,
-  deleteApplication,
   copy,
-  common,
   locale,
+  now,
 }: {
   application: Application;
-  deleteApplication: DeleteApplication;
   copy: Dictionary["applications"];
-  common: Dictionary["common"];
   locale: AppLocale;
+  now: Date;
 }) {
   return (
     <article className="overflow-hidden rounded-xl border border-[var(--line)] bg-[var(--paper)] transition-transform hover:-translate-y-0.5 hover:border-[var(--ink-soft)]">
       <Link
         href={`/applications/${application.id}`}
-        className="block p-4 focus-visible:outline-offset-[-3px]"
+        className="group block p-4 focus-visible:outline-offset-[-3px]"
       >
         <span className="text-xs font-semibold text-[var(--ink-muted)]">
           {application.companyName}
@@ -115,21 +139,22 @@ function ApplicationCard({
             ) : null}
           </div>
         ) : null}
+        {application.nextAction ? (
+          <p className="mt-3 break-words text-xs font-semibold leading-5">
+            {copy.nextAction.replace("{action}", application.nextAction)}
+          </p>
+        ) : null}
         <p className="mt-3 border-t border-[var(--line)] pt-2 text-xs font-semibold text-[var(--ink-muted)]">
+          {stageAgeLabel(application.stageChangedAt, now, copy)}
+        </p>
+        <p className="mt-0.5 text-xs font-medium text-[var(--ink-muted)]">
           {copy.updatedOn.replace("{date}", formatDay(application.updatedAt, locale))}
         </p>
+        <p className="mt-3 inline-flex items-center gap-1 text-xs font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 group-hover:decoration-[var(--ink)]">
+          {copy.openWorkspace}
+          <span aria-hidden="true">→</span>
+        </p>
       </Link>
-      <div className="px-4 pb-3">
-        <ApplicationDeleteControl
-          copy={copy}
-          common={common}
-          compact
-          applicationId={application.id}
-          companyName={application.companyName}
-          roleTitle={application.roleTitle}
-          deleteApplication={deleteApplication}
-        />
-      </div>
     </article>
   );
 }
@@ -159,17 +184,16 @@ function EmptyApplications({
 export function ApplicationList({
   applications,
   view,
-  deleteApplication,
   copy,
-  common,
   locale,
+  now = new Date(),
 }: {
   applications: Application[];
   view: "board" | "table";
-  deleteApplication: DeleteApplication;
   copy: Dictionary["applications"];
-  common: Dictionary["common"];
   locale: AppLocale;
+  /** The moment stage ages are counted from. A test passes its own. */
+  now?: Date;
 }) {
   if (applications.length === 0) return <EmptyApplications copy={copy} />;
 
@@ -187,10 +211,9 @@ export function ApplicationList({
         <ApplicationCard
           key={application.id}
           copy={copy}
-          common={common}
           locale={locale}
+          now={now}
           application={application}
-          deleteApplication={deleteApplication}
         />
       ))}
     </div>
@@ -234,6 +257,9 @@ export function ApplicationList({
                 </td>
                 <td className="px-4 py-4">
                   <StageChip stage={application.stage} copy={copy} />
+                  <span className="mt-1.5 block text-xs font-medium text-[var(--ink-muted)]">
+                    {stageAgeLabel(application.stageChangedAt, now, copy)}
+                  </span>
                 </td>
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {application.source ?? <NoValue />}
@@ -241,16 +267,17 @@ export function ApplicationList({
                 <td className="px-4 py-4 font-medium text-[var(--ink-muted)]">
                   {formatDay(application.updatedAt, locale)}
                 </td>
-                <td className="min-w-56 px-4 py-4 align-top">
-                  <ApplicationDeleteControl
-                    copy={copy}
-                    common={common}
-                    compact
-                    applicationId={application.id}
-                    companyName={application.companyName}
-                    roleTitle={application.roleTitle}
-                    deleteApplication={deleteApplication}
-                  />
+                <td className="whitespace-nowrap px-4 py-4">
+                  {/* The row already links from its first cell. This one is
+                      for the reader who looks for the action where actions
+                      go; the name tells a screen reader which row it is. */}
+                  <Link
+                    href={`/applications/${application.id}`}
+                    aria-label={`${copy.openWorkspace}: ${application.companyName} · ${application.roleTitle}`}
+                    className="text-action text-xs font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 hover:decoration-[var(--ink)]"
+                  >
+                    {copy.openWorkspace} <span aria-hidden="true">→</span>
+                  </Link>
                 </td>
               </tr>
             ))}
@@ -322,10 +349,9 @@ export function ApplicationList({
                   <ApplicationCard
                     key={application.id}
                     copy={copy}
-                    common={common}
                     locale={locale}
+                    now={now}
                     application={application}
-                    deleteApplication={deleteApplication}
                   />
                 ))}
               </div>

@@ -586,6 +586,14 @@ export const en = {
     },
     noValue: "Not filled in",
     updatedOn: "Updated {date}",
+    openWorkspace: "Open workspace",
+    // How long the application has sat where it is. {count} is whole days.
+    stageAge: {
+      today: "Entered this stage today",
+      one: "1 day in this stage",
+      other: "{count} days in this stage",
+    },
+    nextAction: "Next: {action}",
     deleteRecord: "Delete record",
     confirmDelete: "Confirm deletion",
     deleting: "Deleting…",

@@ -536,6 +536,13 @@ export const zhCN: Dictionary = {
     },
     noValue: "没有填写",
     updatedOn: "更新于 {date}",
+    openWorkspace: "打开工作区",
+    stageAge: {
+      today: "今天进入此阶段",
+      one: "在此阶段 1 天",
+      other: "在此阶段 {count} 天",
+    },
+    nextAction: "下一步：{action}",
     deleteRecord: "删除记录",
     confirmDelete: "确认删除记录",
     deleting: "正在删除…",
