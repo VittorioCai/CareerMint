@@ -973,6 +973,20 @@ export const en = {
       networkLost: "The connection dropped. The account was not deleted.",
     },
   },
+  errorPages: {
+    errorEyebrow: "Something went wrong",
+    errorTitle: "This page could not be shown",
+    errorBody:
+      "Nothing you saved has been lost. Try again; if it keeps happening, go back and come in from there.",
+    // {digest} is the identifier the server logged the failure under.
+    reference: "Reference: {digest}",
+    notFoundEyebrow: "Not found",
+    notFoundTitle: "There is nothing at this address",
+    notFoundBody:
+      "The link may be out of date, or the record may have been deleted. It may also belong to another account.",
+    backHome: "Back to the home page",
+    backToDesk: "Back to the job desk",
+  },
   shell: {
     homeLink: "CareerMint home",
     newApplication: "New application",

@@ -1,0 +1,17 @@
+"use client";
+
+import { RouteError } from "@/components/route-error";
+
+export default function RootError({
+  error,
+  retry,
+}: {
+  error: Error & { digest?: string };
+  retry: () => void;
+}) {
+  return (
+    <main className="min-h-screen bg-[var(--canvas)]">
+      <RouteError error={error} retry={retry} home="site" />
+    </main>
+  );
+}

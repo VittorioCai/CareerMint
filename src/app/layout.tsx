@@ -2,6 +2,7 @@ import { Inter, Nunito_Sans } from "next/font/google";
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 
+import { ErrorCopyProvider } from "@/i18n/error-copy";
 import { HTML_LANG } from "@/i18n/locale";
 import { getDictionary, getLocale } from "@/i18n/server";
 
@@ -59,7 +60,7 @@ export default async function RootLayout({
   // `lang` is not decoration: it decides which voice a screen reader uses and
   // which dictionary the browser hyphenates and spell-checks with. A page of
   // English served as zh-CN is read aloud by a Chinese synthesiser.
-  const locale = await getLocale();
+  const [locale, dictionary] = await Promise.all([getLocale(), getDictionary()]);
 
   return (
     <html
@@ -67,7 +68,13 @@ export default async function RootLayout({
       data-scroll-behavior="smooth"
       className={`${inter.variable} ${nunitoSans.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <ErrorCopyProvider
+          copy={{ ...dictionary.errorPages, retry: dictionary.common.retry }}
+        >
+          {children}
+        </ErrorCopyProvider>
+      </body>
     </html>
   );
 }

@@ -889,6 +889,17 @@ export const zhCN: Dictionary = {
       networkLost: "网络连接中断，账户没有被删除。",
     },
   },
+  errorPages: {
+    errorEyebrow: "出了点问题",
+    errorTitle: "这个页面暂时无法显示",
+    errorBody: "你已保存的内容没有丢失。可以重试一次；如果仍然失败，请先返回，再从那里重新进入。",
+    reference: "参考编号：{digest}",
+    notFoundEyebrow: "未找到",
+    notFoundTitle: "这个地址下没有内容",
+    notFoundBody: "链接可能已过期，记录可能已被删除，也可能属于另一个账户。",
+    backHome: "返回首页",
+    backToDesk: "返回工作台",
+  },
   shell: {
     homeLink: "求职搭子首页",
     newApplication: "新建申请",
