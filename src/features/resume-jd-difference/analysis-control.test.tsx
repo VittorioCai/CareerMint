@@ -202,6 +202,14 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
       "Data analyst resume with SQL dashboards, stakeholder reporting, and measurable results.";
     const ocrPdf = vi.fn().mockResolvedValue(ocrText);
     const { request, refresh } = renderControl({ ocrPdf });
+    // `Response` here is Node's and `Blob` is jsdom's, and Node does not know
+    // the other realm's Blob: Node 22 throws on it, Node 24 stringifies it to
+    // "[object Blob]". Neither hands the component the bytes below, so the
+    // body is stubbed at `blob()` and asserted on at the far end.
+    const download = new Response(null);
+    vi.spyOn(download, "blob").mockResolvedValue(
+      new Blob(["scanned-pdf"], { type: "application/pdf" }),
+    );
     request
       .mockResolvedValueOnce(
         json({
@@ -212,9 +220,7 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
           errorCode: "resume-text-insufficient",
         }),
       )
-      .mockResolvedValueOnce(
-        new Response(new Blob(["scanned-pdf"], { type: "application/pdf" })),
-      )
+      .mockResolvedValueOnce(download)
       .mockResolvedValueOnce(
         json({
           runId: "33333333-3333-4333-8333-333333333333",
@@ -235,6 +241,9 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
 
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(ocrPdf).toHaveBeenCalledOnce();
+    const [file] = ocrPdf.mock.calls[0] as [File];
+    expect(file.name).toBe(asset.originalName);
+    await expect(file.text()).resolves.toBe("scanned-pdf");
     expect(request).toHaveBeenNthCalledWith(
       2,
       `/api/source-assets/${asset.id}/download`,
