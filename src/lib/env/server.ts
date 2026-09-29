@@ -22,7 +22,6 @@ const serverEnvSchema = z.object({
    * way.
    */
   AI_TEXT_MODEL: z.string().min(1).default("deepseek-flash"),
-  JD_GAP_MATCH_PROMPT_VARIANT: z.enum(["p1", "p2", "p3"]).default("p2"),
   RESUME_JD_DIFFERENCE_PROMPT_VARIANT: z
     .enum(["p1", "p2", "p3"])
     .default("p1"),

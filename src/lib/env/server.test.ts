@@ -26,7 +26,6 @@ describe("parseServerEnv", () => {
     ).toMatchObject({
       AI_TEXT_PROVIDER: "deepseek",
       AI_TEXT_MODEL: "deepseek-flash",
-      JD_GAP_MATCH_PROMPT_VARIANT: "p2",
       RESUME_JD_DIFFERENCE_PROMPT_VARIANT: "p1",
     });
   });
@@ -42,14 +41,16 @@ describe("parseServerEnv", () => {
     ).toThrow("RESUME_JD_DIFFERENCE_PROMPT_VARIANT");
   });
 
-  it("fails closed for an unreviewed JD gap prompt variant", () => {
-    expect(() =>
+  it("ignores the prompt variant of a pipeline that no longer exists", () => {
+    // Deployments still carry it. Reading the environment must not start
+    // failing because a variable outlived the code that used it.
+    expect(
       parseServerEnv({
         NEXT_PUBLIC_SUPABASE_URL: "http://127.0.0.1:54321",
         NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: "public-key",
         SUPABASE_SECRET_KEY: "secret-key",
         JD_GAP_MATCH_PROMPT_VARIANT: "experimental",
       }),
-    ).toThrow("JD_GAP_MATCH_PROMPT_VARIANT");
+    ).not.toHaveProperty("JD_GAP_MATCH_PROMPT_VARIANT");
   });
 });
