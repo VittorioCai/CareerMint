@@ -37,7 +37,7 @@ export function AuthShellView({
             have an account to hold a preference. Signed out, this writes the
             cookie and nothing else. */}
         <div className="flex items-center justify-between gap-4">
-          <Link href="/" className="group flex w-fit items-center gap-3" aria-label={auth.backToHome}>
+          <Link href="/" className="group flex min-h-11 w-fit items-center gap-3" aria-label={auth.backToHome}>
             <LogoMark className="size-10" />
             <span className="heading-font text-xl font-semibold">{common.productName}</span>
           </Link>
@@ -55,7 +55,9 @@ export function AuthShellView({
           <div className="mt-8">{children}</div>
         </div>
 
-        <p className="text-xs font-semibold text-[var(--ink-muted)]">{auth.footer}</p>
+        {/* As wide as what it says. Left to fill the column it measured 83em
+            in English, on a line that is a label and not a paragraph. */}
+        <p className="w-fit text-xs font-semibold text-[var(--ink-muted)]">{auth.footer}</p>
       </section>
 
       <aside className="relative hidden overflow-hidden border-l border-[var(--line)] bg-[var(--surface-muted)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label={auth.productPrinciples}>

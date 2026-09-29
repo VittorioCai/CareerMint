@@ -15,32 +15,18 @@
  * element's box is its background: glyphs never cover the majority of it.
  */
 import { expect, test, type Page } from "@playwright/test";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { PNG } from "pngjs";
 
-const password = "CareerMint123!";
+import {
+  FLOOR_LOCALES,
+  clients,
+  createApplication,
+  createUser,
+  prepareAccount,
+} from "./support/floor-account";
+
 const jdText =
   "Lead product discovery for a European marketplace team. Measure customer outcomes with SQL and dashboards. Work with business stakeholders across three markets. German C1 is required.";
-
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`a11y-e2e-${name.toLowerCase()}-missing`);
-  return value;
-}
-
-function clients() {
-  const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  return {
-    admin: createClient(supabaseUrl, requiredEnv("SUPABASE_SECRET_KEY"), {
-      auth: { autoRefreshToken: false, persistSession: false },
-    }),
-    account: createClient(
-      supabaseUrl,
-      requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    ),
-  };
-}
 
 function channel(value: number) {
   const c = value / 255;
@@ -238,43 +224,12 @@ function contrastFor(png: PNG, node: TextNode) {
   return contrast(luminance(...fg), luminance(...bg));
 }
 
-async function login(page: Page, email: string) {
-  // A signed-out visitor now gets English, so the login page a spec asserting
-  // Chinese copy has to walk is Chinese only if this browser says so. The
-  // profile write after sign-in covers the pages behind it; this covers the
-  // ones in front. Both disappear per spec as its surfaces are translated.
-  await page.context().addCookies([
-    {
-      name: "interface-locale",
-      value: "zh-CN",
-      domain: "127.0.0.1",
-      path: "/",
-    },
-  ]);
-  await page.goto("/login");
-  await page.getByLabel("邮箱").fill(email);
-  await page.getByLabel("密码").fill(password);
-  await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding|\/app/u);
-}
-
-async function createUser(admin: SupabaseClient) {
-  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const email = `a11y-${stamp}@example.com`;
-  const created = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { display_name: "无障碍检查" },
-  });
-  if (created.error || !created.data.user) {
-    throw created.error ?? new Error("a11y-e2e-user-not-created");
-  }
-  return { email, userId: created.data.user.id };
-}
-
+// Two palettes and two languages, so four walks. The palette decides the
+// colours; the language decides which text is on the page to be measured,
+// and the English interface renders strings the Chinese one never does.
+for (const locale of FLOOR_LOCALES) {
 for (const theme of ["light", "dark"] as const) {
-test(`every rendered text node clears the WCAG contrast floor in ${theme}`, async ({
+test(`every rendered text node clears the WCAG contrast floor in ${theme} (${locale})`, async ({
   page,
 }) => {
   test.setTimeout(300_000);
@@ -286,42 +241,19 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
   // samples a background that no user ever reads against. Collapsing the
   // durations measures the settled page, which is the one being scored.
   await page.emulateMedia({ colorScheme: theme, reducedMotion: "reduce" });
-  const { admin, account } = clients();
-  const { email, userId } = await createUser(admin);
+  const { admin, account } = clients("a11y");
+  const { email, userId } = await createUser(admin, "a11y");
 
   try {
-    const signedIn = await account.auth.signInWithPassword({ email, password });
-    if (signedIn.error) throw signedIn.error;
-    // Before the browser loads anything: the profile outranks the cookie, so a
-    // spec asserting Chinese copy has to set it ahead of the first render
-    // rather than after onboarding. Goes away as these surfaces are translated.
-    const localed = await account
-      .from("profiles")
-      .update({ interface_locale: "zh-CN" })
-      .eq("user_id", signedIn.data.user.id);
-    if (localed.error) throw localed.error;
-    await login(page, email);
-    if (/\/onboarding/u.test(page.url())) {
-      await page.getByLabel("姓名").fill("无障碍检查");
-      await page.getByLabel("目标岗位").fill("Product Manager");
-      await page.getByRole("button", { name: "保存求职目标" }).click();
-      await page.getByRole("button", { name: "暂时跳过" }).click();
-      await page.getByRole("button", { name: "进入工作台" }).click();
-    }
+    await prepareAccount(page, account, email, locale);
     await account
       .from("profiles")
       .update({ ai_processing_consent_at: new Date().toISOString() })
       .eq("user_id", userId);
 
-    await page.goto("/applications/new");
-    await page.getByLabel("公司").fill("Northstar GmbH");
-    await page.getByLabel("职位").fill("Product Analyst");
-    await page.getByLabel("地点").fill("Berlin, DE");
-    await page.getByLabel("JD 原文").fill(jdText);
-    await page.getByRole("button", { name: "建立申请工作区" }).click();
-    // The server action navigates; starting another goto mid-redirect aborts it.
-    await page.waitForURL(/\/applications\/[0-9a-f-]+\?tab=resume/u);
-    const applicationId = new URL(page.url()).pathname.split("/").pop();
+    const applicationId = await createApplication(page, locale, jdText, {
+      location: "Berlin, DE",
+    });
 
     const routes = [
       "/app",
@@ -377,32 +309,15 @@ test(`every rendered text node clears the WCAG contrast floor in ${theme}`, asyn
 });
 }
 
-test("every focusable control shows a focus ring that is not clipped", async ({
+test(`every focusable control shows a focus ring that is not clipped (${locale})`, async ({
   page,
 }) => {
   test.setTimeout(300_000);
-  const { admin, account } = clients();
-  const { email, userId } = await createUser(admin);
+  const { admin, account } = clients("a11y");
+  const { email, userId } = await createUser(admin, "a11y");
 
   try {
-    const signedIn = await account.auth.signInWithPassword({ email, password });
-    if (signedIn.error) throw signedIn.error;
-    // Before the browser loads anything: the profile outranks the cookie, so a
-    // spec asserting Chinese copy has to set it ahead of the first render
-    // rather than after onboarding. Goes away as these surfaces are translated.
-    const localed = await account
-      .from("profiles")
-      .update({ interface_locale: "zh-CN" })
-      .eq("user_id", signedIn.data.user.id);
-    if (localed.error) throw localed.error;
-    await login(page, email);
-    if (/\/onboarding/u.test(page.url())) {
-      await page.getByLabel("姓名").fill("无障碍检查");
-      await page.getByLabel("目标岗位").fill("Product Manager");
-      await page.getByRole("button", { name: "保存求职目标" }).click();
-      await page.getByRole("button", { name: "暂时跳过" }).click();
-      await page.getByRole("button", { name: "进入工作台" }).click();
-    }
+    await prepareAccount(page, account, email, locale);
 
     const failures: string[] = [];
     for (const route of ["/app", "/applications", "/profile"]) {
@@ -505,3 +420,4 @@ test("every focusable control shows a focus ring that is not clipped", async ({
     await admin.auth.admin.deleteUser(userId);
   }
 });
+}

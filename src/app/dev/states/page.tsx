@@ -5,7 +5,7 @@ import { APPLICATION_NEXT_STEPS } from "@/features/applications/next-step";
 import { NextStepCard } from "@/features/applications/next-step-card";
 import type { Application } from "@/features/applications/schemas";
 import { FactList } from "@/features/career-profile/fact-list";
-import { zhCN } from "@/i18n/dictionaries/zh-CN";
+import { getDictionary, getLocale } from "@/i18n/server";
 import type { CareerFact } from "@/features/career-profile/schemas";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
 import type { ResumeJDDifferenceRun } from "@/features/resume-jd-difference/repository";
@@ -23,7 +23,11 @@ import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirm
  *
  * Development only: it renders fixtures, never a real account.
  */
-export const dynamic = "force-static";
+// Rendered per request, in the reader's language. It was static and Chinese,
+// so the crowded, overlong and every-severity states — the ones that stress a
+// layout — had only ever been looked at, or measured, in one of the two
+// languages the interface speaks. The fixtures stay as written: they stand in
+// for a user's own material, which is in whatever language they wrote it.
 
 const applicationId = "11111111-1111-4111-8111-111111111111";
 const factId = "44444444-4444-4444-8444-444444444444";
@@ -213,8 +217,12 @@ function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
 const longCompany =
   "Norddeutsche Landesbank Girozentrale Digital Solutions GmbH & Co. KG";
 
-export default function DevStatesPage() {
+export default async function DevStatesPage() {
   if (process.env.NODE_ENV === "production") notFound();
+  const [locale, dictionary] = await Promise.all([
+    getLocale(),
+    getDictionary(),
+  ]);
 
   const crowded = output({
     issues: [
@@ -257,7 +265,7 @@ export default function DevStatesPage() {
       <div className="mt-10 flex flex-col gap-14">
         <State name="差异分析 · 无结果" note="只剩控制条，贴纸即控制条">
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={null}
             facts={facts}
@@ -271,7 +279,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 一条" note="最少的有结果状态">
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={run(output())}
             facts={facts}
@@ -283,7 +291,7 @@ export default function DevStatesPage() {
           note="零条差异，只有已对上 —— 结论不该说得像失败"
         >
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={run(
               output({
@@ -311,7 +319,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 十一条" note="密度上限，排序与徽章编号是否还站得住">
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={run(crowded)}
             facts={facts}
@@ -323,7 +331,7 @@ export default function DevStatesPage() {
           note="单条 JD 原文 350+ 字符，行内截断两行，全文在展开面板"
         >
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={run(
               output({
@@ -342,7 +350,7 @@ export default function DevStatesPage() {
 
         <State name="差异分析 · 已过期" note="材料变了，旧结论仍可查看">
           <ResumeJDDifferencePanel
-            copy={zhCN.difference}
+            copy={dictionary.difference}
             applicationId={applicationId}
             run={run(output())}
             facts={facts}
@@ -359,7 +367,7 @@ export default function DevStatesPage() {
                   companyName: index === 3 ? longCompany : "Northstar GmbH",
                 })}
                 step={step}
-                copy={zhCN.applications.nextStep}
+                copy={dictionary.applications.nextStep}
                 named={index % 2 === 1}
               />
             ))}
@@ -368,8 +376,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 空" note="新账号看到的第一屏">
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={[]}
             view="table"
           />
@@ -377,8 +385,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 一条（表格）" note="表格是默认，因为它撑得住一条">
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={[application(0)]}
             view="table"
           />
@@ -389,8 +397,8 @@ export default function DevStatesPage() {
           note="同样一条记录的看板：七列，六列是空的。这就是表格作默认的理由"
         >
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={[application(0)]}
             view="board"
           />
@@ -401,8 +409,8 @@ export default function DevStatesPage() {
           note="没有地点、没有来源、没有下一步 —— 占位符不该当内容渲染"
         >
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={[
               application(1, {
                 location: null,
@@ -422,8 +430,8 @@ export default function DevStatesPage() {
           note="68 个字符的真实德国公司名，看板列宽和表格单元格都要撑得住"
         >
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={[
               application(2, {
                 companyName: longCompany,
@@ -437,8 +445,8 @@ export default function DevStatesPage() {
 
         <State name="投递列表 · 二十条" note="密度上限：分组、排序和横向滚动">
           <ApplicationList
-            copy={zhCN.applications}
-            locale="zh-CN"
+            copy={dictionary.applications}
+            locale={locale}
             applications={Array.from({ length: 20 }, (_, index) =>
               application(index + 3),
             )}
@@ -447,18 +455,18 @@ export default function DevStatesPage() {
         </State>
 
         <State name="职业档案 · 空" note="一条路径，不是两个并列的主按钮">
-          <FactList copy={zhCN.profile} common={zhCN.common} facts={[]} />
+          <FactList copy={dictionary.profile} common={dictionary.common} facts={[]} />
         </State>
 
         <State name="职业档案 · 一条" note="分类只在有内容之后出现">
-          <FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(0)]} />
+          <FactList copy={dictionary.profile} common={dictionary.common} facts={[fact(0)]} />
         </State>
 
         <State
           name="职业档案 · 单类五十条"
           note="全在一个分类里：计数、折叠和滚动是否还站得住"
         >
-          <FactList copy={zhCN.profile} common={zhCN.common} facts={Array.from({ length: 50 }, (_, index) => fact(index))} />
+          <FactList copy={dictionary.profile} common={dictionary.common} facts={Array.from({ length: 50 }, (_, index) => fact(index))} />
         </State>
 
         <State
@@ -466,8 +474,8 @@ export default function DevStatesPage() {
           note="三种确认状态并排，颜色是否还分得开"
         >
           <FactList
-            copy={zhCN.profile}
-            common={zhCN.common}
+            copy={dictionary.profile}
+            common={dictionary.common}
             facts={[
               fact(0, { confirmationStatus: "confirmed" }),
               fact(1, { confirmationStatus: "pending", confirmedAt: null }),

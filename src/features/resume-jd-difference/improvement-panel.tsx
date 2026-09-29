@@ -285,7 +285,7 @@ export function ResumeJDImprovementPanel({
         >
           <div className="min-w-0">
             <p className="text-sm font-semibold">{copy.stale.title}</p>
-            <p className="mt-0.5 text-sm font-medium leading-6">
+            <p className="mt-0.5 type-caption">
               {otherLanguage ? copy.stale.otherLanguage : copy.stale.material}
             </p>
           </div>

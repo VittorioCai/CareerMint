@@ -377,7 +377,11 @@ export function ResumeJDDifferencePanel({
             className="mb-4 rounded-xl bg-[var(--sev-important)] px-4 py-3 text-[var(--sev-important-ink)]"
           >
             <p className="text-sm font-semibold">{copy.stale}</p>
-            <p className="mt-0.5 text-sm font-medium leading-6">
+            {/* A sentence, so it takes the role that carries a measure. As
+                bare utilities it ran the width of the card: 65em in English
+                at 1680px, where the Chinese was too short to be counted as
+                prose and so was never measured. */}
+            <p className="mt-0.5 type-caption">
               {otherLanguage ? copy.otherLanguage : copy.staleMaterial}
             </p>
           </div>

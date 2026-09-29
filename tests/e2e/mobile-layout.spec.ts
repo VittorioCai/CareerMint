@@ -12,108 +12,26 @@
  *     slides sideways under the finger and never quite comes back.
  */
 import { expect, test, type Page } from "@playwright/test";
-import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-type AdminClient = SupabaseClient;
+import { dictionaryFor } from "@/i18n/dictionary";
+import type { AppLocale } from "@/i18n/locale";
+
+import {
+  FLOOR_LOCALES,
+  clients,
+  createApplication,
+  createUser,
+  prepareAccount,
+} from "./support/floor-account";
 
 const phone = { width: 390, height: 844 };
-const password = "CareerMint123!";
 const jdText =
   "Lead product discovery for a European marketplace team. Measure customer outcomes with SQL and dashboards. German C1 is required.";
 
-function requiredEnv(name: string) {
-  const value = process.env[name];
-  if (!value) throw new Error(`mobile-e2e-${name.toLowerCase()}-missing`);
-  return value;
-}
-
-function clients() {
-  const supabaseUrl = requiredEnv("NEXT_PUBLIC_SUPABASE_URL");
-  return {
-    admin: createClient(supabaseUrl, requiredEnv("SUPABASE_SECRET_KEY"), {
-      auth: { autoRefreshToken: false, persistSession: false },
-    }),
-    account: createClient(
-      supabaseUrl,
-      requiredEnv("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY"),
-      { auth: { autoRefreshToken: false, persistSession: false } },
-    ),
-  };
-}
-
-async function login(page: Page, email: string) {
-  // A signed-out visitor now gets English, so the login page a spec asserting
-  // Chinese copy has to walk is Chinese only if this browser says so. The
-  // profile write after sign-in covers the pages behind it; this covers the
-  // ones in front. Both disappear per spec as its surfaces are translated.
-  await page.context().addCookies([
-    {
-      name: "interface-locale",
-      value: "zh-CN",
-      domain: "127.0.0.1",
-      path: "/",
-    },
-  ]);
-  await page.goto("/login");
-  await page.getByLabel("邮箱").fill(email);
-  await page.getByLabel("密码").fill(password);
-  await page.getByRole("button", { name: "登录", exact: true }).click();
-  await expect(page).toHaveURL(/\/onboarding|\/app/u);
-}
-
-async function createUser(admin: AdminClient) {
-  const stamp = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const email = `mobile-${stamp}@example.com`;
-  const created = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { display_name: "Mobile" },
+async function routesFor(page: Page, locale: AppLocale) {
+  const id = await createApplication(page, locale, jdText, {
+    location: "Berlin, DE",
   });
-  if (created.error || !created.data.user) {
-    throw created.error ?? new Error("mobile-e2e-user-not-created");
-  }
-  return { email, userId: created.data.user.id };
-}
-
-async function prepareAccount(page: Page, account: SupabaseClient, email: string) {
-  const signedIn = await account.auth.signInWithPassword({ email, password });
-  if (signedIn.error) throw signedIn.error;
-  // Before the browser loads anything: the profile outranks the cookie, so a
-  // spec asserting Chinese copy has to set it ahead of the first render rather
-  // than after onboarding. Goes away per spec as its surfaces are translated.
-  const localed = await account
-    .from("profiles")
-    .update({ interface_locale: "zh-CN" })
-    .eq("user_id", signedIn.data.user.id);
-  if (localed.error) throw localed.error;
-  await login(page, email);
-  // Signing in lands on /app, which then redirects to /onboarding for a new
-  // account. Reading the URL straight after the click can catch the /app leg
-  // of that, skip the onboarding steps, and leave every later route silently
-  // measuring the onboarding page. A goto resolves redirects before returning.
-  await page.goto("/app");
-  if (/\/onboarding/u.test(page.url())) {
-    await page.getByLabel("姓名").fill("移动端检查");
-    await page.getByLabel("目标岗位").fill("Product Manager");
-    await page.getByRole("button", { name: "保存求职目标" }).click();
-    await page.getByRole("button", { name: "暂时跳过" }).click();
-    await page.getByRole("button", { name: "进入工作台" }).click();
-    // Without this the next goto races the redirect and lands back on
-    // /onboarding, which silently measures the wrong page.
-    await page.waitForURL(/\/app/u);
-  }
-}
-
-async function routesFor(page: Page) {
-  await page.goto("/applications/new");
-  await page.getByLabel("公司").fill("Northstar GmbH");
-  await page.getByLabel("职位").fill("Product Analyst");
-  await page.getByLabel("地点").fill("Berlin, DE");
-  await page.getByLabel("JD 原文").fill(jdText);
-  await page.getByRole("button", { name: "建立申请工作区" }).click();
-  await page.waitForURL(/\/applications\/[0-9a-f-]+\?tab=resume/u);
-  const id = new URL(page.url()).pathname.split("/").pop();
   return [
     "/app",
     "/applications",
@@ -125,15 +43,20 @@ async function routesFor(page: Page) {
   ];
 }
 
-test("gives the phone its screen back", async ({ page }) => {
+// Every check below runs once per language. A label that fits its button in
+// two Chinese characters is a different width in English, and width is what
+// all three of these measure.
+for (const locale of FLOOR_LOCALES) {
+
+test(`gives the phone its screen back (${locale})`, async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize(phone);
-  const { admin, account } = clients();
-  const { email, userId } = await createUser(admin);
+  const { admin, account } = clients("mobile");
+  const { email, userId } = await createUser(admin, "mobile");
 
   try {
-    await prepareAccount(page, account, email);
-    const routes = await routesFor(page);
+    await prepareAccount(page, account, email, locale);
+    const routes = await routesFor(page, locale);
     const failures: string[] = [];
 
     for (const route of routes) {
@@ -178,16 +101,16 @@ test("gives the phone its screen back", async ({ page }) => {
   }
 });
 
-test("shows exactly one primary navigation at every breakpoint", async ({
+test(`shows exactly one primary navigation at every breakpoint (${locale})`, async ({
   page,
 }) => {
   test.setTimeout(180_000);
-  const { admin, account } = clients();
-  const { email, userId } = await createUser(admin);
+  const { admin, account } = clients("mobile");
+  const { email, userId } = await createUser(admin, "mobile");
 
   try {
     await page.setViewportSize(phone);
-    await prepareAccount(page, account, email);
+    await prepareAccount(page, account, email, locale);
     const failures: string[] = [];
 
     // 768 is the switch itself: the sidebar appears and the tab bar goes, and
@@ -197,8 +120,10 @@ test("shows exactly one primary navigation at every breakpoint", async ({
       for (const route of ["/app", "/applications", "/profile"]) {
         await page.goto(route);
         await page.waitForLoadState("domcontentloaded");
-        const seen = await page.evaluate(() => {
-          const navs = [...document.querySelectorAll("nav[aria-label='主导航']")];
+        const seen = await page.evaluate((label) => {
+          const navs = [...document.querySelectorAll("nav")].filter(
+            (nav) => nav.getAttribute("aria-label") === label,
+          );
           return {
             visible: navs.filter((nav) => nav.checkVisibility()).length,
             overflow: Math.max(
@@ -206,7 +131,7 @@ test("shows exactly one primary navigation at every breakpoint", async ({
               document.documentElement.scrollWidth - window.innerWidth,
             ),
           };
-        });
+        }, dictionaryFor(locale).shell.primaryNavigation);
         if (seen.visible !== 1) {
           failures.push(`${width}px ${route}  ${seen.visible} primary navs`);
         }
@@ -222,15 +147,15 @@ test("shows exactly one primary navigation at every breakpoint", async ({
   }
 });
 
-test("gives every control something a thumb can hit", async ({ page }) => {
+test(`gives every control something a thumb can hit (${locale})`, async ({ page }) => {
   test.setTimeout(180_000);
   await page.setViewportSize(phone);
-  const { admin, account } = clients();
-  const { email, userId } = await createUser(admin);
+  const { admin, account } = clients("mobile");
+  const { email, userId } = await createUser(admin, "mobile");
 
   try {
-    await prepareAccount(page, account, email);
-    const routes = await routesFor(page);
+    await prepareAccount(page, account, email, locale);
+    const routes = await routesFor(page, locale);
     const failures: string[] = [];
 
     for (const route of routes) {
@@ -303,3 +228,4 @@ test("gives every control something a thumb can hit", async ({ page }) => {
     await admin.auth.admin.deleteUser(userId);
   }
 });
+}

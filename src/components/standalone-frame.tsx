@@ -50,7 +50,7 @@ export function StandaloneFrame({
       <header className="flex items-center justify-between gap-4 px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
         <Link
           href="/"
-          className="group flex w-fit items-center gap-3"
+          className="group flex min-h-11 w-fit items-center gap-3"
           aria-label={frame.homeLabel}
         >
           <LogoMark className="size-10" />

@@ -102,7 +102,7 @@ export function AuthForm({
           <label className="form-label mb-0" htmlFor="password">{auth.password}</label>
           {/* Nobody has forgotten a password they are in the middle of choosing. */}
           {signingUp ? null : (
-            <Link href="/forgot-password" className="text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink-muted)]">{auth.forgotPassword}</Link>
+            <Link href="/forgot-password" className="text-action text-sm font-bold underline decoration-[var(--ink-soft)] underline-offset-4 hover:text-[var(--ink-muted)]">{auth.forgotPassword}</Link>
           )}
         </div>
         <input
