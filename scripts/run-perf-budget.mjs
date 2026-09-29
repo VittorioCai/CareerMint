@@ -7,11 +7,52 @@
  * builds, serves the result on its own port, points Playwright at it through
  * PLAYWRIGHT_BASE_URL, and tears the server down whatever happens.
  */
-import { spawn } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
 import { setTimeout as delay } from "node:timers/promises";
 
 const PORT = Number(process.env.PERF_PORT ?? 3210);
 const base = `http://127.0.0.1:${PORT}`;
+
+/**
+ * The local Supabase credentials, injected here rather than by the Playwright
+ * config.
+ *
+ * `loadLocalSupabaseEnv` deliberately does nothing when `PLAYWRIGHT_BASE_URL`
+ * is set, because that normally means the suite is pointed at somebody else's
+ * server and local keys have no business being sent there. This script is the
+ * exception it does not know about: the base URL is a production build of this
+ * repository, served on a port of its own, against the same local Supabase.
+ *
+ * The signed-in half of the budget needs an account, so it needs those keys.
+ */
+function localSupabaseEnv() {
+  const output = execFileSync(
+    "pnpm",
+    ["exec", "supabase", "status", "-o", "env"],
+    { encoding: "utf8", stdio: ["ignore", "pipe", "pipe"] },
+  );
+  const wanted = {
+    API_URL: "NEXT_PUBLIC_SUPABASE_URL",
+    PUBLISHABLE_KEY: "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
+    SECRET_KEY: "SUPABASE_SECRET_KEY",
+  };
+  const env = {};
+  for (const line of output.split(/\r?\n/)) {
+    const match = /^(?:export\s+)?([A-Z][A-Z0-9_]*)=(.*)$/.exec(line.trim());
+    if (!match) continue;
+    const target = wanted[match[1]];
+    if (!target) continue;
+    const value = match[2].trim().replace(/^["']|["']$/g, "");
+    if (value) env[target] = value;
+  }
+  const missing = Object.values(wanted).filter((key) => !env[key]);
+  if (missing.length > 0) {
+    throw new Error(
+      `perf-budget: local Supabase is not running (missing ${missing.join(", ")})`,
+    );
+  }
+  return env;
+}
 
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
@@ -47,7 +88,7 @@ let failure;
 try {
   await waitForServer();
   await run("npx", ["playwright", "test", "performance-budget"], {
-    env: { ...process.env, PLAYWRIGHT_BASE_URL: base },
+    env: { ...process.env, ...localSupabaseEnv(), PLAYWRIGHT_BASE_URL: base },
   });
 } catch (error) {
   failure = error;
