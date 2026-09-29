@@ -2,7 +2,7 @@ begin;
 
 create extension if not exists pgtap with schema extensions;
 
-select plan(19);
+select plan(20);
 
 select has_function(
   'public',
@@ -54,6 +54,13 @@ select throws_ok(
   '42501',
   'permission denied for function replace_interview_question_facts',
   'authenticated users cannot call the legacy fact-link RPC'
+);
+
+select throws_ok(
+  $$select public.link_interview_question_to_application('22222222-2222-4222-8222-222222222222'::uuid, '33333333-3333-4333-8333-333333333333'::uuid)$$,
+  '42501',
+  'permission denied for function link_interview_question_to_application',
+  'authenticated users cannot call the legacy application-link RPC'
 );
 
 select set_config(
