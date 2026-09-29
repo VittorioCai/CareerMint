@@ -878,6 +878,26 @@ button {
     background-attachment: local, local, scroll, scroll;
   }
 
+  /* The same message for a track of opaque cards.
+     `.scroll-x-affordance` paints its shadows on the container's background.
+     A table lets that through; a column of cards sits on top of it, so on the
+     board the shadow showed only in the gaps between cards, as grey smudges.
+     A mask fades whatever is at the edge, cards included. The track's own
+     padding is as wide as the fade, so the last column can be scrolled clear
+     of it. Only from the width at which the board is a board: below that the
+     columns stack, and there is no edge to fade. */
+  @media (min-width: 768px) {
+    .scroll-x-fade {
+      overflow-x: auto;
+      -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 3.5rem), transparent);
+      mask-image: linear-gradient(to right, #000 calc(100% - 3.5rem), transparent);
+    }
+
+    .scroll-x-fade > * {
+      padding-right: 3.5rem;
+    }
+  }
+
   /* Horizontal panning reads as a deliberate move rather than a slip: columns
      settle on their own left edge, and the fade at each end is strong enough to
      say there is more out there. */

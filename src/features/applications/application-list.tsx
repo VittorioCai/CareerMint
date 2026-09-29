@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { CSSProperties } from "react";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
 import { formatDay } from "@/i18n/format";
@@ -263,12 +264,34 @@ export function ApplicationList({
   // The board needs no second copy of anything: below `md` the seven columns
   // stack, which turns the sideways swipe into a vertical list still grouped
   // by stage — a better phone layout than the board is a phone table.
+  // An empty stage keeps its heading and gives up its width. Seven equal
+  // columns put the fourth under the edge of a 1280px window however few of
+  // them held anything, and a board with one card in it scrolled sideways
+  // through six blank columns to show that.
+  //
+  // Fixed widths, not fractions: in a track as wide as its content a fraction
+  // resolves to the widest thing in the column, and one 68-character company
+  // name made its column twice the width of the others.
+  const columns = APPLICATION_STAGES.map((stage) =>
+    applications.some((application) => application.stage === stage)
+      ? "15rem"
+      : "6rem",
+  ).join(" ");
+
   return (
     <div
       data-testid="application-board"
-      className="pb-4 md:scroll-x-affordance md:snap-columns md:overflow-x-auto"
+      // Neither class takes a `md:` prefix: they are component classes, and
+      // Tailwind only generates variants for utilities. With the prefix they
+      // matched nothing, so the board scrolled with no cue at its edge and no
+      // snapping. The fade scopes itself to the widths where the board is a
+      // board; snapping is inert wherever nothing overflows.
+      className="scroll-x-fade snap-columns pb-4"
     >
-      <div className="grid gap-4 md:min-w-[1780px] md:grid-cols-7">
+      <div
+        className="grid gap-4 md:w-max md:min-w-full md:[grid-template-columns:var(--board-columns)]"
+        style={{ "--board-columns": columns } as CSSProperties}
+      >
         {APPLICATION_STAGES.map((stage) => {
           const grouped = applications.filter(
             (application) => application.stage === stage,

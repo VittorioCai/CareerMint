@@ -179,7 +179,10 @@ describe("ApplicationList on a phone", () => {
 
     const board = screen.getByTestId("application-board");
     expect(board).not.toHaveClass("overflow-x-auto");
-    expect(board).toHaveClass("md:overflow-x-auto");
+    // Unprefixed: a `md:` variant of a component class generates nothing, and
+    // the board went without any cue at its edge for as long as it had one.
+    // `.scroll-x-fade` scopes itself to the widths where the board scrolls.
+    expect(board).toHaveClass("scroll-x-fade", "snap-columns");
   });
 
   it("hides the empty stage columns a phone has no room for", () => {
