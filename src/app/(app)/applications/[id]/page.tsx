@@ -596,6 +596,17 @@ export default async function ApplicationDetailPage({
         ) : null}
         {activeTab === "difference" ? (
           <div className="max-w-[1040px] space-y-7">
+            {/* The progress used to stop at the resume step: the reader was
+                told they were on step two of four, chose a resume, and the
+                steps were gone. */}
+            {first(query.setup) === "1" ? (
+              <SetupProgress
+                current={
+                  differenceView.current?.status === "succeeded" ? "gap" : "jd"
+                }
+                copy={appsCopy.setup}
+              />
+            ) : null}
             <ResumeJDDifferencePanel
               copy={difference}
               applicationId={application.id}
@@ -625,6 +636,8 @@ export default async function ApplicationDetailPage({
             copy={improvements}
             applicationId={application.id}
             run={differenceView.current}
+            previous={differenceView.previousSucceeded}
+            readerLocale={locale}
             facts={differenceFacts}
             freshness={differenceView.freshness}
           />

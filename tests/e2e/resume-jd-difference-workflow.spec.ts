@@ -164,11 +164,14 @@ test("runs one grounded analysis and reuses the same run for improvements", asyn
     await prepareAccount(page, account, email, userId);
 
     const skipped = await createApplication(page, "No Resume Ltd", "Analyst");
+    // Skipping opens the application, and the application says what it
+    // still needs. It used to open the analysis, which could only send the
+    // reader back to the step they had skipped.
     await page.getByRole("button", { name: "暂时跳过，进入申请" }).click();
     await expect(page).toHaveURL(
-      new RegExp(`/applications/${skipped.applicationId}\\?tab=difference&setup=1$`, "u"),
+      new RegExp(`/applications/${skipped.applicationId}$`, "u"),
     );
-    await expect(page.getByRole("link", { name: "先选择对照简历" })).toHaveAttribute(
+    await expect(page.getByRole("link", { name: "去选简历" })).toHaveAttribute(
       "href",
       `/applications/${skipped.applicationId}?tab=resume`,
     );

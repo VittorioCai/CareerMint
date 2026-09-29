@@ -161,8 +161,11 @@ describe("BaselineSelector", () => {
     await waitFor(() => expect(setResumeSource).toHaveBeenCalledOnce());
     expect((setResumeSource.mock.calls[0][0] as FormData).get("sourceAssetId")).toBe("");
     expect(request).not.toHaveBeenCalled();
+    // To the application itself, which says what it needs next. It used to
+    // go on to the analysis, and the analysis — having no resume to read —
+    // sent the reader back to the step they had just skipped.
     expect(router.replace).toHaveBeenCalledWith(
-      `/applications/${applicationId}?tab=difference&setup=1`,
+      `/applications/${applicationId}`,
     );
   });
 

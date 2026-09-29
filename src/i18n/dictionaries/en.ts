@@ -541,6 +541,13 @@ export const en = {
     profileEvidence: "Backed by these facts",
     authenticityLabel: "Authenticity",
     staleNotice: "The material changed. Run the analysis again.",
+    // Shown above guidance that comes from an analysis no longer current.
+    stale: {
+      title: "This guidance is from an analysis that is out of date",
+      material: "The job description, the resume or your confirmed facts have changed since.",
+      otherLanguage: "It was written in another language. Run the analysis again for this one.",
+      cta: "Go and run it again",
+    },
     missingNotice: "Run the difference analysis first",
     matchingDifference: "The difference it answers",
     unsupportedWarning:
@@ -555,7 +562,9 @@ export const en = {
       label: "Application setup progress",
       saved: "Save the job description",
       resume: "Pick and preview a resume",
-      jd: "Analyse the job description",
+      // The key is from when this step analysed the JD on its own. It is the
+      // comparison now; the key stays so nothing that reads it has to move.
+      jd: "Run the comparison",
       gap: "Read the differences",
     },
     stages: {

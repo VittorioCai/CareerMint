@@ -338,7 +338,7 @@ describe("ResumeJDImprovementPanel", () => {
     expect(within(grounded).getByText("职业档案有已确认事实，当前简历未体现")).toBeVisible();
   });
 
-  it("shows only a prerequisite message when analysis is missing or stale", () => {
+  it("shows only a prerequisite message when there is no analysis to show", () => {
     const { rerender } = render(
       <ResumeJDImprovementPanel
         copy={zhCN.improvements}
@@ -354,17 +354,62 @@ describe("ResumeJDImprovementPanel", () => {
       `/applications/${applicationId}?tab=difference`,
     );
 
+    // Stale, and nothing earlier to fall back on.
     rerender(
       <ResumeJDImprovementPanel
         copy={zhCN.improvements}
         applicationId={applicationId}
-        run={run()}
+        run={null}
+        previous={null}
         facts={facts}
         freshness="stale"
       />,
     );
     expect(screen.getByText("材料已变化，请重新分析")).toBeVisible();
     expect(screen.queryByTestId(/^improvement-item-/u)).not.toBeInTheDocument();
+  });
+
+  it("keeps the last guidance on screen when the analysis has gone stale, and says why", () => {
+    const { rerender } = render(
+      <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
+        applicationId={applicationId}
+        run={null}
+        previous={run()}
+        readerLocale="zh-CN"
+        facts={facts}
+        freshness="stale"
+      />,
+    );
+
+    const notice = screen.getByTestId("stale-guidance");
+    expect(notice).toHaveTextContent(zhCN.improvements.stale.title);
+    expect(notice).toHaveTextContent(zhCN.improvements.stale.material);
+    expect(
+      screen.getByRole("link", { name: zhCN.improvements.stale.cta }),
+    ).toHaveAttribute("href", `/applications/${applicationId}?tab=difference`);
+    expect(screen.getAllByTestId(/^improvement-item-/u).length).toBeGreaterThan(0);
+
+    // Switching language makes a run stale too, and nothing about the
+    // material has changed. Saying it had sent the reader to look for a
+    // change they never made.
+    rerender(
+      <ResumeJDImprovementPanel
+        copy={zhCN.improvements}
+        applicationId={applicationId}
+        run={null}
+        previous={run()}
+        readerLocale="en"
+        facts={facts}
+        freshness="stale"
+      />,
+    );
+    expect(screen.getByTestId("stale-guidance")).toHaveTextContent(
+      zhCN.improvements.stale.otherLanguage,
+    );
+    expect(screen.getByTestId("stale-guidance")).not.toHaveTextContent(
+      zhCN.improvements.stale.material,
+    );
   });
 
   it("ends with the optional next step to interview preparation", () => {

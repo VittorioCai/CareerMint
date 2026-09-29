@@ -37,12 +37,17 @@ export function ResumeWorkspace({
             ? copy.workspaceHint
             : copy.workspaceReady}
         </p>
-        <Link
-          href={`/applications/${applicationId}?tab=difference${mode === "no-baseline" ? "&setup=1" : ""}`}
-          className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
-        >
-          {copy.workspaceNext}
-        </Link>
+        {/* Only once there is something to analyse. Without a resume the
+            analysis page can do one thing, which is send the reader back
+            here. */}
+        {mode === "ready" ? (
+          <Link
+            href={`/applications/${applicationId}?tab=difference`}
+            className="mt-4 inline-flex min-h-11 items-center text-sm font-semibold underline underline-offset-4"
+          >
+            {copy.workspaceNext}
+          </Link>
+        ) : null}
       </section>
     </div>
   );

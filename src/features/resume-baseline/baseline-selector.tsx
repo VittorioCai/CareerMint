@@ -135,9 +135,15 @@ export function BaselineSelector({
         return false;
       }
       router.replace(
-        setupMode
-          ? `/applications/${applicationId}?tab=difference&setup=1`
-          : `/applications/${applicationId}?tab=resume`,
+        !setupMode
+          ? `/applications/${applicationId}?tab=resume`
+          : sourceAssetId
+            ? `/applications/${applicationId}?tab=difference&setup=1`
+            : // Skipped. The button says "open the application", so that is
+              // where it goes. It used to go on to the analysis, which has
+              // nothing to analyse without a resume and sent the reader
+              // straight back to the step they had just skipped.
+              `/applications/${applicationId}`,
       );
       router.refresh();
       return true;

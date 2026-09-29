@@ -16,10 +16,12 @@ describe("resume workspace", () => {
 
     expect(screen.getByRole("heading", { name: "对照简历" })).toBeVisible();
     expect(screen.getByText("baseline selector")).toBeVisible();
-    expect(screen.getByRole("link", { name: /前往差异分析/ })).toHaveAttribute(
-      "href",
-      "/applications/app?tab=difference&setup=1",
-    );
+    // No link on to the analysis: with nothing to compare, all that page can
+    // do is send the reader back here.
+    expect(screen.queryByRole("link", { name: /前往差异分析/ })).toBeNull();
+    expect(
+      screen.getByText("对照简历确定后，系统才能判断它与岗位要求之间的差异。"),
+    ).toBeVisible();
   });
 
   it("links straight to the difference analysis once a baseline is chosen", () => {

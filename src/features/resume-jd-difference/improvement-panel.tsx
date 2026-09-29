@@ -1,6 +1,7 @@
 import Link from "next/link";
 
 import type { Dictionary } from "@/i18n/dictionaries/en";
+import type { AppLocale } from "@/i18n/locale";
 
 import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirmed-facts";
 
@@ -13,7 +14,16 @@ import type {
 
 export type ResumeJDImprovementPanelProps = {
   applicationId: string;
+  /** The run for the inputs as they are now, if there is one. */
   run: ResumeJDDifferenceRun | null;
+  /**
+   * The last analysis that finished, when it is not `run`. Its guidance is
+   * still the reader's work and still mostly right, so it is shown — marked,
+   * with the reason — rather than replaced by a notice.
+   */
+  previous?: ResumeJDDifferenceRun | null;
+  /** To tell "written in another language" from "the material changed". */
+  readerLocale?: AppLocale;
   facts: ConfirmedFactForAnalysis[];
   freshness: "current" | "stale" | "missing";
 };
@@ -231,26 +241,27 @@ function Prerequisite({
 
 export function ResumeJDImprovementPanel({
   applicationId,
-  run,
+  run: current,
+  previous = null,
+  readerLocale,
   facts,
   freshness,
   copy,
 }: ResumeJDImprovementPanelProps & { copy: Dictionary["improvements"] }) {
   const factsById = new Map(facts.map((fact) => [fact.id, fact]));
-  if (
-    freshness !== "current" ||
-    !run ||
-    run.status !== "succeeded" ||
-    !run.result
-  ) {
+  const stale = freshness === "stale";
+  const run = stale ? previous : freshness === "current" ? current : null;
+  if (!run || run.status !== "succeeded" || !run.result) {
     return (
-      <Prerequisite
-        applicationId={applicationId}
-        stale={freshness === "stale"}
-        copy={copy}
-      />
+      <Prerequisite applicationId={applicationId} stale={stale} copy={copy} />
     );
   }
+  // After a language switch the page used to say the material had changed.
+  // It had not, and the notice sent the reader to check inputs they had
+  // never touched.
+  const otherLanguage = Boolean(
+    readerLocale && readerLocale !== run.outputLocale,
+  );
 
   const directions = new Map(
     run.result.directions.map((direction) => [direction.issueId, direction]),
@@ -267,6 +278,25 @@ export function ResumeJDImprovementPanel({
       aria-labelledby="improvement-panel-title"
       data-run-id={run.id}
     >
+      {stale ? (
+        <div
+          data-testid="stale-guidance"
+          className="rounded-xl bg-[var(--sev-important)] px-4 py-3 text-[var(--sev-important-ink)] sm:flex sm:items-center sm:justify-between sm:gap-4"
+        >
+          <div className="min-w-0">
+            <p className="text-sm font-semibold">{copy.stale.title}</p>
+            <p className="mt-0.5 text-sm font-medium leading-6">
+              {otherLanguage ? copy.stale.otherLanguage : copy.stale.material}
+            </p>
+          </div>
+          <Link
+            href={`/applications/${applicationId}?tab=difference`}
+            className="text-action mt-2 shrink-0 text-sm font-semibold underline underline-offset-4 sm:mt-0"
+          >
+            {copy.stale.cta}
+          </Link>
+        </div>
+      ) : null}
       <header className="soft-surface p-5 sm:p-6">
         <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">
           {copy.eyebrow}

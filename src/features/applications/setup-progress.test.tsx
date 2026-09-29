@@ -15,7 +15,9 @@ describe("SetupProgress", () => {
     expect(steps.map((step) => step.textContent)).toEqual([
       expect.stringContaining("保存 JD"),
       expect.stringContaining("选择并预览简历"),
-      expect.stringContaining("分析 JD"),
+      // Not 分析 JD: that pipeline is gone, and what happens at this step is
+      // the comparison.
+      expect.stringContaining("开始差异分析"),
       expect.stringContaining("查看差距"),
     ]);
     expect(screen.getByText("选择并预览简历").closest("li")).toHaveAttribute(

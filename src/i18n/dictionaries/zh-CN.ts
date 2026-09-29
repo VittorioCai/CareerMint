@@ -491,6 +491,12 @@ export const zhCN: Dictionary = {
     profileEvidence: "档案依据",
     authenticityLabel: "真实性",
     staleNotice: "材料已变化，请重新分析",
+    stale: {
+      title: "这些建议来自一次已过期的分析",
+      material: "在那之后，JD、简历或已确认的事实有了变化。",
+      otherLanguage: "它是用另一种语言写的。重新分析可得到当前语言的版本。",
+      cta: "去重新分析",
+    },
     missingNotice: "请先完成差异分析",
     matchingDifference: "对应差异",
     unsupportedWarning: "当前材料没有可回查证据。如未实际做过，请不要加入简历。",
@@ -503,7 +509,7 @@ export const zhCN: Dictionary = {
       label: "申请准备进度",
       saved: "保存 JD",
       resume: "选择并预览简历",
-      jd: "分析 JD",
+      jd: "开始差异分析",
       gap: "查看差距",
     },
     stages: {
