@@ -30,7 +30,7 @@ export function AuthShellView({
   ] as const;
 
   return (
-    <main className="grid min-h-screen bg-[var(--canvas)] lg:grid-cols-[minmax(0,1.05fr)_minmax(420px,0.95fr)]">
+    <main className="grid min-h-screen bg-[var(--canvas)] lg:grid-cols-[minmax(0,1.3fr)_minmax(380px,0.7fr)]">
       <section className="flex min-h-screen flex-col px-5 py-5 sm:px-8 lg:px-12 lg:py-8">
         {/* The switch belongs here, not only in the account menu: English is
             the default, so a Chinese speaker meets an English page before they
@@ -61,7 +61,10 @@ export function AuthShellView({
       <aside className="relative hidden overflow-hidden border-l border-[var(--line)] bg-[var(--surface-muted)] p-10 lg:flex lg:flex-col lg:justify-center" aria-label={auth.productPrinciples}>
         <div className="relative mx-auto w-full max-w-lg">
           <div className="mb-8 inline-flex rounded-xl border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold">{auth.sidePanelBadge}</div>
-          <h2 className="type-title heading-font max-w-md">{auth.sidePanelTitle}</h2>
+          {/* A section heading, not a second title. It was set in the same
+              role as the page's own headline, 40px beside 40px, and the
+              two read as rivals. */}
+          <h2 className="type-section heading-font text-[var(--ink-muted)]">{auth.sidePanelTitle}</h2>
           <div className="mt-9 border-y border-[var(--line)]">
             {principles.map(([index, heading, detail]) => (
               <div key={index} className="grid grid-cols-[48px_1fr] border-b border-[var(--line)] py-5 last:border-b-0">
