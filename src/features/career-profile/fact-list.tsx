@@ -14,15 +14,42 @@ import { FactReceiptProvider, FactReceiptRegion } from "./fact-receipt";
 import { ManualFactForm } from "./manual-fact-form";
 import type { CareerFact } from "./schemas";
 
+export const FACT_FILTERS = ["all", "open", "confirmed"] as const;
+
+export type FactFilter = (typeof FACT_FILTERS)[number];
+
+/** Anything that is not a filter is "all", including nothing at all. */
+export function resolveFactFilter(value: unknown): FactFilter {
+  return FACT_FILTERS.includes(value as FactFilter)
+    ? (value as FactFilter)
+    : "all";
+}
+
+function isOpen(fact: CareerFact) {
+  return fact.confirmationStatus !== "confirmed";
+}
+
 export function FactList({
   facts,
   copy,
   common,
+  filter = "all",
 }: {
   facts: CareerFact[];
   copy: Dictionary["profile"];
   common: Dictionary["common"];
+  filter?: FactFilter;
 }) {
+  const counts: Record<FactFilter, number> = {
+    all: facts.length,
+    open: facts.filter(isOpen).length,
+    confirmed: facts.filter((fact) => !isOpen(fact)).length,
+  };
+  const visible =
+    filter === "all"
+      ? facts
+      : facts.filter((fact) => isOpen(fact) === (filter === "open"));
+
   // Only the categories that have something in them. Nine sections for one
   // fact meant eight boxes reading 暂时没有这类事实 — a placeholder rendered as
   // content, contradicting the empty state's own promise that categories
@@ -31,7 +58,11 @@ export function FactList({
     .map(([type, label]) => ({
       type,
       label,
-      facts: facts.filter((fact) => fact.factType === type),
+      // What still needs a decision comes first. The sort is stable, so
+      // within each half the order is the one the facts arrived in.
+      facts: visible
+        .filter((fact) => fact.factType === type)
+        .sort((left, right) => Number(isOpen(right)) - Number(isOpen(left))),
     }))
     .filter((group) => group.facts.length > 0);
   const actions = {
@@ -68,7 +99,36 @@ export function FactList({
 
       <div className="min-w-0">
         <FactReceiptRegion dismissLabel={copy.dismissReceipt} />
-        {facts.length ? <ManualFactForm createFact={createFactAction} copy={copy} common={common} /> : null}
+        {facts.length ? (
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <ManualFactForm createFact={createFactAction} copy={copy} common={common} />
+            {/* Links, not buttons: the filter is part of the address, so it
+                survives a reload and the revalidation that follows every
+                change to a fact. */}
+            <nav aria-label={copy.filter.label} className="flex items-center gap-1">
+              {FACT_FILTERS.map((option) => (
+                <Link
+                  key={option}
+                  href={option === "all" ? "/profile" : `/profile?status=${option}`}
+                  aria-current={option === filter ? "page" : undefined}
+                  className={`segment gap-1.5 text-xs ${
+                    option === filter
+                      ? "bg-[var(--surface-muted)] font-semibold"
+                      : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"
+                  }`}
+                >
+                  {copy.filter[option]}
+                  <span className="tabular-nums">{counts[option]}</span>
+                </Link>
+              ))}
+            </nav>
+          </div>
+        ) : null}
+        {facts.length > 0 && visible.length === 0 ? (
+          <p className="soft-surface mt-4 px-6 py-8 text-center type-caption text-[var(--ink-muted)]">
+            {copy.filterEmpty}
+          </p>
+        ) : null}
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
             <p className="heading-font text-lg font-semibold">{copy.emptyTitle}</p>

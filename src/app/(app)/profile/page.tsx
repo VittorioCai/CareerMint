@@ -1,10 +1,18 @@
-import { FactList } from "@/features/career-profile/fact-list";
+import {
+  FactList,
+  resolveFactFilter,
+} from "@/features/career-profile/fact-list";
 import { careerFactRepository } from "@/features/career-profile/repository";
 import { getDictionary } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string | string[] }>;
+}) {
   const user = await requireUser();
+  const filter = resolveFactFilter((await searchParams).status);
   const facts = await careerFactRepository.list(user.id);
   const { common, profile } = await getDictionary();
   const pending = facts.filter(
@@ -37,7 +45,7 @@ export default async function ProfilePage() {
           </div>
         ) : null}
       </div>
-      <FactList facts={facts} copy={profile} common={common} />
+      <FactList facts={facts} copy={profile} common={common} filter={filter} />
     </section>
   );
 }

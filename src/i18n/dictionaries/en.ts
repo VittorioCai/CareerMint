@@ -230,6 +230,16 @@ export const en = {
     saveAsPending: "Save as unconfirmed",
     saveEdits: "Save changes",
     editFact: "Edit fact",
+    // Completed with the fact's own title, for a screen reader: "Show details: …"
+    expandFact: "Show details",
+    collapseFact: "Hide details",
+    filter: {
+      label: "Filter by status",
+      all: "All",
+      open: "To handle",
+      confirmed: "Confirmed",
+    },
+    filterEmpty: "No facts under this filter.",
     deleteFact: "Delete fact",
     deleteEyebrow: "Irreversible",
     deleteTitle: "Delete this career fact?",

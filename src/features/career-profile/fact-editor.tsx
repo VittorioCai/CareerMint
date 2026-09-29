@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useId, useState } from "react";
 
 import { Modal } from "@/components/modal";
 import type { Dictionary } from "@/i18n/dictionaries/en";
@@ -40,6 +40,14 @@ export function FactEditor({
 }) {
   const statusCopy = copy.status;
   const announceReceipt = useAnnounceFactReceipt();
+  const panelId = useId();
+  // A confirmed fact has been read and agreed to; what it needs from the page
+  // is to be findable. One still waiting is the opposite, so it starts open.
+  // Fifty confirmed facts, each laid out in full with two buttons, was fifteen
+  // thousand pixels of scrolling.
+  const [expanded, setExpanded] = useState(
+    fact.confirmationStatus !== "confirmed",
+  );
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -74,53 +82,78 @@ export function FactEditor({
         ? "bg-[var(--sev-critical)] text-[var(--sev-critical-ink)]"
         : "severity-important";
 
+  const dates =
+    data.startDate || data.endDate
+      ? data.startDate && data.endDate
+        ? `${data.startDate} — ${data.endDate}`
+        : data.startDate
+          ? copy.dateOpenEnded.replace("{start}", data.startDate)
+          : copy.dateUntil.replace("{end}", data.endDate ?? "")
+      : null;
+
   return (
-    <article className="min-w-0 border-b border-[var(--line)] bg-[var(--paper)] p-4 last:border-b-0 sm:p-5">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div className="min-w-0">
-          <span className={`status-chip ${chipClass}`}>{statusCopy[status]}</span>
-          <h3 className="heading-font mt-3 break-words text-lg font-semibold">
-            {data.title}
-          </h3>
-          {data.organization ? (
-            <p className="mt-1 text-sm font-bold text-[var(--ink-muted)]">
-              {data.organization}
+    <article className="min-w-0 border-b border-[var(--line)] bg-[var(--paper)] last:border-b-0">
+      {/* The whole header takes a click, for a pointer. The button inside it is
+          the control — it is what holds focus and says whether the row is open
+          — and its click reaches the same handler by bubbling. */}
+      <div
+        className="flex cursor-pointer items-start gap-3 px-4 py-3.5 sm:px-5"
+        onClick={() => setExpanded((value) => !value)}
+      >
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1.5">
+            <span className={`status-chip ${chipClass}`}>{statusCopy[status]}</span>
+            <h3 className="heading-font min-w-0 break-words text-base font-semibold sm:text-lg">
+              {data.title}
+            </h3>
+          </div>
+          {data.organization || dates ? (
+            <p className="mt-1 break-words text-xs font-semibold text-[var(--ink-muted)]">
+              {[data.organization, dates].filter(Boolean).join(" · ")}
             </p>
           ) : null}
+          {/* One line of the description while the row is closed, enough to
+              tell this fact from the one above it. */}
+          {expanded ? null : (
+            <p className="mt-1 truncate text-sm font-medium text-[var(--ink-muted)]">
+              {data.description}
+            </p>
+          )}
         </div>
-        <div className="flex flex-wrap gap-2">
-          <button
-            type="button"
-            className="button-secondary min-h-10 px-3 text-xs font-semibold"
-            onClick={() => setEditing((value) => !value)}
+        <button
+          type="button"
+          aria-expanded={expanded}
+          aria-controls={panelId}
+          aria-label={`${expanded ? copy.collapseFact : copy.expandFact}: ${data.title}`}
+          // 44px, the size a thumb needs; mobile-layout.spec measures it.
+          className="grid size-11 shrink-0 place-items-center rounded-full text-[var(--ink-muted)] hover:bg-[var(--surface-muted)]"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 20 20"
+            width="18"
+            height="18"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.4"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className={`transition-transform ${expanded ? "rotate-180" : ""}`}
           >
-            {copy.editFact}
-          </button>
-          <button
-            type="button"
-            className="min-h-10 rounded-xl border border-[var(--line)] px-3 text-xs font-semibold text-[var(--error)]"
-            disabled={busy}
-            onClick={() => setDeleting(true)}
-          >
-            {copy.deleteFact}
-          </button>
-        </div>
+            <path d="M5 8l5 5 5-5" />
+          </svg>
+        </button>
       </div>
 
+      {/* Hidden rather than unmounted: a draft in the edit form survives the
+          row being closed over it, and the page's own find still reaches the
+          text. */}
+      <div id={panelId} hidden={!expanded} className="px-4 pb-4 sm:px-5 sm:pb-5">
       {!editing ? (
-        <div className="mt-4 space-y-3">
+        <div className="space-y-3">
           <p className="whitespace-pre-wrap type-body">
             {data.description}
           </p>
-          {data.startDate || data.endDate ? (
-            <p className="text-xs font-bold text-[var(--ink-muted)]">
-              {data.startDate && data.endDate
-                ? `${data.startDate} — ${data.endDate}`
-                : data.startDate
-                  ? copy.dateOpenEnded.replace("{start}", data.startDate)
-                  : copy.dateUntil.replace("{end}", data.endDate ?? "")}
-            </p>
-          ) : null}
           {data.skills.length > 0 ? (
             <div className="flex flex-wrap gap-2">
               {data.skills.map((skill) => (
@@ -154,10 +187,52 @@ export function FactEditor({
           ) : (
             <p className="text-xs font-bold text-[var(--ink-muted)]">{copy.manualNoEvidence}</p>
           )}
+          {/* One filled button at most, and only on a fact still waiting for
+              a decision. Every card used to carry the page's darkest button,
+              so a profile with twenty facts to check had twenty main actions.
+              Deleting is inside the edit form: it is something done to a fact
+              on purpose, not something offered beside its title. */}
+          <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-[var(--line)] pt-3">
+            {status !== "confirmed" ? (
+              <>
+                <button
+                  type="button"
+                  className="button-secondary min-h-10 px-4 text-sm font-semibold"
+                  disabled={busy}
+                  onClick={() => {
+                    setExplicit(false);
+                    setConfirming(true);
+                  }}
+                >
+                  {copy.confirmTrue}
+                </button>
+                <button
+                  type="button"
+                  className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 hover:decoration-[var(--ink)]"
+                  disabled={busy}
+                  onClick={() =>
+                    void run(
+                      () => actions.markNeedsDetail({ factId: fact.id }),
+                      () => setStatus("needs_detail"),
+                    )
+                  }
+                >
+                  {copy.needsDetail}
+                </button>
+              </>
+            ) : null}
+            <button
+              type="button"
+              className="text-action text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 hover:decoration-[var(--ink)]"
+              onClick={() => setEditing(true)}
+            >
+              {copy.editFact}
+            </button>
+          </div>
         </div>
       ) : (
         <form
-          className="mt-5 grid gap-4 sm:grid-cols-2"
+          className="grid gap-4 sm:grid-cols-2"
           noValidate
           onSubmit={(event) => {
             event.preventDefault();
@@ -204,7 +279,7 @@ export function FactEditor({
               setFieldErrors((current) => ({ ...current, [field]: undefined }));
             }}
           />
-          <div className="flex flex-wrap gap-2 sm:col-span-2">
+          <div className="flex flex-wrap items-center gap-2 sm:col-span-2">
             <button type="submit" className="button-primary min-h-10 px-4 text-sm font-semibold" disabled={busy}>
               {busy ? copy.saving : copy.saveEdits}
             </button>
@@ -219,44 +294,24 @@ export function FactEditor({
             >
               {common.cancel}
             </button>
+            <button
+              type="button"
+              className="text-action ml-auto text-sm font-semibold text-[var(--danger-ink)] underline decoration-transparent underline-offset-4 hover:decoration-current"
+              disabled={busy}
+              onClick={() => setDeleting(true)}
+            >
+              {copy.deleteFact}
+            </button>
           </div>
         </form>
       )}
-
-      {status !== "confirmed" ? (
-        <div className="mt-5 flex flex-wrap gap-2 border-t border-[var(--line)] pt-4">
-          <button
-            type="button"
-            className="button-primary min-h-10 px-4 text-sm font-semibold"
-            disabled={busy}
-            onClick={() => {
-              setExplicit(false);
-              setConfirming(true);
-            }}
-          >
-            {copy.confirmTrue}
-          </button>
-          <button
-            type="button"
-            className="button-secondary min-h-10 px-4 text-sm font-semibold"
-            disabled={busy}
-            onClick={() =>
-              void run(
-                () => actions.markNeedsDetail({ factId: fact.id }),
-                () => setStatus("needs_detail"),
-              )
-            }
-          >
-            {copy.needsDetail}
-          </button>
-        </div>
-      ) : null}
 
       {error ? (
         <p role="alert" className="mt-3 text-sm font-bold text-[var(--error)]">
           {error}
         </p>
       ) : null}
+      </div>
 
       <Modal
         open={confirming}

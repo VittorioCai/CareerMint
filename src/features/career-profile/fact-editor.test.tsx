@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
@@ -63,7 +63,8 @@ describe("FactEditor", () => {
     });
   });
 
-  it("shows confirmed status while retaining edit and delete controls", () => {
+  it("keeps a confirmed fact to a row until it is opened", async () => {
+    const user = userEvent.setup();
     render(
       <FactEditor copy={zhCN.profile} common={zhCN.common} fact={{
           ...pendingFact,
@@ -74,8 +75,46 @@ describe("FactEditor", () => {
       />,
     );
 
+    // Enough to recognise it by: its state, its title, where and when, and a
+    // line of what it says.
     expect(screen.getByText("已确认")).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Checkout conversion improvement" }),
+    ).toBeVisible();
+    expect(screen.getByText("Example GmbH · 2025-01 至今")).toBeVisible();
+    const toggle = screen.getByRole("button", {
+      name: "展开详情: Checkout conversion improvement",
+    });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(screen.queryByRole("button", { name: "编辑事实" })).toBeNull();
+
+    await user.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(toggle).toHaveAccessibleName(
+      "收起详情: Checkout conversion improvement",
+    );
     expect(screen.getByRole("button", { name: "编辑事实" })).toBeVisible();
+    // Nothing left to decide, so nothing asks for a decision.
+    expect(screen.queryByRole("button", { name: "确认真实" })).toBeNull();
+  });
+
+  it("opens a fact that is still waiting for a decision", () => {
+    render(<FactEditor copy={zhCN.profile} common={zhCN.common} fact={pendingFact} actions={actions()} />);
+
+    expect(
+      screen.getByRole("button", {
+        name: "收起详情: Checkout conversion improvement",
+      }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "确认真实" })).toBeVisible();
+  });
+
+  it("offers deletion from inside the edit form, not beside the title", async () => {
+    const user = userEvent.setup();
+    render(<FactEditor copy={zhCN.profile} common={zhCN.common} fact={pendingFact} actions={actions()} />);
+
+    expect(screen.queryByRole("button", { name: "删除事实" })).toBeNull();
+    await user.click(screen.getByRole("button", { name: "编辑事实" }));
     expect(screen.getByRole("button", { name: "删除事实" })).toBeVisible();
   });
 
@@ -84,12 +123,14 @@ describe("FactEditor", () => {
     const factActions = actions();
     render(<FactEditor copy={zhCN.profile} common={zhCN.common} fact={pendingFact} actions={factActions} />);
 
+    await user.click(screen.getByRole("button", { name: "编辑事实" }));
     await user.click(screen.getByRole("button", { name: "删除事实" }));
     const dialog = screen.getByRole("dialog", { name: "删除这条职业事实？" });
     expect(dialog).toHaveTextContent("Checkout conversion improvement");
     expect(factActions.remove).not.toHaveBeenCalled();
 
-    await user.click(screen.getByRole("button", { name: "取消" }));
+    // The edit form behind the dialog has a cancel of its own.
+    await user.click(within(dialog).getByRole("button", { name: "取消" }));
     expect(factActions.remove).not.toHaveBeenCalled();
 
     await user.click(screen.getByRole("button", { name: "删除事实" }));

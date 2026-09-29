@@ -49,7 +49,11 @@ describe("FactList", () => {
     const receipt = screen.getByRole("status");
     expect(receipt).toBeEmptyDOMElement();
 
-    await user.click(screen.getAllByRole("button", { name: "删除事实" })[0]);
+    await user.click(
+      screen.getByRole("button", { name: "展开详情: 跨部门业务复盘 1" }),
+    );
+    await user.click(screen.getByRole("button", { name: "编辑事实" }));
+    await user.click(screen.getByRole("button", { name: "删除事实" }));
     await user.click(screen.getByRole("button", { name: "确认删除" }));
 
     // What revalidation does: the list comes back without the fact.
@@ -106,6 +110,70 @@ describe("FactList", () => {
       "技能",
     ]);
     expect(links[0]).toHaveAttribute("href", "#facts-work_experience");
+  });
+
+  it("puts what still needs a decision ahead of what has had one", () => {
+    render(
+      <FactList copy={zhCN.profile} common={zhCN.common} facts={[
+          fact(1),
+          fact(2, { confirmationStatus: "pending", confirmedAt: null }),
+          fact(3),
+          fact(4, { confirmationStatus: "needs_detail", confirmedAt: null }),
+        ]}
+      />,
+    );
+
+    expect(
+      screen
+        .getAllByRole("heading", { level: 3 })
+        .map((heading) => heading.textContent),
+    ).toEqual([
+      "跨部门业务复盘 2",
+      "跨部门业务复盘 4",
+      "跨部门业务复盘 1",
+      "跨部门业务复盘 3",
+    ]);
+  });
+
+  it("filters by status from the address, and counts every option", () => {
+    const facts = [
+      fact(1),
+      fact(2, { confirmationStatus: "pending", confirmedAt: null }),
+      fact(3),
+    ];
+    const { rerender } = render(
+      <FactList copy={zhCN.profile} common={zhCN.common} facts={facts} filter="open" />,
+    );
+
+    const filter = screen.getByRole("navigation", { name: "按状态筛选" });
+    const links = within(filter).getAllByRole("link");
+    expect(links.map((link) => link.textContent)).toEqual([
+      "全部3",
+      "待处理1",
+      "已确认2",
+    ]);
+    expect(links.map((link) => link.getAttribute("href"))).toEqual([
+      "/profile",
+      "/profile?status=open",
+      "/profile?status=confirmed",
+    ]);
+    expect(links[1]).toHaveAttribute("aria-current", "page");
+    expect(
+      screen.getAllByRole("heading", { level: 3 }).map((h) => h.textContent),
+    ).toEqual(["跨部门业务复盘 2"]);
+
+    rerender(
+      <FactList
+        copy={zhCN.profile}
+        common={zhCN.common}
+        facts={[fact(1)]}
+        filter="open"
+      />,
+    );
+    // A profile with facts and none under this filter is not an empty
+    // profile, and must not offer to start one.
+    expect(screen.getByText("这个筛选下没有事实。")).toBeVisible();
+    expect(screen.queryByText("还没有职业事实")).toBeNull();
   });
 
   it("keeps the empty state as one path rather than a wall of headings", () => {
