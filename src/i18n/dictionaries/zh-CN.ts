@@ -27,7 +27,7 @@ export const zhCN: Dictionary = {
       oneTitle: "事实先确认",
       oneBody: "AI 不会把猜测写进你的档案",
       twoTitle: "申请可追溯",
-      twoBody: "简历版本和岗位要求放在一起",
+      twoBody: "简历和岗位要求放在一起对照",
       threeTitle: "数据由你掌控",
       threeBody: "随时导出，也可以删除账户数据",
     },
@@ -64,7 +64,7 @@ export const zhCN: Dictionary = {
       signInEyebrow: "账户入口",
       signInTitle: "欢迎回来，继续准备下一次申请。",
       signInBody:
-        "登录已有账户，或用邮箱创建新账户。你的职业事实、申请版本和投递记录都会保存在自己的工作区。",
+        "登录已有账户，或用邮箱创建新账户。你的职业事实、申请和投递记录都会保存在自己的工作区。",
       forgotEyebrow: "找回账户",
       forgotTitle: "重设你的密码",
       forgotBody:
@@ -82,16 +82,16 @@ export const zhCN: Dictionary = {
   meta: {
     title: "求职搭子｜有依据的海外求职工作台",
     titleTemplate: "%s｜求职搭子",
-    description: "用已确认的职业事实匹配岗位、定制简历、跟踪投递并准备面试。",
+    description: "把简历和每个岗位放在一起对照，看清有依据的差距，跟踪投递并准备面试。",
   },
   landing: {
     beta: "Beta",
     signIn: "登录或注册",
-    navNote: "先建档，再为每个岗位定制",
+    navNote: "先建档，再逐个岗位对照",
     badge: "不编经历，只把真实优势说清楚",
     headlineTop: "让每次申请",
     headlineBottom: "都有依据",
-    body: "把职业档案、JD 匹配、简历版本、投递进度和面试准备放在同一个工作台。AI 只使用你确认过的事实，并告诉你每条建议从哪里来。",
+    body: "把职业档案、简历与 JD 的差异、投递进度和面试准备放在同一个工作台。AI 只使用你确认过的事实，并告诉你每条建议从哪里来。",
     primaryCta: "建立我的职业档案",
     secondaryCta: "看看怎么工作",
     principles: {
@@ -124,8 +124,8 @@ export const zhCN: Dictionary = {
       oneBody: "经历、项目与成果都有来源",
       twoTitle: "拆解岗位要求",
       twoBody: "区分硬性要求与加分项",
-      threeTitle: "生成申请版本",
-      threeBody: "每一处修改都能解释",
+      threeTitle: "看清差距与完善方向",
+      threeBody: "每条结论都能回查来源",
     },
   },
   onboarding: {
@@ -604,7 +604,7 @@ export const zhCN: Dictionary = {
     reviewCta: "继续核对职业档案 →",
     checked: "✓ 已完成核对",
     readyTitle: "职业档案已就绪",
-    readyBody: "已确认 {count} 条真实事实。下一阶段可用它们匹配 JD、定制简历和准备面试。",
+    readyBody: "已确认 {count} 条真实事实。接下来可以用它们对照 JD、准备面试。",
     recordsEyebrow: "真实申请记录",
     recordsTitle: "投递进度一眼看清",
     seeAll: "查看全部投递 →",

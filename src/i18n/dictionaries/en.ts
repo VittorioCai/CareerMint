@@ -34,7 +34,7 @@ export const en = {
       oneTitle: "Facts get confirmed first",
       oneBody: "AI never writes a guess into your profile",
       twoTitle: "Every application is traceable",
-      twoBody: "Resume versions sit next to the job's requirements",
+      twoBody: "Your resume sits next to the job's requirements",
       threeTitle: "Your data stays yours",
       threeBody: "Export it any time, or delete the account outright",
     },
@@ -73,7 +73,7 @@ export const en = {
       signInEyebrow: "Account access",
       signInTitle: "Welcome back. Let's get the next application ready.",
       signInBody:
-        "Sign in, or create an account with your email. Your career facts, application versions and submission history all stay in your own workspace.",
+        "Sign in, or create an account with your email. Your career facts, applications and submission history all stay in your own workspace.",
       forgotEyebrow: "Account recovery",
       forgotTitle: "Reset your password",
       forgotBody:
@@ -95,16 +95,16 @@ export const en = {
     title: "CareerMint — an overseas job desk with evidence behind it",
     titleTemplate: "%s · CareerMint",
     description:
-      "Match jobs against career facts you have confirmed, tailor your resume, track applications and prepare for interviews.",
+      "Compare your resume with each job, see the gaps with evidence, track applications and prepare for interviews.",
   },
   landing: {
     beta: "Beta",
     signIn: "Sign in or create an account",
-    navNote: "Build the profile first, then tailor it per job",
+    navNote: "Build the profile first, then compare it with each job",
     badge: "No invented experience — just your real strengths, stated clearly",
     headlineTop: "Give every application",
     headlineBottom: "something to stand on",
-    body: "Career profile, JD matching, resume versions, submission tracking and interview prep in one workspace. AI only uses facts you have confirmed, and tells you where every suggestion came from.",
+    body: "Career profile, resume-to-JD differences, submission tracking and interview prep in one workspace. AI only uses facts you have confirmed, and tells you where every suggestion came from.",
     primaryCta: "Build my career profile",
     secondaryCta: "See how it works",
     principles: {
@@ -138,8 +138,8 @@ export const en = {
       oneBody: "Experience, projects and outcomes, each with a source",
       twoTitle: "Break down the job",
       twoBody: "Hard requirements separated from nice-to-haves",
-      threeTitle: "Produce a version",
-      threeBody: "Every edit can be explained",
+      threeTitle: "See the gaps and what to improve",
+      threeBody: "Every conclusion points back to its source",
     },
   },
   onboarding: {
@@ -660,7 +660,7 @@ export const en = {
     checked: "✓ Checked",
     readyTitle: "Your career profile is ready",
     readyBody:
-      "{count} facts confirmed. From here they can match JDs, tailor resumes and prepare interviews.",
+      "{count} facts confirmed. From here they back your JD comparisons and interview prep.",
     recordsEyebrow: "Real application records",
     recordsTitle: "See where every application stands",
     seeAll: "See all applications →",
