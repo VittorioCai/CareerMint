@@ -263,16 +263,42 @@ export type DifferencePromptCandidateSummary = {
   latencyMs: number;
 };
 
+/**
+ * The least a prompt has to find to be worth shipping.
+ *
+ * Selection used to be relative only: whichever candidate ranked first won,
+ * so a field in which the best prompt found one issue in five still produced
+ * a winner, and the command exited 0. A comparison between prompts cannot say
+ * whether any of them is good enough; this can.
+ */
+export const RESUME_JD_DIFFERENCE_EVAL_MIN_ISSUE_RECALL = 0.8;
+
+/**
+ * Whether a candidate may be chosen at all.
+ *
+ * Nothing invented, nothing paste-ready, every output valid — and the two
+ * absolute floors: it finds at least four in five of the issues a fixture
+ * expects, and it never calls a requirement supported that the resume and
+ * the confirmed facts do not support. That last one is the product's own
+ * promise, so its tolerance is zero.
+ */
+export function isEligibleDifferencePrompt(
+  candidate: DifferencePromptCandidateSummary,
+) {
+  return (
+    candidate.schemaValidRate === 1 &&
+    candidate.pasteReadyRewriteCount === 0 &&
+    candidate.fabricatedFactCount === 0 &&
+    candidate.hardGateFailures.length === 0 &&
+    candidate.coreIssueRecall >= RESUME_JD_DIFFERENCE_EVAL_MIN_ISSUE_RECALL &&
+    candidate.unsupportedFalsePositiveCount === 0
+  );
+}
+
 export function selectDifferencePromptWinner(
   candidates: readonly DifferencePromptCandidateSummary[],
 ) {
-  const eligible = candidates.filter(
-    (candidate) =>
-      candidate.schemaValidRate === 1 &&
-      candidate.pasteReadyRewriteCount === 0 &&
-      candidate.fabricatedFactCount === 0 &&
-      candidate.hardGateFailures.length === 0,
-  );
+  const eligible = candidates.filter(isEligibleDifferencePrompt);
   if (eligible.length === 0) {
     throw new Error("resume-jd-difference-eval-no-eligible-prompt");
   }

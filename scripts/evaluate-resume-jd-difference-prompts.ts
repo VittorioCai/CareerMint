@@ -19,6 +19,7 @@ import {
   createDifferenceEvaluationBudgetLedger,
   differenceEvaluationFixtureSchema,
   evaluateDifferenceCase,
+  isEligibleDifferencePrompt,
   selectDifferencePromptWinner,
   statusCounts,
   type DifferenceCaseScore,
@@ -31,6 +32,7 @@ import {
   type DifferencePromptVariant,
 } from "../src/features/resume-jd-difference/prompts";
 import type { DifferenceIssueType } from "../src/features/resume-jd-difference/schemas";
+import { isAppLocale, type AppLocale } from "../src/i18n/locale";
 
 type EvaluationAttempt = {
   usage: AIUsage;
@@ -61,13 +63,17 @@ export type ResumeJDDifferenceEvaluationCliOptions = Partial<CliDependencies>;
 const allVariants = DIFFERENCE_PROMPT_VARIANTS;
 
 /**
- * The evaluation harness scores the Chinese prompt.
+ * Which output language is scored when none is asked for.
  *
- * Its fixtures and expected findings are written in Chinese, so scoring the
- * English prompt against them would measure translation, not analysis. An
- * English fixture set is its own piece of work.
+ * Either can be: what a fixture expects is excerpts of its own JD, a type and
+ * a priority, none of which is in the output language. This used to be fixed
+ * at Chinese on the belief that the expectations were Chinese prose, so the
+ * English prompt — the default interface language — had never been scored.
+ *
+ * One language per run, not both: the call cap is sized for six fixtures and
+ * three prompts.
  */
-const EVALUATION_OUTPUT_LOCALE = "zh-CN" as const;
+const DEFAULT_EVALUATION_OUTPUT_LOCALE: AppLocale = "zh-CN";
 
 const emptyUsage: AIUsage = {
   inputCacheHitTokens: 0,
@@ -87,9 +93,18 @@ function parseOptions(argv: string[]) {
   let dryRun = false;
   let maxCostUsd = RESUME_JD_DIFFERENCE_EVAL_MAX_COST_USD;
   let variants = [...allVariants];
+  let outputLocale = DEFAULT_EVALUATION_OUTPUT_LOCALE;
   for (const argument of argv) {
     if (argument === "--dry-run") {
       dryRun = true;
+      continue;
+    }
+    if (argument.startsWith("--locale=")) {
+      const requested = argument.slice("--locale=".length);
+      if (!isAppLocale(requested)) {
+        throw new Error("resume-jd-difference-eval-locale-invalid");
+      }
+      outputLocale = requested;
       continue;
     }
     if (argument.startsWith("--prompts=")) {
@@ -117,7 +132,7 @@ function parseOptions(argv: string[]) {
     }
     throw new Error("resume-jd-difference-eval-argument-invalid");
   }
-  return { dryRun, maxCostUsd, variants };
+  return { dryRun, maxCostUsd, variants, outputLocale };
 }
 
 async function loadFixtures(cwd: string) {
@@ -154,22 +169,61 @@ function conservativeRates(schedule: AIPriceSchedule) {
   };
 }
 
-function usageFromEnvelope(value: unknown): AIUsage | null {
+function count(record: Record<string, unknown>, key: string) {
+  const value = record[key];
+  return typeof value === "number" && Number.isInteger(value) && value >= 0
+    ? value
+    : null;
+}
+
+/**
+ * Token usage from either endpoint the provider speaks.
+ *
+ * The analysis moved from chat completions to /responses, which reports
+ * usage under other names. This read only the old ones, so every run since
+ * was counted as zero tokens and the cost ledger recorded nothing spent.
+ * Both are read now, because the provider still uses both.
+ */
+export function usageFromEnvelope(value: unknown): AIUsage | null {
   if (!value || typeof value !== "object") return null;
   const usage = (value as { usage?: unknown }).usage;
   if (!usage || typeof usage !== "object") return null;
   const record = usage as Record<string, unknown>;
-  const token = (key: string) => {
-    const value = record[key];
-    return typeof value === "number" && Number.isInteger(value) && value >= 0
-      ? value
-      : 0;
-  };
+
+  const input = count(record, "input_tokens");
+  const output = count(record, "output_tokens");
+  if (input !== null || output !== null) {
+    const details = record.input_tokens_details;
+    const cached =
+      details && typeof details === "object"
+        ? (count(details as Record<string, unknown>, "cached_tokens") ?? 0)
+        : 0;
+    return {
+      inputCacheHitTokens: cached,
+      inputCacheMissTokens: Math.max(0, (input ?? 0) - cached),
+      outputTokens: output ?? 0,
+    };
+  }
+
   return {
-    inputCacheHitTokens: token("prompt_cache_hit_tokens"),
-    inputCacheMissTokens: token("prompt_cache_miss_tokens"),
-    outputTokens: token("completion_tokens"),
+    inputCacheHitTokens: count(record, "prompt_cache_hit_tokens") ?? 0,
+    inputCacheMissTokens: count(record, "prompt_cache_miss_tokens") ?? 0,
+    outputTokens: count(record, "completion_tokens") ?? 0,
   };
+}
+
+/**
+ * The output ceiling a request carries, under whichever name its endpoint
+ * uses. Exactly one: a body with both, or neither, is not one this harness
+ * knows how to bound.
+ */
+export function declaredOutputCap(body: unknown) {
+  if (!body || typeof body !== "object") return null;
+  const record = body as Record<string, unknown>;
+  const caps = [record.max_output_tokens, record.max_tokens].filter(
+    (cap) => cap !== undefined,
+  );
+  return caps.length === 1 && typeof caps[0] === "number" ? caps[0] : null;
 }
 
 function actualCost(usage: AIUsage, schedule: AIPriceSchedule, at: Date) {
@@ -212,8 +266,15 @@ function createTrackedFetch(input: {
     if (typeof init?.body !== "string") {
       throw new Error("resume-jd-difference-eval-request-invalid");
     }
-    const body = JSON.parse(init.body) as { max_tokens?: unknown };
-    if (body.max_tokens !== RESUME_JD_DIFFERENCE_EVAL_MAX_OUTPUT_TOKENS) {
+    // Checked on the request itself rather than trusted from configuration:
+    // this is the last point before money is spent. It used to look for
+    // `max_tokens` only, which /responses does not send, so every real call
+    // was refused here and the harness could not run at all. Only the dry
+    // run was tested, and the dry run never reaches this line.
+    if (
+      declaredOutputCap(JSON.parse(init.body)) !==
+      RESUME_JD_DIFFERENCE_EVAL_MAX_OUTPUT_TOKENS
+    ) {
       throw new Error("resume-jd-difference-eval-output-cap-invalid");
     }
     const reservation = ledger.reserve({
@@ -295,13 +356,14 @@ function average(scores: DifferenceCaseScore[], key: keyof DifferenceCaseScore) 
 function summarize(
   variant: DifferencePromptVariant,
   state: CandidateState,
+  outputLocale: AppLocale,
 ): DifferencePromptCandidateSummary {
   const attempts = sumAttempts(state.attempts);
   const sum = (key: keyof DifferenceCaseScore) =>
     state.scores.reduce((total, score) => total + Number(score[key]), 0);
   return {
     variant,
-    promptVersion: differencePrompt(variant, EVALUATION_OUTPUT_LOCALE).version,
+    promptVersion: differencePrompt(variant, outputLocale).version,
     schemaValidRate: average(state.scores, "schemaValid"),
     hardGateFailures: [
       ...new Set(
@@ -330,6 +392,7 @@ function summarize(
 
 function markdownReport(input: {
   model: string;
+  outputLocale: AppLocale;
   winner: DifferencePromptVariant | null;
   calls: number;
   costUsd: number;
@@ -339,6 +402,7 @@ function markdownReport(input: {
     "# Resume–JD Difference Prompt Evaluation",
     "",
     `- Model: ${input.model}`,
+    `- Output language: ${input.outputLocale}`,
     `- Winner: ${input.winner ?? "none"}`,
     `- Calls: ${input.calls}`,
     `- Estimated cost: USD ${input.costUsd.toFixed(6)}`,
@@ -348,12 +412,7 @@ function markdownReport(input: {
     ...input.candidates.map((candidate) =>
       [
         candidate.variant,
-        candidate.hardGateFailures.length === 0 &&
-        candidate.schemaValidRate === 1 &&
-        candidate.pasteReadyRewriteCount === 0 &&
-        candidate.fabricatedFactCount === 0
-          ? "yes"
-          : "no",
+        isEligibleDifferencePrompt(candidate) ? "yes" : "no",
         candidate.schemaValidRate.toFixed(3),
         candidate.coreIssueRecall.toFixed(3),
         String(candidate.falseSemanticAlignmentCount),
@@ -387,7 +446,7 @@ export async function runResumeJDDifferenceEvaluationCli(
     throw new Error("resume-jd-difference-eval-call-cap-invalid");
   }
   writeOutput(
-    `resume-jd-difference-eval-plan fixtures=${fixtures.length} prompts=${parsedOptions.variants.join(",")} max_calls=${maxCalls} max_cost_usd=${parsedOptions.maxCostUsd.toFixed(6)} max_output_tokens=${RESUME_JD_DIFFERENCE_EVAL_MAX_OUTPUT_TOKENS}`,
+    `resume-jd-difference-eval-plan fixtures=${fixtures.length} prompts=${parsedOptions.variants.join(",")} locale=${parsedOptions.outputLocale} max_calls=${maxCalls} max_cost_usd=${parsedOptions.maxCostUsd.toFixed(6)} max_output_tokens=${RESUME_JD_DIFFERENCE_EVAL_MAX_OUTPUT_TOKENS}`,
   );
   writeOutput(`fixtures=${fixtures.map(({ caseId }) => caseId).join(",")}`);
   if (parsedOptions.dryRun) return 0;
@@ -444,7 +503,7 @@ export async function runResumeJDDifferenceEvaluationCli(
             resumeText: fixture.resumeText,
             confirmedFacts: fixture.confirmedFacts,
           },
-          { promptVariant: variant, outputLocale: EVALUATION_OUTPUT_LOCALE },
+          { promptVariant: variant, outputLocale: parsedOptions.outputLocale },
         );
         score = evaluateDifferenceCase(fixture, result.data);
         counts = statusCounts(result.data);
@@ -464,7 +523,7 @@ export async function runResumeJDDifferenceEvaluationCli(
   }
 
   const candidates = parsedOptions.variants.map((variant) =>
-    summarize(variant, states.get(variant)!),
+    summarize(variant, states.get(variant)!, parsedOptions.outputLocale),
   );
   let winner: DifferencePromptVariant | null = null;
   try {
@@ -478,6 +537,7 @@ export async function runResumeJDDifferenceEvaluationCli(
   const collectedAt = now().toISOString();
   const report = {
     model,
+    outputLocale: parsedOptions.outputLocale,
     collectedAt,
     fixtureCount: fixtures.length,
     prompts: parsedOptions.variants,
@@ -505,6 +565,7 @@ export async function runResumeJDDifferenceEvaluationCli(
       markdownPath,
       markdownReport({
         model,
+        outputLocale: parsedOptions.outputLocale,
         winner,
         calls: budget.callCount,
         costUsd: budget.actualCostUsd,

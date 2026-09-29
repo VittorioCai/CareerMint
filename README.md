@@ -147,7 +147,7 @@ E2E_FAKE_EXTRACTOR=1 pnpm test:e2e
 | `pnpm db:start` / `pnpm db:reset` | 启动本地 Supabase、重放全部迁移 | Docker |
 | `pnpm test:db` | pgTAP：RLS 与 RPC 权限 | 本地 Supabase |
 | `pnpm db:types` | 从本地数据库重新生成 `src/lib/supabase/database.types.ts` | 本地 Supabase |
-| `pnpm eval:resume-jd-difference --dry-run` | 差异分析 prompt 评测的预演，不调用模型。去掉 `--dry-run` 的真实运行目前会在第一次调用时报错：脚本仍按旧接口检查 `max_tokens`，而差异分析已改发 `max_output_tokens`（待修） | 无 |
+| `pnpm eval:resume-jd-difference` | 差异分析 prompt 评测：6 个 fixture × 3 个 prompt，最多 18 次调用、1 美元。**会调用真实模型并产生费用**；加 `--dry-run` 只打印计划。`--locale=en` 评测英文输出，默认 `zh-CN`。没有 prompt 达到门槛（核心差异召回 ≥ 0.8、无一处把不支持的要求判为支持）时退出码为 2 | `DEEPSEEK_API_KEY`、`AI_PRICE_SCHEDULE_JSON` |
 
 `postinstall` 会运行 `scripts/sync-ocr-assets.mjs`：把 onnxruntime 的 WebAssembly 运行时复制到 `public/ocr/wasm/<版本>/`，并重新生成 `src/features/source-assets/ocr/runtime-version.ts`。这个文件是生成的，不要手改。`scripts/create-test-fixtures.mjs` 用来重新生成测试用的 PDF/DOCX。
 
