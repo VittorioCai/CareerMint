@@ -386,7 +386,9 @@ export function ResumeJDDifferencePanel({
         </p>
         <h2
           id="resume-jd-difference-title"
-          className="heading-font mt-2.5 max-w-[34ch] text-xl font-semibold leading-[1.4] sm:text-2xl"
+          // The model writes this sentence, so nobody can choose where it
+          // breaks. Between clauses, then, and never inside a word.
+          className="heading-font mt-2.5 max-w-[34ch] break-keep text-xl font-semibold leading-[1.4] wrap-anywhere sm:text-2xl"
         >
           {safeCopy(result.overallDifference.summary, copy.noEvidence)}
         </h2>

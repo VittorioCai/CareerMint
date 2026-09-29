@@ -336,6 +336,14 @@ button {
    * 让每次申请 collide into one block — the landing hero was at -0.065em, which
    * is -5px a character. This product's headlines are Chinese; the Latin runs
    * inside them give up nothing noticeable at these sizes.
+   *
+   * `keep-all` is there for the same reader. Between two CJK glyphs a line may
+   * break anywhere, and `balance` chooses among the places it may: evening out
+   * 欢迎回来，继续准备下一次申请。 put the break inside 准备. With `keep-all`
+   * the candidates are punctuation and spaces, so a headline breaks between
+   * clauses. `overflow-wrap` is the way out for a clause longer than the line,
+   * and it is what keeps a long one from widening a narrow column. Latin text
+   * breaks at spaces either way.
    */
   .type-display {
     font-size: clamp(2.5rem, 5.5vw, 4.5rem);
@@ -343,6 +351,8 @@ button {
     line-height: 1.12;
     letter-spacing: 0;
     text-wrap: balance;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 
   .type-title {
@@ -351,6 +361,8 @@ button {
     line-height: 1.25;
     letter-spacing: 0;
     text-wrap: balance;
+    word-break: keep-all;
+    overflow-wrap: anywhere;
   }
 
   @media (min-width: 640px) {
