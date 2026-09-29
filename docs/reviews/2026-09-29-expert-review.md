@@ -14,6 +14,42 @@
 
 ---
 
+## 处理状态（2026-09-29 更新）
+
+下文各节描述的是审查基线 `b8a598f` 当时的状态，原文未改。第一档在同一分支上已处理，下表记录做了什么、和建议有什么出入、哪些还没验证过。行号以基线为准，对已改动的文件不再准确。
+
+### 已处理
+
+| 条目 | 结果 | 与建议的出入 |
+|---|---|---|
+| P1 过期承诺 | 落地页、登录页、首页文案两种语言各改 7 处；README 重写流程 / 范围 / 隐私 / 环境变量 | 落地页演示卡里无行为的"查看建议"按钮未处理 |
+| E4 遗留物 | 删除 `eval:jd-gap`、六个孤儿 fixture、`JD_GAP_MATCH_PROMPT_VARIANT`；`.env.example` 补 `RESUME_JD_DIFFERENCE_PROMPT_VARIANT`；README 加脚本一览 | `docx` / `pdf-lib` 保留 |
+| P3 事实删除确认 | 删除前弹窗复述该事实；删除后列表顶部显示回执并接管焦点 | 用的是 Modal 而非 inline 确认，与同组件的"确认真实"一致 |
+| P8 / X8 中文残留 | 5 个词典值、题库页 2 处、引导页 `STEP` 均已进词典 | "zh 值不得等于 en 值"的守卫、登录后丢失深链未处理 |
+| F3 错误页 | 根目录与 `(app)` 各一套 `error.tsx` / `not-found.tsx`，外加 `global-error.tsx` | 无 |
+| S4 安全头 | HSTS、nosniff、Referrer-Policy、Permissions-Policy、`X-Frame-Options`、`frame-ancestors` / `base-uri` / `object-src` / `form-action` | 框架限制用 `SAMEORIGIN` / `'self'` 而非 `DENY` / `'none'`：简历预览是同源 iframe。**没有 `script-src`**，见下 |
+| S7 遗留 RPC | 迁移 `202609290001` 收回授权，pgTAP 断言 42501 | 无 |
+| A2 模型名 | 三处比较收敛为 `priceScheduleFor`，不匹配时打 `ai-price-schedule-model-mismatch`；CI 两处模型名统一 | 在服务层而非路由模块初始化时比较；运行记录里仍不区分"未配置"与"不匹配" |
+| X1 OCR runtime | 改用 `onnxruntime-web/wasm`，wasm 26.8 → 13.5 MB；注释数字改为实测值 | 只做了 (a) 和 (b)；opencv 去重未动 |
+| E1 失败测试 | 在 `blob()` 处打桩，并断言到达 OCR 的文件内容 | 无 |
+| E5 Node 版本 | 加 `.node-version`；CI `app` job 同时跑 22 与 24；`@types/node` 升到 22 | `engines` 未改：部署平台按它选运行时，收窄它是部署决定 |
+| E2 CI 传参 | 去掉 `--` | 无 |
+| X3 性能预算（部分） | 预算扩到五条登录后路由 | `/applications/{id}?tab=difference` 未纳入；"无 OCR 请求"断言与面试卡片延迟渲染未做 |
+
+### 已改但未验证
+
+- **S7 的迁移和 pgTAP 断言没有运行过。** 处理时本机 Docker 引擎不可用。上线前跑 `pnpm db:reset && pnpm test:db`。
+- **`pnpm test:e2e`、`test:e2e:real-ocr`、`test:e2e:perf` 都没有跑。** 同样依赖本地 Supabase。X1 只在浏览器里单独加载两个模型并推理验证过；性能预算的数字是在旧样式上量的。
+- **E1 只在 Node 24 下跑过。** Node 22 由 CI 的新矩阵第一次验证。
+- **错误页只有组件测试**，没有在真实的渲染异常下看过。
+
+### 仍然成立的风险
+
+- **S4 没有脚本策略。** 有意义的 `script-src` 需要 proxy 逐请求生成 nonce，并先在 OCR runtime 与 PDF.js worker 上验证。在此之前，§4 S4 所说"注入能拿到 session"仍然成立。
+- **S1 未处理。** 付费 AI 端点仍无配额，这是第一档里唯一没做的一条。
+
+---
+
 ## 1. 总览
 
 ### 1.1 一句话
