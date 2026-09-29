@@ -345,8 +345,12 @@ button {
    * and it is what keeps a long one from widening a narrow column. Latin text
    * breaks at spaces either way.
    */
+  /* Sized so the button under it is on the first screen. At 5.5vw and a 72px
+     ceiling the English headline ran to four lines of 79px in its half of the
+     page, and on a 1280×800 laptop the primary action sat five pixels below
+     the fold. 60px is still the largest type on the site by a wide margin. */
   .type-display {
-    font-size: clamp(2.5rem, 5.5vw, 4.5rem);
+    font-size: clamp(2.5rem, 4.7vw, 3.75rem);
     font-weight: 700;
     line-height: 1.12;
     letter-spacing: 0;

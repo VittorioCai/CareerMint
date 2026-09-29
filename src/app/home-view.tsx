@@ -97,7 +97,7 @@ export function HomeView({
         </div>
       </nav>
 
-      <section className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-16">
+      <section className="mx-auto grid w-full max-w-[1180px] grid-cols-1 gap-12 px-5 pb-20 pt-10 sm:px-8 lg:grid-cols-[0.94fr_1.06fr] lg:items-center lg:px-10 lg:pb-28 lg:pt-10">
         <div className="relative z-10 max-w-[620px]">
           <div className="mb-7 inline-flex items-center gap-2 rounded-full border border-[var(--line)] bg-[var(--paper)] px-4 py-2 text-sm font-semibold shadow-[var(--elevation-1)]">
             <span className="flex size-5 items-center justify-center rounded-full bg-[var(--paper)]"><CheckIcon /></span>
