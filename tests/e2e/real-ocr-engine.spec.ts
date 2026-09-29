@@ -10,10 +10,12 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * served would pass lint, typecheck, unit tests, the rest of the e2e suite and
  * the production build, and only break for a real user with a scanned resume.
  *
- * Tagged @real-ocr and excluded from `pnpm test:e2e`: it downloads tens of
- * megabytes from third-party CDNs, so it is too slow and too network-dependent
- * to gate every push. Run it with `pnpm test:e2e:real-ocr` before and after any
- * change to OCR asset loading.
+ * Tagged @real-ocr and excluded from `pnpm test:e2e`: instantiating the
+ * runtime and recognising real pages takes minutes on a shared runner, which
+ * is too slow to gate every push. Nothing it loads is third-party any more —
+ * the models are committed under public/ocr/models and the runtime is copied
+ * from node_modules — so it needs no network beyond this origin. Run it with
+ * `pnpm test:e2e:real-ocr` before and after any change to OCR asset loading.
  */
 
 const password = "CareerMint123!";

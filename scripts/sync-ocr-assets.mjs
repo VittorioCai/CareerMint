@@ -6,7 +6,7 @@
  * The model weights next to it in public/ocr/models are committed: they come
  * from Baidu object storage, which is slow from Europe and unreachable from
  * some networks, and the observed failure mode is a hang rather than an error.
- * The runtime is copied rather than committed because it is 26 MB and already
+ * The runtime is copied rather than committed because it is 13 MB and already
  * pinned by the lockfile.
  *
  * Runs on postinstall so `next dev`, `next build` and CI all get the same
@@ -25,8 +25,8 @@ import {
 import { dirname, join, resolve } from "node:path";
 
 const RUNTIME_FILES = [
-  "ort-wasm-simd-threaded.jsep.wasm",
-  "ort-wasm-simd-threaded.jsep.mjs",
+  "ort-wasm-simd-threaded.wasm",
+  "ort-wasm-simd-threaded.mjs",
 ];
 const MODEL_FILES = [
   "PP-OCRv6_tiny_det_onnx_infer.tar",
@@ -37,16 +37,16 @@ const require = createRequire(import.meta.url);
 const projectRoot = resolve(dirname(new URL(import.meta.url).pathname), "..");
 
 // The runtime goes under its own version, because the filename does not carry
-// one: `ort-wasm-simd-threaded.jsep.wasm` is the same string in every release.
+// one: `ort-wasm-simd-threaded.wasm` is the same string in every release.
 // Without the version in the path, caching it immutably would pin a stale
 // runtime on every returning user after an upgrade — and not caching it costs
-// 6 MB (gzipped) on every session that touches a scanned PDF.
+// 3.4 MB (gzipped) on every session that touches a scanned PDF.
 // The package does not export ./package.json, so read it next to a file it
 // does export rather than reaching into node_modules by guesswork.
 const runtimeVersion = JSON.parse(
   await readFile(
     join(
-      dirname(require.resolve("onnxruntime-web/ort-wasm-simd-threaded.jsep.wasm")),
+      dirname(require.resolve("onnxruntime-web/ort-wasm-simd-threaded.wasm")),
       "..",
       "package.json",
     ),
@@ -84,6 +84,13 @@ async function copyRuntime() {
     }
   }
   await mkdir(wasmTarget, { recursive: true });
+  // So are files of this version that are no longer asked for: a build of the
+  // runtime that was dropped from RUNTIME_FILES would otherwise ship forever.
+  for (const entry of await readdir(wasmTarget)) {
+    if (!RUNTIME_FILES.includes(entry)) {
+      await rm(join(wasmTarget, entry), { force: true });
+    }
+  }
   for (const file of RUNTIME_FILES) {
     let from;
     try {

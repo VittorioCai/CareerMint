@@ -49,11 +49,17 @@ const nextConfig: NextConfig = {
         ],
       },
       {
-        // The OCR runtime and models are 11 MB over the wire even gzipped, and
-        // the default for /public is `max-age=0` — a revalidation round trip
-        // before every scanned PDF, on every session. Both are safe to keep
-        // forever: the runtime lives under its resolved version (see
+        // The OCR runtime and models are 9 MB over the wire even gzipped
+        // (3.4 MB of WebAssembly, 5.7 MB of weights), and the default for
+        // /public is `max-age=0` — a revalidation round trip before every
+        // scanned PDF, on every session. Both are safe to keep forever: the
+        // runtime lives under its resolved version (see
         // scripts/sync-ocr-assets.mjs) and the model filenames carry theirs.
+        //
+        // That is what this path serves, not what a first scanned PDF costs.
+        // PaddleOCR's worker, which carries opencv.js, is another 3.6 MB and
+        // PDF.js with its worker 0.5 MB; both are hashed chunks under
+        // /_next/static and cached by Next. About 13 MB in all.
         source: "/ocr/:path*",
         headers: [
           {
