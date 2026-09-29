@@ -879,6 +879,9 @@ export const en = {
     checklistEyebrow: "Common + job increment",
     checklistTitle: "This job's checklist",
     backToApplications: "← Back to my applications",
+    jdTitle: "Job description, as saved",
+    jdLength: "{count} characters",
+    jobLink: "Open the job posting",
   },
   resume: {
     uploadLabel: "Upload a resume you have",

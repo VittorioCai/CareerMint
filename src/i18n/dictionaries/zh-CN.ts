@@ -806,6 +806,9 @@ export const zhCN: Dictionary = {
     checklistEyebrow: "通用题 + 岗位增量题",
     checklistTitle: "本岗位准备清单",
     backToApplications: "← 返回我的投递",
+    jdTitle: "保存的 JD 原文",
+    jdLength: "{count} 字",
+    jobLink: "打开岗位链接",
   },
   resume: {
     uploadLabel: "上传现有简历",

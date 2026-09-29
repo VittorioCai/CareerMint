@@ -80,6 +80,19 @@ function formatDate(value: string | null, locale: AppLocale) {
   return formatDay(value, locale, "long");
 }
 
+/** Only a link the browser will treat as one to a web page. */
+function webUrl(value: string | null) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" || url.protocol === "http:"
+      ? url.toString()
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 function Overview({
   application,
   nextStep,
@@ -95,6 +108,8 @@ function Overview({
   common: Dictionary["common"];
   detail: Dictionary["detail"];
 }) {
+  const jobUrl = webUrl(application.jobUrl);
+
   return (
     <div className="space-y-5">
       {nextStep ? (
@@ -159,6 +174,48 @@ function Overview({
         </div>
         </aside>
       </div>
+      {/* The text everything else on this application is measured against.
+          It was pasted in once and then shown nowhere: the only way to read
+          it again was a sentence at a time, as quotations inside the
+          analysis. Closed by default — it can be a hundred thousand
+          characters. */}
+      <details className="reveal group dense-surface">
+        <summary className="flex min-h-12 cursor-pointer list-none items-center justify-between gap-3 px-4 py-3 [&::-webkit-details-marker]:hidden">
+          <span className="min-w-0">
+            <span className="block text-sm font-semibold">{detail.jdTitle}</span>
+            <span className="mt-0.5 block text-xs font-medium text-[var(--ink-muted)]">
+              {detail.jdLength.replace(
+                "{count}",
+                application.jdText.length.toLocaleString(locale),
+              )}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className="grid size-7 shrink-0 place-items-center text-[var(--ink-muted)] transition-transform group-open:rotate-180"
+          >
+            <svg viewBox="0 0 20 20" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M5 8l5 5 5-5" />
+            </svg>
+          </span>
+        </summary>
+        <div className="border-t border-[var(--line)] px-4 py-4">
+          {jobUrl ? (
+            <a
+              href={jobUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-action mb-3 text-sm font-semibold underline decoration-[var(--ink-soft)] underline-offset-4 hover:decoration-[var(--ink)]"
+            >
+              {detail.jobLink} <span aria-hidden="true">↗</span>
+            </a>
+          ) : null}
+          {/* The posting's own language, which the page does not know. */}
+          <p lang="und" className="foreign whitespace-pre-wrap type-body">
+            {application.jdText}
+          </p>
+        </div>
+      </details>
       <aside className="rounded-2xl border border-[var(--danger-line)] bg-[var(--paper)] p-5">
         <p className="text-xs font-semibold uppercase tracking-[0.12em] text-[var(--danger)]">{detail.deleteEyebrow}</p>
         <p className="mt-2 type-caption text-[var(--ink-muted)]">
