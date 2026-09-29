@@ -89,7 +89,9 @@ export function ManualFactForm({
     ) : (
       <button
         type="button"
-        className="press button-primary inline-flex min-h-11 items-center px-5 text-sm font-bold"
+        // Secondary: on a page of facts the thing to do next is check them,
+        // and adding one by hand is the side door.
+        className="press button-secondary inline-flex min-h-11 items-center px-5 text-sm font-bold"
         onClick={() => setOpen(true)}
       >
         {copy.addFact}

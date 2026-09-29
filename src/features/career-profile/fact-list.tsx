@@ -76,9 +76,12 @@ export function FactList({
               {copy.emptyBody}
             </p>
             <div className="mt-6 flex flex-col items-center gap-3">
+              {/* The recommended way in, so it is the primary button. It was
+                  the grey one, on a page whose only other button — adding a
+                  fact by hand, once there are facts — was the black one. */}
               <Link
                 href="/app"
-                className="button-secondary press inline-flex min-h-11 items-center px-5 text-sm font-semibold"
+                className="button-primary press inline-flex min-h-11 items-center px-5 text-sm font-semibold"
               >
                 {copy.goUpload}
               </Link>
