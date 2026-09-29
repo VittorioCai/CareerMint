@@ -131,9 +131,23 @@ export function FactEditor({
             </div>
           ) : null}
           {fact.sourceExcerpt ? (
-            <details className="reveal rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
-              <summary className="text-action cursor-pointer text-xs font-semibold">{copy.viewEvidence}</summary>
-              <p className="mt-2 whitespace-pre-wrap break-words text-xs font-medium leading-5 text-[var(--ink-muted)]">
+            <details className="reveal group rounded-xl border border-[var(--line)] bg-[var(--canvas)] px-3">
+              {/* A flex row, so the label sits in the middle of the 44px a
+                  phone gives it instead of at the top. A flex summary has no
+                  marker of its own; the chevron is the one the difference rows
+                  use. */}
+              <summary className="text-action flex min-h-10 cursor-pointer list-none items-center justify-between gap-3 text-xs font-semibold [&::-webkit-details-marker]:hidden">
+                {copy.viewEvidence}
+                <span
+                  aria-hidden="true"
+                  className="grid size-5 shrink-0 place-items-center text-[var(--ink-muted)] transition-transform group-open:rotate-180"
+                >
+                  <svg viewBox="0 0 20 20" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M5 8l5 5 5-5" />
+                  </svg>
+                </span>
+              </summary>
+              <p className="whitespace-pre-wrap break-words pb-3 text-xs font-medium leading-5 text-[var(--ink-muted)]">
                 {fact.sourceExcerpt}
               </p>
             </details>
