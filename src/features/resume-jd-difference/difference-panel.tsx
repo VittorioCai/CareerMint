@@ -349,17 +349,44 @@ export function ResumeJDDifferencePanel({
     >
       {/* The page's one sticker. It carries the conclusion, not decoration. */}
       <section className="soft-surface px-6 py-5 sm:px-7">
+        {/* Out of date is the first thing to know about a result, and it was
+            the last thing the card said: a 6px dot changing colour and one
+            line of 12px grey, under a verdict still set in full ink. Now it
+            is a band across the top, and the verdict below steps back.
+
+            Why it is out of date is said here too, once, next to the result.
+            The control used to carry it, where "the material changed" was the
+            only reason it knew how to give — false after a language switch,
+            which sends the reader to check inputs they never touched. */}
+        {stale ? (
+          <div
+            data-testid="stale-result"
+            className="mb-4 rounded-xl bg-[var(--sev-important)] px-4 py-3 text-[var(--sev-important-ink)]"
+          >
+            <p className="text-sm font-semibold">{copy.stale}</p>
+            <p className="mt-0.5 text-sm font-medium leading-6">
+              {otherLanguage ? copy.otherLanguage : copy.staleMaterial}
+            </p>
+          </div>
+        ) : null}
         <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-normal text-[var(--ink-muted)]">
-          <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)]">
-            <span
-              aria-hidden="true"
-              className={`size-1.5 rounded-full ${stale ? "bg-[var(--sev-critical-ink)]" : "bg-[var(--mint-strong)]"}`}
-            />
-            {stale ? copy.stale : copy.complete}
-          </span>
+          {stale ? null : (
+            <span className="inline-flex items-center gap-1.5 font-semibold text-[var(--ink)]">
+              <span
+                aria-hidden="true"
+                className="size-1.5 rounded-full bg-[var(--mint-strong)]"
+              />
+              {copy.complete}
+            </span>
+          )}
+          {/* A separator goes before an item, never after one, so whichever
+              item comes first in a given state has nothing dangling in front
+              of it. */}
           {otherLanguage ? (
             <>
-              <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+              {stale ? null : (
+                <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+              )}
               {/* Named in its own language, from the same map the switch uses:
                   a reader recognises "English" or "中文" without having to be
                   able to read the other one. */}
@@ -371,24 +398,18 @@ export function ResumeJDDifferencePanel({
               </span>
             </>
           ) : null}
-          <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+          {stale && !otherLanguage ? null : (
+            <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+          )}
           <span lang="und">{run.sourceFilename}</span>
-          {/* Why it is out of date, said once and next to the result. The
-              control used to carry this, where "the material changed" was
-              the only reason it knew how to give — false after a language
-              switch, which sends the reader to check inputs they never
-              touched. */}
-          {stale ? (
-            <span className="basis-full text-[var(--ink-muted)]">
-              {otherLanguage ? copy.otherLanguage : copy.staleMaterial}
-            </span>
-          ) : null}
         </p>
         <h2
           id="resume-jd-difference-title"
           // The model writes this sentence, so nobody can choose where it
           // breaks. Between clauses, then, and never inside a word.
-          className="heading-font mt-2.5 max-w-[34ch] break-keep text-xl font-semibold leading-[1.4] wrap-anywhere sm:text-2xl"
+          className={`heading-font mt-2.5 max-w-[34ch] break-keep text-xl font-semibold leading-[1.4] wrap-anywhere sm:text-2xl ${
+            stale ? "text-[var(--ink-muted)]" : ""
+          }`}
         >
           {safeCopy(result.overallDifference.summary, copy.noEvidence)}
         </h2>

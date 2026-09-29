@@ -554,6 +554,32 @@ describe("ResumeJDDifferencePanel", () => {
     expect(screen.queryByText("分析已完成")).not.toBeInTheDocument();
   });
 
+  it("says a result is out of date before it says what the result was", () => {
+    render(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+        stale
+        readerLocale="zh-CN"
+      />,
+    );
+
+    // A band with the reason in it, ahead of the verdict in the document —
+    // not a dot that changes colour beside a line of small grey type.
+    const band = screen.getByTestId("stale-result");
+    expect(band).toHaveTextContent(zhCN.difference.stale);
+    expect(band).toHaveTextContent(zhCN.difference.staleMaterial);
+    // The section is labelled by its verdict, so the label leads to it.
+    const verdict = document.getElementById("resume-jd-difference-title")!;
+    expect(
+      band.compareDocumentPosition(verdict) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    // And the verdict steps back: it describes material that has since changed.
+    expect(verdict).toHaveClass("text-[var(--ink-muted)]");
+  });
+
   it("offers a Markdown export for the displayed run and marks previous results", () => {
     const { rerender } = render(
       <ResumeJDDifferencePanel
