@@ -223,6 +223,15 @@ export const en = {
     saveEdits: "Save changes",
     editFact: "Edit fact",
     deleteFact: "Delete fact",
+    deleteEyebrow: "Irreversible",
+    deleteTitle: "Delete this career fact?",
+    deleteBody:
+      "This cannot be undone. Later analyses and interview prep will no longer be able to cite it as evidence.",
+    deleting: "Deleting…",
+    confirmDelete: "Delete for good",
+    // {title} is the fact's own title, in whatever language it was written.
+    deletedReceipt: "Deleted: {title}",
+    dismissReceipt: "Dismiss",
     confirmTrue: "Confirm as true",
     needsDetail: "Needs detail",
     viewEvidence: "See the original evidence",

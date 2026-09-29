@@ -6,6 +6,7 @@ import { Modal } from "@/components/modal";
 import type { Dictionary } from "@/i18n/dictionaries/en";
 
 import { FactFields } from "./fact-fields";
+import { useAnnounceFactReceipt } from "./fact-receipt";
 import {
   FactFormMappingError,
   factDataToFormValues,
@@ -38,8 +39,10 @@ export function FactEditor({
   common: Dictionary["common"];
 }) {
   const statusCopy = copy.status;
+  const announceReceipt = useAnnounceFactReceipt();
   const [editing, setEditing] = useState(false);
   const [confirming, setConfirming] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [explicit, setExplicit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -97,9 +100,7 @@ export function FactEditor({
             type="button"
             className="min-h-10 rounded-xl border border-[var(--line)] px-3 text-xs font-semibold text-[var(--error)]"
             disabled={busy}
-            onClick={() =>
-              void run(() => actions.remove({ factId: fact.id }))
-            }
+            onClick={() => setDeleting(true)}
           >
             {copy.deleteFact}
           </button>
@@ -288,6 +289,52 @@ export function FactEditor({
             }
           >
             {copy.confirmAndSave}
+          </button>
+        </div>
+      </Modal>
+
+      {/* Facts are what every analysis cites, and a deleted one does not come
+          back. One stray click should not be enough. */}
+      <Modal
+        open={deleting}
+        label={copy.deleteTitle}
+        onClose={() => {
+          if (!busy) setDeleting(false);
+        }}
+      >
+        <p className="text-xs font-semibold uppercase tracking-[0.14em] text-[var(--ink-muted)]">{copy.deleteEyebrow}</p>
+        <h2 className="heading-font mt-2 text-2xl font-bold">{copy.deleteTitle}</h2>
+        <div className="mt-4 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-4">
+          <p className="font-semibold">{data.title}</p>
+          <p className="mt-2 whitespace-pre-wrap type-body">{data.description}</p>
+        </div>
+        <p className="mt-4 text-sm font-medium leading-6 text-[var(--ink-muted)]">{copy.deleteBody}</p>
+        <div className="mt-6 flex flex-wrap justify-end gap-2">
+          <button
+            type="button"
+            className="button-secondary min-h-10 px-4 text-sm font-semibold"
+            disabled={busy}
+            onClick={() => setDeleting(false)}
+          >
+            {common.cancel}
+          </button>
+          <button
+            type="button"
+            className="button-danger min-h-10 px-4 text-sm font-semibold disabled:opacity-60"
+            disabled={busy}
+            onClick={() =>
+              // Closed either way: a failure is reported by the alert on the
+              // card, which the dialog would otherwise be covering.
+              void run(
+                () => actions.remove({ factId: fact.id }),
+                () =>
+                  announceReceipt(
+                    copy.deletedReceipt.replace("{title}", data.title),
+                  ),
+              ).finally(() => setDeleting(false))
+            }
+          >
+            {busy ? copy.deleting : copy.confirmDelete}
           </button>
         </div>
       </Modal>

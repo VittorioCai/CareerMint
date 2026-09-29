@@ -79,6 +79,24 @@ describe("FactEditor", () => {
     expect(screen.getByRole("button", { name: "删除事实" })).toBeVisible();
   });
 
+  it("deletes only after the dialog that repeats the fact is confirmed", async () => {
+    const user = userEvent.setup();
+    const factActions = actions();
+    render(<FactEditor copy={zhCN.profile} common={zhCN.common} fact={pendingFact} actions={factActions} />);
+
+    await user.click(screen.getByRole("button", { name: "删除事实" }));
+    const dialog = screen.getByRole("dialog", { name: "删除这条职业事实？" });
+    expect(dialog).toHaveTextContent("Checkout conversion improvement");
+    expect(factActions.remove).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "取消" }));
+    expect(factActions.remove).not.toHaveBeenCalled();
+
+    await user.click(screen.getByRole("button", { name: "删除事实" }));
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+    expect(factActions.remove).toHaveBeenCalledWith({ factId: pendingFact.id });
+  });
+
   it("uses the same category-specific language fields when editing", async () => {
     const user = userEvent.setup();
     render(

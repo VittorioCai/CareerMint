@@ -1,4 +1,5 @@
 import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 
 // FactList reaches for the server actions itself, and those pull in
@@ -12,6 +13,7 @@ vi.mock("./actions", () => ({
   updateFactAction: vi.fn(),
 }));
 
+import { deleteFactAction } from "./actions";
 import { FactList } from "./fact-list";
 import type { CareerFact } from "./schemas";
 import { zhCN } from "@/i18n/dictionaries/zh-CN";
@@ -38,6 +40,29 @@ function fact(index: number, overrides: Partial<CareerFact> = {}): CareerFact {
 }
 
 describe("FactList", () => {
+  it("says what was deleted, from somewhere that outlives the card", async () => {
+    const user = userEvent.setup();
+    vi.mocked(deleteFactAction).mockResolvedValue({ ok: true });
+    const { rerender } = render(
+      <FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(1), fact(2)]} />,
+    );
+    const receipt = screen.getByRole("status");
+    expect(receipt).toBeEmptyDOMElement();
+
+    await user.click(screen.getAllByRole("button", { name: "删除事实" })[0]);
+    await user.click(screen.getByRole("button", { name: "确认删除" }));
+
+    // What revalidation does: the list comes back without the fact.
+    rerender(
+      <FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(2)]} />,
+    );
+    expect(screen.getByRole("status")).toHaveTextContent("已删除：跨部门业务复盘 1");
+    expect(screen.getByRole("status")).toHaveFocus();
+
+    await user.click(screen.getByRole("button", { name: "知道了" }));
+    expect(screen.getByRole("status")).toBeEmptyDOMElement();
+  });
+
   it("only shows the categories that have something in them", () => {
     render(<FactList copy={zhCN.profile} common={zhCN.common} facts={[fact(1)]} />);
 

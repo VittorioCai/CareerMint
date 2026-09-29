@@ -10,6 +10,7 @@ import {
   updateFactAction,
 } from "./actions";
 import { FactEditor } from "./fact-editor";
+import { FactReceiptProvider, FactReceiptRegion } from "./fact-receipt";
 import { ManualFactForm } from "./manual-fact-form";
 import type { CareerFact } from "./schemas";
 
@@ -41,6 +42,7 @@ export function FactList({
   };
 
   return (
+    <FactReceiptProvider>
     <div
       className={`mt-6 grid min-w-0 gap-5 ${
         groups.length > 1 ? "xl:grid-cols-[230px_minmax(0,1fr)]" : ""
@@ -65,6 +67,7 @@ export function FactList({
       ) : null}
 
       <div className="min-w-0">
+        <FactReceiptRegion dismissLabel={copy.dismissReceipt} />
         {facts.length ? <ManualFactForm createFact={createFactAction} copy={copy} common={common} /> : null}
         {facts.length === 0 ? (
           <div className="soft-surface mt-4 px-7 py-10 text-center">
@@ -112,5 +115,6 @@ export function FactList({
         )}
       </div>
     </div>
+    </FactReceiptProvider>
   );
 }
