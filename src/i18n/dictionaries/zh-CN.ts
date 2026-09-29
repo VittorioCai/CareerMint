@@ -403,7 +403,7 @@ export const zhCN: Dictionary = {
     jobWants: "这个岗位真正要什么",
     listTitle: "逐条差异 · 按严重度排序",
     allMatchedTitle: "岗位要求 · 全部已对上",
-    listHint: "点任意一行展开依据 · 珊瑚色行是改简历前必须先看的",
+    listHint: "点任意一行展开依据 · 标着「关键」的行，改简历前先看",
     allMatchedHint: "点任意一行看简历里对应的原文",
     nextInterview: "下一步：准备面试",
     nextImprovements: "下一步：查看完善建议",

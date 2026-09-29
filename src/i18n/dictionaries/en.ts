@@ -440,7 +440,7 @@ export const en = {
     jobWants: "What this job is actually asking for",
     listTitle: "Differences, most severe first",
     allMatchedTitle: "Every requirement · matched",
-    listHint: "Open any row for the evidence · the coral rows come before any editing",
+    listHint: "Open any row for the evidence · read the ones marked Critical before you edit anything",
     allMatchedHint: "Open any row to see the matching text in the resume",
     nextInterview: "Next: prepare for the interview",
     nextImprovements: "Next: read the guidance",
