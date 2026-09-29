@@ -605,6 +605,8 @@ export type Database = {
           prompt_version: string
           provider: string
           result: Json | null
+          resume_text_sha256: string | null
+          resume_text_source: string
           schema_version: string
           source_asset_id: string | null
           source_filename: string
@@ -633,6 +635,8 @@ export type Database = {
           prompt_version: string
           provider: string
           result?: Json | null
+          resume_text_sha256?: string | null
+          resume_text_source?: string
           schema_version: string
           source_asset_id?: string | null
           source_filename: string
@@ -661,6 +665,8 @@ export type Database = {
           prompt_version?: string
           provider?: string
           result?: Json | null
+          resume_text_sha256?: string | null
+          resume_text_source?: string
           schema_version?: string
           source_asset_id?: string | null
           source_filename?: string
@@ -948,6 +954,8 @@ export type Database = {
           prompt_version: string
           provider: string
           result: Json | null
+          resume_text_sha256: string | null
+          resume_text_source: string
           schema_version: string
           source_asset_id: string | null
           source_filename: string
@@ -1025,6 +1033,8 @@ export type Database = {
           provider: string
           request_id: string | null
           result: Json | null
+          resume_text_sha256: string | null
+          resume_text_source: string
           schema_version: string
           status: string
           updated_at: string
@@ -1048,6 +1058,8 @@ export type Database = {
           target_policy_version: string
           target_prompt_version: string
           target_provider: string
+          target_resume_text_sha256?: string
+          target_resume_text_source?: string
           target_schema_version: string
           target_source_asset_id: string
           target_source_filename: string
@@ -1072,6 +1084,8 @@ export type Database = {
           prompt_version: string
           provider: string
           result: Json | null
+          resume_text_sha256: string | null
+          resume_text_source: string
           schema_version: string
           source_asset_id: string | null
           source_filename: string
@@ -1212,6 +1226,8 @@ export type Database = {
           prompt_version: string
           provider: string
           result: Json | null
+          resume_text_sha256: string | null
+          resume_text_source: string
           schema_version: string
           source_asset_id: string | null
           source_filename: string

@@ -151,6 +151,11 @@ function repository(supabase: ReturnType<typeof client>) {
   return createResumeJDDifferenceRepository(async () => supabase as never);
 }
 
+/** The page asks a question of a run; most tests only need the simplest one. */
+function hashIs(expected: string) {
+  return (run: { inputHash: string }) => run.inputHash === expected;
+}
+
 describe("resume JD difference repository", () => {
   it("calls owner-safe RPCs with exact parameters", async () => {
     const supabase = client();
@@ -239,6 +244,77 @@ describe("resume JD difference repository", () => {
     );
   });
 
+  it("sends the text's source and hash only when text was supplied", async () => {
+    const supabase = client();
+    const runs = repository(supabase);
+    const shared = {
+      applicationId,
+      sourceAssetId: assetId,
+      sourceFilename: "resume.pdf",
+      sourceSha256: "a".repeat(64),
+      jdSha256: "b".repeat(64),
+      factFingerprint: "c".repeat(64),
+      inputHash: "d".repeat(64),
+      provider: "deepseek",
+      model: "deepseek-v4-flash",
+      schemaVersion: "resume-jd-difference-v4",
+      promptVersion: "resume-jd-difference-p1-v4.0",
+      policyVersion: "resume-jd-difference-policy-v4.0",
+      outputLocale: "zh-CN" as const,
+    };
+
+    await runs.createOrGet(shared);
+    await runs.createOrGet({
+      ...shared,
+      resumeText: { source: "paste", sha256: "9".repeat(64) },
+    });
+
+    // Thirteen arguments, as before. That is the call a database without the
+    // two new ones still understands.
+    expect(Object.keys(supabase.rpc.mock.calls[0][1])).toHaveLength(13);
+    expect(supabase.rpc.mock.calls[1][1]).toMatchObject({
+      target_resume_text_source: "paste",
+      target_resume_text_sha256: "9".repeat(64),
+    });
+  });
+
+  it("reads a row from before the text was recorded as the file's", async () => {
+    // No such columns: the code reached a database the migration has not.
+    const runs = repository(client([row()]));
+
+    await expect(runs.getOwned(userId, runId)).resolves.toMatchObject({
+      resumeTextSource: "file",
+      resumeTextSha256: null,
+    });
+  });
+
+  it("maps the source and hash of supplied text", async () => {
+    const runs = repository(
+      client([
+        row({ resume_text_source: "ocr", resume_text_sha256: "9".repeat(64) }),
+      ]),
+    );
+
+    await expect(runs.getOwned(userId, runId)).resolves.toMatchObject({
+      resumeTextSource: "ocr",
+      resumeTextSha256: "9".repeat(64),
+    });
+  });
+
+  it.each([
+    ["supplied text with no hash", { resume_text_source: "ocr", resume_text_sha256: null }],
+    ["the file's text with a second hash", { resume_text_source: "file", resume_text_sha256: "9".repeat(64) }],
+    ["a source the product does not have", { resume_text_source: "fax", resume_text_sha256: "9".repeat(64) }],
+  ])("rejects a stored run with %s", async (_label, columns) => {
+    const runs = repository(client([row(columns)]));
+
+    await expect(runs.getOwned(userId, runId)).rejects.toEqual(
+      new ResumeJDDifferenceRepositoryError(
+        "invalid-stored-resume-jd-difference",
+      ),
+    );
+  });
+
   it("maps and validates an atomic succeeded run", async () => {
     const runs = repository(client([row()]));
 
@@ -265,7 +341,7 @@ describe("resume JD difference repository", () => {
     const runs = repository(client([current, current]));
 
     await expect(
-      runs.getView(userId, applicationId, "d".repeat(64)),
+      runs.getView(userId, applicationId, hashIs("d".repeat(64))),
     ).resolves.toMatchObject({
       current: { id: runId, status: "succeeded" },
       previousSucceeded: null,
@@ -287,7 +363,7 @@ describe("resume JD difference repository", () => {
     const runs = repository(client([running, previous]));
 
     await expect(
-      runs.getView(userId, applicationId, "d".repeat(64)),
+      runs.getView(userId, applicationId, hashIs("d".repeat(64))),
     ).resolves.toMatchObject({
       current: { id: running.id, status: "running" },
       previousSucceeded: { id: runId, status: "succeeded" },
@@ -300,7 +376,7 @@ describe("resume JD difference repository", () => {
     const runs = repository(client([previous, previous]));
 
     await expect(
-      runs.getView(userId, applicationId, "f".repeat(64)),
+      runs.getView(userId, applicationId, hashIs("f".repeat(64))),
     ).resolves.toMatchObject({
       current: null,
       previousSucceeded: { id: runId },

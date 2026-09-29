@@ -235,7 +235,7 @@ function AnalysisControlState({
     error === "resume-text-insufficient";
 
   async function analyze(
-    ocrText?: string,
+    supplied?: { text: string; source: "ocr" | "paste" },
     signal?: AbortSignal,
     continueFromOcr = false,
   ) {
@@ -245,7 +245,7 @@ function AnalysisControlState({
     setReused(false);
     try {
       const init: RequestInit =
-        ocrText === undefined
+        supplied === undefined
           ? {
               method: "POST",
               headers: { "x-resume-source-asset-id": selectedAsset.id },
@@ -256,7 +256,10 @@ function AnalysisControlState({
                 "content-type": "application/json",
                 "x-resume-source-asset-id": selectedAsset.id,
               },
-              body: JSON.stringify({ ocrText }),
+              body: JSON.stringify({
+                ocrText: supplied.text,
+                source: supplied.source,
+              }),
             };
       if (signal) init.signal = signal;
       const response = await request(
@@ -298,7 +301,7 @@ function AnalysisControlState({
     if (busy) return;
     const cached = cachedOcrTextRef.current;
     if (cached !== null) {
-      await analyze(cached);
+      await analyze({ text: cached, source: "ocr" });
       return;
     }
     const controller = new AbortController();
@@ -323,7 +326,7 @@ function AnalysisControlState({
         throw new DOMException("The OCR operation was aborted.", "AbortError");
       }
       cachedOcrTextRef.current = text;
-      await analyze(text, controller.signal, true);
+      await analyze({ text, source: "ocr" }, controller.signal, true);
     } catch (caught) {
       const code =
         caught instanceof Error && caught.name === "AbortError"
@@ -461,7 +464,7 @@ function AnalysisControlState({
                         return;
                       }
                       setPasteError(null);
-                      void analyze(text);
+                      void analyze({ text, source: "paste" });
                     }}
                   >
                     {copy.pasteAnalyse}
@@ -533,7 +536,14 @@ function AnalysisControlState({
           type="button"
           className="press button-primary inline-flex min-h-10 items-center justify-center px-5 text-sm font-semibold disabled:cursor-wait disabled:opacity-65"
           disabled={busy}
-          onClick={() => void analyze(cachedOcrTextRef.current ?? undefined)}
+          onClick={() => {
+            const recognised = cachedOcrTextRef.current;
+            void analyze(
+              recognised === null
+                ? undefined
+                : { text: recognised, source: "ocr" },
+            );
+          }}
         >
           {ocrActive
             ? copy.recognising

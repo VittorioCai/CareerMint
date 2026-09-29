@@ -157,6 +157,8 @@ function queuedRun(overrides: Partial<ResumeJDDifferenceRun> = {}): ResumeJDDiff
     promptVersion: "resume-jd-difference-p1-v4.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
     outputLocale: "zh-CN" as const,
+    resumeTextSource: "file",
+    resumeTextSha256: null,
     status: "queued",
     attemptCount: 0,
     result: null,
@@ -294,6 +296,12 @@ describe("resume JD difference service", () => {
         promptVersion: "resume-jd-difference-p1-v6.0-zh-CN",
         policyVersion: "resume-jd-difference-policy-v4.0",
         outputLocale: "zh-CN",
+        // The text came from the browser, so its hash is recorded with the
+        // run: the excerpts a result quotes have to be traceable to something.
+        resumeText: {
+          source: "ocr",
+          sha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
+        },
         jdSha256: expect.stringMatching(/^[0-9a-f]{64}$/u),
         factFingerprint: expect.stringMatching(/^[0-9a-f]{64}$/u),
         inputHash: expect.stringMatching(/^[0-9a-f]{64}$/u),
@@ -356,6 +364,59 @@ describe("resume JD difference service", () => {
 
     expect(dependencies.storage.download).not.toHaveBeenCalled();
     expect(dependencies.parser).not.toHaveBeenCalled();
+  });
+
+  it("asks for a run of its own for each text supplied with one file", async () => {
+    const dependencies = fakes();
+    const service = createResumeJDDifferenceService(dependencies);
+
+    await service.run(input({ ocrText: resumeText }));
+    await service.run(
+      input({ ocrText: `${resumeText} Led a team of four.`, resumeTextSource: "paste" }),
+    );
+    await service.run(input());
+
+    const [recognised, pasted, fromFile] =
+      dependencies.runs.createOrGet.mock.calls.map(([call]) => call);
+    // The second text used to find the first text's run and come back with
+    // its analysis, marked as reused: the key was the file, and the file had
+    // not changed.
+    expect(new Set([recognised.inputHash, pasted.inputHash, fromFile.inputHash]).size).toBe(3);
+    expect(recognised.resumeText).toMatchObject({ source: "ocr" });
+    expect(pasted.resumeText).toMatchObject({ source: "paste" });
+    expect(pasted.resumeText.sha256).not.toBe(recognised.resumeText.sha256);
+    // The file's own text is what the file's hash already stands for.
+    expect(fromFile).not.toHaveProperty("resumeText");
+  });
+
+  it("hashes supplied text as it will be analysed, not as it arrived", async () => {
+    const dependencies = fakes();
+    const service = createResumeJDDifferenceService(dependencies);
+
+    await service.run(input({ ocrText: resumeText }));
+    await service.run(input({ ocrText: `\n  ${resumeText}  \n` }));
+
+    const [first, second] = dependencies.runs.createOrGet.mock.calls.map(
+      ([call]) => call,
+    );
+    expect(second.inputHash).toBe(first.inputHash);
+  });
+
+  it("gives two applications with the same material a run each", async () => {
+    const dependencies = fakes();
+    const service = createResumeJDDifferenceService(dependencies);
+
+    await service.run(input());
+    await service.run(
+      input({ applicationId: "99999999-9999-4999-8999-999999999999" }),
+    );
+
+    const [first, second] = dependencies.runs.createOrGet.mock.calls.map(
+      ([call]) => call,
+    );
+    // Alike, they collided on a key that is unique per user, and the second
+    // application could not be analysed at all.
+    expect(second.inputHash).not.toBe(first.inputHash);
   });
 
   it.each([

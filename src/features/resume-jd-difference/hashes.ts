@@ -10,8 +10,23 @@ export type DifferenceFingerprintFact = ConfirmedFactForAnalysis & {
 };
 
 export type DifferenceFingerprintInput = {
+  /**
+   * Whose analysis this is. Without it two applications with the same JD, the
+   * same resume and the same facts hashed alike, the second could not get a
+   * run of its own — `input_hash` is unique per user — and asking for one
+   * failed for good, under a message that said to try again later.
+   */
+  applicationId: string;
   jdText: string;
   sourceSha256: string;
+  /**
+   * The text the browser sent, when the file's own could not be read: what
+   * local OCR recognised, or what the user pasted. It is not a function of
+   * the file, so the file's hash does not stand for it. Leaving it out meant
+   * a second, different text for the same file came back with the first
+   * text's analysis, marked as reused.
+   */
+  resumeTextSha256?: string | null;
   confirmedFacts: readonly DifferenceFingerprintFact[];
   provider: string;
   model: string;
@@ -68,28 +83,59 @@ function buildFactFingerprint(facts: readonly DifferenceFingerprintFact[]) {
   );
 }
 
+/** For text that has already been through `normalizeResumeText`. */
+export function hashResumeText(normalizedText: string) {
+  return sha256(normalizedText);
+}
+
 export function buildDifferenceFingerprints(
   input: DifferenceFingerprintInput,
 ) {
   if (!sha256Pattern.test(input.sourceSha256)) {
     throw new Error("invalid-resume-sha256");
   }
+  const resumeTextSha256 = input.resumeTextSha256 ?? null;
+  if (resumeTextSha256 !== null && !sha256Pattern.test(resumeTextSha256)) {
+    throw new Error("invalid-resume-text-sha256");
+  }
 
   const jdSha256 = sha256(normalizeDocumentText(input.jdText));
   const factFingerprint = buildFactFingerprint(input.confirmedFacts);
+  const shared = {
+    jdSha256,
+    sourceSha256: input.sourceSha256,
+    factFingerprint,
+    provider: input.provider,
+    model: input.model,
+    promptVersion: input.promptVersion,
+    schemaVersion: input.schemaVersion,
+    policyVersion: input.policyVersion,
+  };
   const inputHash = sha256(
     JSON.stringify({
-      domain: "resume-jd-difference-input-v4",
-      jdSha256,
-      sourceSha256: input.sourceSha256,
-      factFingerprint,
-      provider: input.provider,
-      model: input.model,
-      promptVersion: input.promptVersion,
-      schemaVersion: input.schemaVersion,
-      policyVersion: input.policyVersion,
+      domain: "resume-jd-difference-input-v5",
+      applicationId: input.applicationId,
+      resumeTextSha256,
+      ...shared,
     }),
   );
+  // What the same inputs hashed to before the application and the text
+  // joined the key. Nothing new is ever stored under it. It is here so a run
+  // made before then is still recognised as current: otherwise every stored
+  // analysis would turn stale at once, under a notice saying the material
+  // had changed when it had not.
+  //
+  // A run made from browser-supplied text has no such hash — before, the
+  // text was not part of the key, which is the fault being fixed.
+  const legacyInputHash =
+    resumeTextSha256 === null
+      ? sha256(
+          JSON.stringify({
+            domain: "resume-jd-difference-input-v4",
+            ...shared,
+          }),
+        )
+      : null;
 
-  return { jdSha256, factFingerprint, inputHash };
+  return { jdSha256, factFingerprint, inputHash, legacyInputHash };
 }

@@ -181,6 +181,98 @@ select throws_ok(
   'a language the product does not ship is refused by the column, not stored'
 );
 
+-- Which text a run analysed. The thirteen-argument call above is the one the
+-- application makes for a file it could read, and it has to go on working:
+-- the two arguments added after it have defaults.
+select has_column(
+  'public', 'resume_jd_difference_runs', 'resume_text_source',
+  'a run records where its text came from'
+);
+select col_default_is(
+  'public', 'resume_jd_difference_runs', 'resume_text_source', 'file',
+  'rows written before this was recorded are read as the file''s own text'
+);
+select has_column(
+  'public', 'resume_jd_difference_runs', 'resume_text_sha256',
+  'a run records the hash of text that was not the file''s'
+);
+select results_eq(
+  $$select resume_text_source || ':' || coalesce(resume_text_sha256, 'null')
+    from public.resume_jd_difference_runs
+    where id = current_setting('test.run_a')::uuid$$,
+  array['file:null'],
+  'a run made without supplied text is the file''s'
+);
+select set_config('test.run_ocr', (select id::text from public.create_or_get_resume_jd_difference(
+  current_setting('test.app_a')::uuid,
+  '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+  repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('e', 64),
+  'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+  'ocr', repeat('9', 64)
+)), true);
+select results_eq(
+  $$select resume_text_source || ':' || resume_text_sha256
+    from public.resume_jd_difference_runs
+    where id = current_setting('test.run_ocr')::uuid$$,
+  array['ocr:' || repeat('9', 64)],
+  'a run made from recognised text records the source and the hash'
+);
+select results_eq(
+  $$select id::text from public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('e', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+    'paste', repeat('9', 64)
+  )$$,
+  array[current_setting('test.run_ocr')],
+  'the same text by another route is the same input'
+);
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('e', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+    'ocr', repeat('8', 64)
+  )$$,
+  '23505', 'resume-jd-difference-conflict',
+  'one hash cannot stand for two texts'
+);
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('f', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+    'fax', repeat('9', 64)
+  )$$,
+  '22023', 'invalid-resume-jd-difference-text-source',
+  'a source the product does not have is refused'
+);
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('f', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+    'ocr', null
+  )$$,
+  '22023', 'invalid-resume-jd-difference-text-source',
+  'supplied text without its hash is refused'
+);
+select throws_ok(
+  $$select public.create_or_get_resume_jd_difference(
+    current_setting('test.app_a')::uuid,
+    '11111111-1111-4111-8111-111111111111', 'alice-resume.pdf',
+    repeat('a', 64), repeat('b', 64), repeat('c', 64), repeat('f', 64),
+    'provider', 'model', 'schema', 'prompt', 'policy', 'zh-CN',
+    'file', repeat('9', 64)
+  )$$,
+  '22023', 'invalid-resume-jd-difference-text-source',
+  'the file''s own text carries no second hash'
+);
+
 select results_eq(
   $$select public.claim_resume_jd_difference(current_setting('test.run_a')::uuid, 0, 'queued', 120)$$,
   array[true], 'queued work can be claimed'

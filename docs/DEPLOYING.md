@@ -10,7 +10,7 @@ Every migration in this repository is written to be applied *before* the code
 that needs it. So a deploy that runs code first spends the gap in a broken
 state, and the gap is however long it takes someone to notice.
 
-The concrete failures, as of migrations `202609100001`–`202609100005`:
+The concrete failures, as of migrations `202609100001`–`202609290002`:
 
 | Missing on the remote | What the deployed code does |
 |---|---|
@@ -19,10 +19,33 @@ The concrete failures, as of migrations `202609100001`–`202609100005`:
 | `profiles.interface_locale` default `'en'` (001) | Nothing breaks. New accounts keep defaulting to Chinese. |
 | `handle_new_user` reading `interface_locale` from user metadata (002) | Nothing breaks. A visitor's language choice at sign-up is dropped. |
 | The dropped pipeline tables (005) | Nothing breaks. The code stopped reading them; the tables sit there unused. |
+| `link_interview_question_to_application` still granted (`202609290001`) | Nothing breaks. A legacy RPC stays callable that should not be. |
+| `resume_jd_difference_runs.resume_text_source` / `resume_text_sha256`, and the two arguments that write them (`202609290002`) | Reading still works: a row without the columns is read as the file's own text. Analysing a file that can be read still works: that call sends the same thirteen arguments as before. **Analysing a scanned resume does not**: recognised or pasted text sends fifteen, PostgREST answers "function does not exist", and the reader sees a failure they can retry but not get past. |
 
-The reverse order — database first, code second — is safe for all five:
+The reverse order — database first, code second — is safe for all of them:
 `output_locale` has a default, the new RPC is additive, and nothing running
-reads the dropped tables.
+reads the dropped tables. `202609290002` replaces a function the deployed code
+calls, and is safe for a different reason: the two arguments it adds have
+defaults, so the thirteen-argument call still resolves to it.
+
+## What the first deploy after `202609290002` does to stored analyses
+
+Nothing visible, by design, but it is worth knowing why.
+
+`input_hash` now includes the application, and the hash of any text the
+browser supplied. Both change what every set of inputs hashes to, which would
+ordinarily turn every stored analysis stale at once — under a notice saying
+the material had changed, when it had not.
+
+So a stored run is also recognised by what its inputs hashed to *before*
+(`legacyInputHash` in `resume-jd-difference/hashes.ts`). An analysis made
+before this release stays current until its JD, resume, facts, model or
+language actually changes. New runs are only ever stored under the new hash.
+
+One case is not covered. A run made from recognised or pasted text before this
+release was stored under the file's hash, because the text was not part of the
+key — that is the fault this fixes. It is still recognised as current, by that
+same old hash. What it cannot do is say which text it was made from.
 
 ## Running it
 

@@ -258,7 +258,7 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
           "content-type": "application/json",
           "x-resume-source-asset-id": asset.id,
         },
-        body: JSON.stringify({ ocrText }),
+        body: JSON.stringify({ ocrText, source: "ocr" }),
       }),
     );
   });
@@ -301,7 +301,11 @@ describe("ResumeJDDifferenceAnalysisControl", () => {
     await waitFor(() => expect(refresh).toHaveBeenCalledOnce());
     expect(request).toHaveBeenCalledTimes(2);
     const [, init] = request.mock.calls[1]!;
-    expect(JSON.parse(String(init?.body))).toEqual({ ocrText: pasted });
+    // Said apart from recognised text, so the result can say which it was.
+    expect(JSON.parse(String(init?.body))).toEqual({
+      ocrText: pasted,
+      source: "paste",
+    });
   });
 
   it("offers pasting when the file cannot be parsed at all, where OCR cannot help", async () => {

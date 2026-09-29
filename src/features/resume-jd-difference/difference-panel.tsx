@@ -402,6 +402,14 @@ export function ResumeJDDifferencePanel({
             <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
           )}
           <span lang="und">{run.sourceFilename}</span>
+          {/* The excerpts below are quoted from this text, not from the file
+              the line above names. */}
+          {run.resumeTextSource === "file" ? null : (
+            <>
+              <span aria-hidden="true" className="text-[var(--ink-muted)]">·</span>
+              <span>{copy.textSource[run.resumeTextSource]}</span>
+            </>
+          )}
         </p>
         <h2
           id="resume-jd-difference-title"

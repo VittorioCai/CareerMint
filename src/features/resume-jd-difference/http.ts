@@ -73,7 +73,17 @@ async function readBody(request: Request) {
   }
 }
 
-async function readOCRText(request: Request) {
+const suppliedTextSources = ["ocr", "paste"] as const;
+
+/**
+ * `{ ocrText }`, or `{ ocrText, source }`.
+ *
+ * `source` is what the browser says about its own text, so it is recorded and
+ * shown, and nothing is decided by it. What identifies the text is its hash.
+ * Left out, it is "ocr": that is what every client sent before there was a
+ * second way to supply text.
+ */
+async function readSuppliedText(request: Request) {
   const body = await readBody(request);
   if (!body.trim()) return undefined;
   const contentType = request.headers
@@ -88,17 +98,22 @@ async function readOCRText(request: Request) {
   } catch {
     throw new InvalidBodyError();
   }
+  if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+    throw new InvalidBodyError();
+  }
+  const { ocrText, source, ...unknown } = parsed as Record<string, unknown>;
   if (
-    typeof parsed !== "object" ||
-    parsed === null ||
-    Array.isArray(parsed) ||
-    Object.keys(parsed).length !== 1 ||
-    !Object.prototype.hasOwnProperty.call(parsed, "ocrText") ||
-    typeof (parsed as { ocrText?: unknown }).ocrText !== "string"
+    Object.keys(unknown).length > 0 ||
+    typeof ocrText !== "string" ||
+    (source !== undefined &&
+      !suppliedTextSources.includes(source as (typeof suppliedTextSources)[number]))
   ) {
     throw new InvalidBodyError();
   }
-  return (parsed as { ocrText: string }).ocrText;
+  return {
+    text: ocrText,
+    source: (source ?? "ocr") as (typeof suppliedTextSources)[number],
+  };
 }
 
 function mutationResponse(result: ResumeJDDifferenceServiceResult) {
@@ -182,9 +197,9 @@ export function createResumeJDDifferencePostHandler(
         );
       }
 
-      let ocrText: string | undefined;
+      let supplied: Awaited<ReturnType<typeof readSuppliedText>>;
       try {
-        ocrText = await readOCRText(request);
+        supplied = await readSuppliedText(request);
       } catch (error) {
         if (error instanceof BodyTooLargeError) {
           return Response.json(
@@ -212,7 +227,9 @@ export function createResumeJDDifferencePostHandler(
         asset,
         confirmedFacts,
         outputLocale,
-        ...(ocrText === undefined ? {} : { ocrText }),
+        ...(supplied === undefined
+          ? {}
+          : { ocrText: supplied.text, resumeTextSource: supplied.source }),
       });
       const status =
         result.run.status === "queued" || result.run.status === "running"

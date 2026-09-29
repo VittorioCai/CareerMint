@@ -44,13 +44,8 @@ import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirm
 import { getAIProcessingConsentAt } from "@/features/account/repository";
 import { ResumeJDDifferenceAnalysisControl } from "@/features/resume-jd-difference/analysis-control";
 import { ResumeJDDifferencePanel } from "@/features/resume-jd-difference/difference-panel";
-import { buildDifferenceFingerprints } from "@/features/resume-jd-difference/hashes";
+import { currentDifferenceInputs } from "@/features/resume-jd-difference/current-input";
 import { ResumeJDImprovementPanel } from "@/features/resume-jd-difference/improvement-panel";
-import {
-  RESUME_JD_DIFFERENCE_POLICY_VERSION,
-  RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
-  differencePrompt,
-} from "@/features/resume-jd-difference/prompts";
 import {
   resumeJDDifferenceRepository,
   type ResumeJDDifferenceRunView,
@@ -60,7 +55,6 @@ import { formatDay } from "@/i18n/format";
 import type { AppLocale } from "@/i18n/locale";
 import { getDictionary, getLocale } from "@/i18n/server";
 import { requireUser } from "@/lib/auth/require-user";
-import { getServerEnv } from "@/lib/env/server";
 import { listAssets } from "@/features/source-assets/repository";
 import {
   BaselineSelector,
@@ -414,39 +408,27 @@ export default async function ApplicationDetailPage({
     freshness: "missing",
   };
   if (differenceWorkflow) {
-    let inputHash = "";
-    if (selectedResumeAssetRecord) {
-      const env = getServerEnv();
-      const providerConfig =
-        env.E2E_FAKE_EXTRACTOR === "1" && process.env.NODE_ENV !== "production"
-          ? { provider: "fake", model: "fake-resume-jd-difference-v4" }
-          : { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
-      // Same prompt, same language: this recomputes the hash the analysis
-      // would run under right now, so a reader who switched languages sees
-      // the stored analysis marked out of date rather than under headings
-      // that do not match its text.
-      const prompt = differencePrompt(
-        env.RESUME_JD_DIFFERENCE_PROMPT_VARIANT,
-        locale,
-      );
-      ({ inputHash } = buildDifferenceFingerprints({
-        jdText: application.jdText,
-        sourceSha256: selectedResumeAssetRecord.sha256,
-        confirmedFacts: differenceFacts,
-        ...providerConfig,
-        promptVersion: prompt.version,
-        schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
-        policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
-      }));
-    }
-    // Without a baseline there is no hash to be current against, but the runs
-    // are still the user's work: `input_hash` is constrained to 64 hex chars,
-    // so "" matches nothing and the last success comes back marked stale
-    // rather than disappearing with the file it was run against.
+    // Same prompt, same language: this asks whether the analysis that would
+    // run right now is the one that is stored, so a reader who switched
+    // languages sees the stored analysis marked out of date rather than under
+    // headings that do not match its text.
+    //
+    // Without a baseline there is nothing to be current against, but the runs
+    // are still the user's work: nothing matches, and the last success comes
+    // back marked stale rather than disappearing with the file it was run
+    // against.
     differenceView = await resumeJDDifferenceRepository.getView(
       user.id,
       application.id,
-      inputHash,
+      selectedResumeAssetRecord
+        ? currentDifferenceInputs({
+            applicationId: application.id,
+            jdText: application.jdText,
+            sourceSha256: selectedResumeAssetRecord.sha256,
+            confirmedFacts: differenceFacts,
+            locale,
+          })
+        : () => false,
     );
   }
 

@@ -6,6 +6,7 @@ import type { ConfirmedFactForAnalysis } from "@/features/career-profile/confirm
 
 import {
   buildDifferenceFingerprints,
+  hashResumeText,
   normalizeDocumentText,
 } from "./hashes";
 
@@ -30,6 +31,7 @@ const factB: ConfirmedFactForAnalysis = {
 };
 
 const base = {
+  applicationId: "11111111-1111-4111-8111-111111111111",
   jdText: "Analyze customer funnels with SQL.",
   sourceSha256: "a".repeat(64),
   confirmedFacts: [factA, factB],
@@ -89,6 +91,11 @@ describe("resume JD difference fingerprints", () => {
   });
 
   it.each([
+    // Two applications with one JD, one resume and one set of facts. They
+    // used to hash alike, and the second could never be analysed.
+    ["application", { applicationId: "22222222-2222-4222-8222-222222222222" }],
+    // Text the browser supplied is not a function of the file it came with.
+    ["supplied resume text", { resumeTextSha256: "c".repeat(64) }],
     ["JD", { jdText: "Analyze product retention with SQL." }],
     ["resume file", { sourceSha256: "b".repeat(64) }],
     ["provider", { provider: "other" }],
@@ -109,6 +116,55 @@ describe("resume JD difference fingerprints", () => {
         confirmedFacts: [{ ...factA, description: "Changed evidence." }, factB],
       }).inputHash,
     ).not.toBe(buildDifferenceFingerprints(base).inputHash);
+  });
+
+  it("tells one supplied text from another for the same file", () => {
+    const recognised = buildDifferenceFingerprints({
+      ...base,
+      resumeTextSha256: hashResumeText("Data analyst. SQL dashboards."),
+    });
+    const pasted = buildDifferenceFingerprints({
+      ...base,
+      resumeTextSha256: hashResumeText("Product manager. Roadmaps."),
+    });
+
+    expect(recognised.inputHash).not.toBe(pasted.inputHash);
+    // Same file, same JD, same facts: everything that is not the text agrees.
+    expect(recognised.jdSha256).toBe(pasted.jdSha256);
+    expect(recognised.factFingerprint).toBe(pasted.factFingerprint);
+  });
+
+  it("still recognises what these inputs hashed to before", () => {
+    // Pinned, not recomputed: this is a value that is already stored in
+    // production rows, and the point is that it never moves.
+    expect(buildDifferenceFingerprints(base).legacyInputHash).toBe(
+      "200fdfa363e18776c17b2acfa7929d53fd7a1d8807ad7f1190c50bd001237b6a",
+    );
+    // The old key had no application in it.
+    expect(
+      buildDifferenceFingerprints({
+        ...base,
+        applicationId: "22222222-2222-4222-8222-222222222222",
+      }).legacyInputHash,
+    ).toBe(buildDifferenceFingerprints(base).legacyInputHash);
+    expect(buildDifferenceFingerprints(base).legacyInputHash).not.toBe(
+      buildDifferenceFingerprints(base).inputHash,
+    );
+  });
+
+  it("has no old hash for supplied text, which the old key left out", () => {
+    expect(
+      buildDifferenceFingerprints({
+        ...base,
+        resumeTextSha256: "c".repeat(64),
+      }).legacyInputHash,
+    ).toBeNull();
+  });
+
+  it("rejects a text hash that is not one", () => {
+    expect(() =>
+      buildDifferenceFingerprints({ ...base, resumeTextSha256: "scan.pdf" }),
+    ).toThrow("invalid-resume-text-sha256");
   });
 
   it("rejects an invalid source hash instead of using a filename fallback", () => {

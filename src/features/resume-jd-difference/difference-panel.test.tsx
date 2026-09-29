@@ -180,6 +180,8 @@ function succeededRun(): ResumeJDDifferenceRun {
     promptVersion: "resume-jd-difference-p1-v4.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
     outputLocale: "zh-CN" as const,
+    resumeTextSource: "file",
+    resumeTextSha256: null,
     status: "succeeded",
     attemptCount: 1,
     result,
@@ -552,6 +554,33 @@ describe("ResumeJDDifferencePanel", () => {
     );
     expect(screen.getByText("结果已过期")).toBeVisible();
     expect(screen.queryByText("分析已完成")).not.toBeInTheDocument();
+  });
+
+  it("says which text a result was read from when it was not the file's", () => {
+    const { rerender } = render(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={succeededRun()}
+        facts={facts}
+      />,
+    );
+    // The ordinary case says nothing: the file named beside it is the source.
+    expect(screen.queryByText(zhCN.difference.textSource.ocr)).toBeNull();
+
+    rerender(
+      <ResumeJDDifferencePanel
+        copy={zhCN.difference}
+        applicationId={applicationId}
+        run={{
+          ...succeededRun(),
+          resumeTextSource: "paste",
+          resumeTextSha256: "9".repeat(64),
+        }}
+        facts={facts}
+      />,
+    );
+    expect(screen.getByText(zhCN.difference.textSource.paste)).toBeVisible();
   });
 
   it("says a result is out of date before it says what the result was", () => {

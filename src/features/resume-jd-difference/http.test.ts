@@ -33,6 +33,8 @@ function run(
     promptVersion: "resume-jd-difference-p1-v4.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
     outputLocale: "zh-CN" as const,
+    resumeTextSource: "file",
+    resumeTextSha256: null,
     status,
     attemptCount: status === "queued" ? 0 : 1,
     result: succeeded ? ({} as never) : null,
@@ -239,7 +241,60 @@ describe("resume JD difference POST handler", () => {
       // Read per request, not closed over: one route handler serves every
       // reader, so the language has to come from the request that asked.
       outputLocale: "zh-CN",
+      // What every client sent before there was a second way to supply
+      // text, so it is what a body without `source` means.
+      resumeTextSource: "ocr",
     });
+  });
+
+  it("records pasted text as pasted", async () => {
+    const fakes = dependencies();
+    const response = await createResumeJDDifferencePostHandler(fakes)(
+      request({
+        body: JSON.stringify({
+          ocrText: "Pasted resume text.",
+          source: "paste",
+        }),
+        headers: {
+          "content-type": "application/json",
+          "x-resume-source-asset-id": assetId,
+        },
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(200);
+    expect(fakes.runAnalysis).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ocrText: "Pasted resume text.",
+        resumeTextSource: "paste",
+      }),
+    );
+  });
+
+  it.each([
+    ["a source the product does not have", { ocrText: "Text.", source: "fax" }],
+    // "file" is what the server concludes when no text is supplied. A client
+    // that supplies text cannot also claim it came from the file.
+    ["the file as the source of supplied text", { ocrText: "Text.", source: "file" }],
+    ["a key it does not know", { ocrText: "Text.", resumeTextSha256: "a".repeat(64) }],
+    ["a source with no text", { source: "paste" }],
+  ])("refuses %s", async (_label, body) => {
+    const fakes = dependencies();
+    const response = await createResumeJDDifferencePostHandler(fakes)(
+      request({
+        body: JSON.stringify(body),
+        headers: {
+          "content-type": "application/json",
+          "x-resume-source-asset-id": assetId,
+        },
+      }),
+      context(),
+    );
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toEqual({ error: "invalid-ocr-text" });
+    expect(fakes.runAnalysis).not.toHaveBeenCalled();
   });
 
   it.each(["queued", "running"] as const)(

@@ -10,7 +10,11 @@ import { downloadSource } from "@/features/source-assets/storage";
 import type { AppLocale } from "@/i18n/locale";
 import { dictionaryFor } from "@/i18n/dictionary";
 
-import { buildDifferenceFingerprints, normalizeDocumentText } from "./hashes";
+import {
+  buildDifferenceFingerprints,
+  hashResumeText,
+  normalizeDocumentText,
+} from "./hashes";
 import {
   findExactExcerpt,
   verifyConfirmedFactIds,
@@ -24,6 +28,7 @@ import type { DifferencePromptVariant } from "./prompts";
 import {
   toResumeJDDifferenceAIUsage,
   type ResumeJDDifferenceRun,
+  type SuppliedResumeTextSource,
 } from "./repository";
 import {
   resumeJDDifferenceOutputSchema,
@@ -106,6 +111,7 @@ type DifferenceRunRepository = {
     promptVersion: string;
     policyVersion: string;
     outputLocale: AppLocale;
+    resumeText?: { source: SuppliedResumeTextSource; sha256: string };
   }): Promise<ResumeJDDifferenceRun>;
   claim(
     runId: string,
@@ -166,7 +172,13 @@ export type ResumeJDDifferenceServiceInput = {
   jdText: string;
   asset: SourceAsset;
   confirmedFacts: ServiceFact[];
+  /**
+   * Text the browser supplied because the file's own could not be read. It
+   * keeps the name it had when local OCR was its only source.
+   */
   ocrText?: string;
+  /** Which of the two ways it got here. Recorded, not part of the key. */
+  resumeTextSource?: SuppliedResumeTextSource;
 };
 
 export type ResumeJDDifferenceServiceResult = {
@@ -236,8 +248,9 @@ function selectedConfirmedFacts(facts: ServiceFact[]) {
 async function readResumeText(
   dependencies: ResumeJDDifferenceServiceDependencies,
   input: ResumeJDDifferenceServiceInput,
+  suppliedText: string | null,
 ) {
-  if (input.ocrText !== undefined) return normalizeResumeText(input.ocrText);
+  if (suppliedText !== null) return suppliedText;
 
   const storage = dependencies.storage ?? { download: downloadSource };
   const parser = dependencies.parser ?? extractResumeText;
@@ -628,28 +641,47 @@ export function createResumeJDDifferenceService(
       const jdText = normalizeDocumentText(input.jdText);
       if (!jdText) throw new Error("job-description-required");
       const confirmedFacts = selectedConfirmedFacts(input.confirmedFacts);
-      const fingerprints = buildDifferenceFingerprints({
-        jdText,
-        sourceSha256: input.asset.sha256,
-        confirmedFacts,
-        provider: dependencies.provider,
-        model: dependencies.model,
-        promptVersion,
-        schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
-        policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
-      });
+      // Normalised before anything is hashed, so the text that is analysed
+      // and the text the key stands for are the same string.
+      const suppliedText =
+        input.ocrText === undefined ? null : normalizeResumeText(input.ocrText);
+      const resumeText =
+        suppliedText === null
+          ? undefined
+          : {
+              source: input.resumeTextSource ?? ("ocr" as const),
+              sha256: hashResumeText(suppliedText),
+            };
+      // The legacy hash is for recognising old runs, never for storing new
+      // ones, so it is not taken here.
+      const { jdSha256, factFingerprint, inputHash } =
+        buildDifferenceFingerprints({
+          applicationId: input.applicationId,
+          jdText,
+          sourceSha256: input.asset.sha256,
+          resumeTextSha256: resumeText?.sha256,
+          confirmedFacts,
+          provider: dependencies.provider,
+          model: dependencies.model,
+          promptVersion,
+          schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
+          policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
+        });
       const run = await dependencies.runs.createOrGet({
         applicationId: input.applicationId,
         sourceAssetId: input.asset.id,
         sourceFilename: input.asset.originalName,
         sourceSha256: input.asset.sha256,
-        ...fingerprints,
+        jdSha256,
+        factFingerprint,
+        inputHash,
         provider: dependencies.provider,
         model: dependencies.model,
         schemaVersion: RESUME_JD_DIFFERENCE_SCHEMA_VERSION,
         promptVersion,
         policyVersion: RESUME_JD_DIFFERENCE_POLICY_VERSION,
         outputLocale,
+        ...(resumeText ? { resumeText } : {}),
       });
       if (run.status === "succeeded") return { run, reused: true };
 
@@ -676,7 +708,7 @@ export function createResumeJDDifferenceService(
       }
 
       try {
-        const resumeText = await readResumeText(dependencies, input);
+        const resumeText = await readResumeText(dependencies, input, suppliedText);
         const provider = dependencies.providerFactory();
         const aiResult = await provider.analyzeResumeJDDifference(
           { jdText, resumeText, confirmedFacts },

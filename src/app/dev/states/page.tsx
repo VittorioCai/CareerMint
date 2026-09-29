@@ -113,6 +113,8 @@ function run(result: ResumeJDDifferenceOutput): ResumeJDDifferenceRun {
     promptVersion: "resume-jd-difference-p1-v5.0",
     policyVersion: "resume-jd-difference-policy-v4.0",
     outputLocale: "zh-CN",
+    resumeTextSource: "file",
+    resumeTextSha256: null,
     status: "succeeded",
     attemptCount: 1,
     result,

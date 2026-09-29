@@ -17,6 +17,11 @@ type SupabaseFactory = typeof createClient;
 const timestampSchema = z.iso.datetime({ offset: true });
 const sha256Schema = z.string().regex(/^[0-9a-f]{64}$/u);
 const statusSchema = z.enum(["queued", "running", "succeeded", "failed"]);
+
+/** Where the text that was analysed came from. */
+export const RESUME_TEXT_SOURCES = ["file", "ocr", "paste"] as const;
+export type ResumeTextSource = (typeof RESUME_TEXT_SOURCES)[number];
+export type SuppliedResumeTextSource = Exclude<ResumeTextSource, "file">;
 const aiUsageSchema = z
   .object({
     provider: z.string().trim().min(1).max(80),
@@ -54,6 +59,11 @@ const storedRunSchema = z
     // reading in now — a run made before the second language existed is
     // Chinese, and the column's default says so.
     outputLocale: z.enum(APP_LOCALES),
+    // Which text was analysed. "file" is the file's own, and then its hash
+    // already stands for it; anything else came from the browser, and its
+    // hash is what makes a quoted excerpt traceable to something.
+    resumeTextSource: z.enum(RESUME_TEXT_SOURCES),
+    resumeTextSha256: sha256Schema.nullable(),
     status: statusSchema,
     attemptCount: z.number().int().min(0).max(1000),
     result: storedResumeJDDifferenceOutputSchema.nullable(),
@@ -78,11 +88,18 @@ const storedRunSchema = z
     if (failed !== (run.errorCode !== null && run.errorMessage !== null)) {
       context.addIssue({ code: "custom", message: "Invalid error state." });
     }
+    if ((run.resumeTextSource === "file") !== (run.resumeTextSha256 === null)) {
+      context.addIssue({ code: "custom", message: "Invalid resume text state." });
+    }
   });
 
 export type ResumeJDDifferenceRun = z.infer<typeof storedRunSchema>;
 export type ResumeJDDifferenceAIUsage = z.infer<typeof aiUsageSchema>;
 export type ResumeJDDifferenceFreshness = "current" | "stale" | "missing";
+/** See `currentDifferenceInputs`. */
+export type ResumeJDDifferenceRunMatcher = (
+  run: ResumeJDDifferenceRun,
+) => boolean;
 export type ResumeJDDifferenceRunView = {
   current: ResumeJDDifferenceRun | null;
   previousSucceeded: ResumeJDDifferenceRun | null;
@@ -142,6 +159,11 @@ function toRun(row: RunRow): ResumeJDDifferenceRun {
     promptVersion: row.prompt_version,
     policyVersion: row.policy_version,
     outputLocale: row.output_locale,
+    // Absent on a database the migration has not reached yet. Every run
+    // there was stored as the file's, so that is what they are read as —
+    // reading must not start failing because code arrived before a column.
+    resumeTextSource: row.resume_text_source ?? "file",
+    resumeTextSha256: row.resume_text_sha256 ?? null,
     status: row.status,
     attemptCount: row.attempt_count,
     result: row.result,
@@ -188,6 +210,7 @@ export function createResumeJDDifferenceRepository(
     promptVersion: string;
     policyVersion: string;
     outputLocale: AppLocale;
+    resumeText?: { source: SuppliedResumeTextSource; sha256: string };
   }) {
     const supabase = await getClient();
     const { data, error } = await supabase.rpc(
@@ -206,6 +229,16 @@ export function createResumeJDDifferenceRepository(
         target_prompt_version: input.promptVersion,
         target_policy_version: input.policyVersion,
         target_output_locale: input.outputLocale,
+        // Sent only when there is something to send. The two arguments have
+        // defaults, so an analysis of the file itself makes the same call it
+        // always has — and keeps working against a database that does not
+        // have them yet.
+        ...(input.resumeText
+          ? {
+              target_resume_text_source: input.resumeText.source,
+              target_resume_text_sha256: input.resumeText.sha256,
+            }
+          : {}),
       },
     );
     if (error || !data) {
@@ -337,13 +370,13 @@ export function createResumeJDDifferenceRepository(
   async function getView(
     userId: string,
     applicationId: string,
-    expectedInputHash: string,
+    matchesCurrentInputs: ResumeJDDifferenceRunMatcher,
   ): Promise<ResumeJDDifferenceRunView> {
     const [latest, latestSucceeded] = await Promise.all([
       getLatest(userId, applicationId),
       getLatestSucceeded(userId, applicationId),
     ]);
-    const current = latest?.inputHash === expectedInputHash ? latest : null;
+    const current = latest && matchesCurrentInputs(latest) ? latest : null;
     const previousSucceeded =
       latestSucceeded && latestSucceeded.id !== current?.id
         ? latestSucceeded

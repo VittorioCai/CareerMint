@@ -5,6 +5,11 @@ import { applicationRepository } from "@/features/applications/repository";
 import { createDeepSeekAIProvider } from "@/features/extraction/deepseek-extractor";
 import type { AIProvider } from "@/features/extraction/provider";
 import { listConfirmedFactsForAnalysis } from "@/features/career-profile/repository";
+import {
+  differenceProviderConfiguration,
+  FAKE_DIFFERENCE_MODEL,
+  FAKE_DIFFERENCE_PROVIDER,
+} from "@/features/resume-jd-difference/current-input";
 import { createResumeJDDifferencePostHandler } from "@/features/resume-jd-difference/http";
 import { resumeJDDifferenceRepository } from "@/features/resume-jd-difference/repository";
 import { noEvidenceWording } from "@/features/resume-jd-difference/prompts";
@@ -24,8 +29,6 @@ import { getServerEnv } from "@/lib/env/server";
 export const runtime = "nodejs";
 export const maxDuration = 60;
 
-const fakeProviderName = "fake";
-const fakeProviderModel = "fake-resume-jd-difference-v4";
 const serviceLogger = {
   info(event: string, metadata: Record<string, unknown>) {
     console.info(event, metadata);
@@ -295,8 +298,8 @@ function fakeProvider(): Pick<AIProvider, "analyzeResumeJDDifference"> {
     async analyzeResumeJDDifference(input, options) {
       return {
         data: fakeOutput(input, options.outputLocale),
-        provider: fakeProviderName,
-        model: fakeProviderModel,
+        provider: FAKE_DIFFERENCE_PROVIDER,
+        model: FAKE_DIFFERENCE_MODEL,
         requestId: null,
         usage: {
           inputCacheHitTokens: 0,
@@ -306,17 +309,6 @@ function fakeProvider(): Pick<AIProvider, "analyzeResumeJDDifference"> {
       };
     },
   };
-}
-
-function providerConfiguration() {
-  const env = getServerEnv();
-  if (
-    env.E2E_FAKE_EXTRACTOR === "1" &&
-    process.env.NODE_ENV !== "production"
-  ) {
-    return { provider: fakeProviderName, model: fakeProviderModel };
-  }
-  return { provider: env.AI_TEXT_PROVIDER, model: env.AI_TEXT_MODEL };
 }
 
 function configuredProvider(): Pick<
@@ -362,7 +354,7 @@ function configuredPriceSchedule(at: Date): AIPriceSchedule | undefined {
   }
 }
 
-const providerConfig = providerConfiguration();
+const providerConfig = differenceProviderConfiguration();
 const promptVariant = getServerEnv().RESUME_JD_DIFFERENCE_PROMPT_VARIANT;
 
 export const POST = createResumeJDDifferencePostHandler({

@@ -451,6 +451,12 @@ export const en = {
     hasEvidenceStatus: "The resume already says something that lines up.",
     complete: "Analysis complete",
     stale: "Result out of date",
+    // The file could not be read, so the analysis is of text the browser
+    // supplied. Said on the result, because its excerpts are from that text.
+    textSource: {
+      ocr: "From text recognised on this device",
+      paste: "From text you pasted",
+    },
     // The reader's language is in the input hash, so a switch makes a stored
     // result stale. Saying *why* matters: the material did not change.
     otherLanguage: "Written in another language. Run it again for this one.",
