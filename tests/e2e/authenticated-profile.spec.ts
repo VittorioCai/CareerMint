@@ -158,7 +158,7 @@ test("complete private career-profile foundation flow", async ({
   await page.context().addCookies([
     { name: "interface-locale", value: "zh-CN", domain: "127.0.0.1", path: "/" },
   ]);
-  await page.goto("/login");
+  await page.goto("/login?mode=signup");
   await page.getByLabel("邮箱").fill(email);
   await page.getByLabel("密码").fill(initialPassword);
   await page.getByRole("button", { name: "注册新账户" }).click();

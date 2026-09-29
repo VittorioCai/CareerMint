@@ -40,13 +40,17 @@ export const en = {
     },
     email: "Email",
     password: "Password",
-    passwordPlaceholder: "At least 8 characters",
+    // Shown under the field when choosing a password, not inside it: a
+    // placeholder is gone as soon as there is something to check against it.
+    passwordRule: "At least 8 characters",
     forgotPassword: "Forgot your password?",
     signIn: "Sign in",
     signingIn: "Signing in…",
     signUp: "Create an account",
     signingUp: "Creating…",
     backToSignIn: "Back to sign in",
+    noAccount: "New here?",
+    haveAccount: "Already have an account?",
     signUpNote:
       "We will email you a confirmation link. Third-party sign-in is not part of the MVP.",
     resetEmail: "Account email",
@@ -73,7 +77,11 @@ export const en = {
       signInEyebrow: "Account access",
       signInTitle: "Welcome back. Let's get the next application ready.",
       signInBody:
-        "Sign in, or create an account with your email. Your career facts, applications and submission history all stay in your own workspace.",
+        "Sign in with your email. Your career facts, applications and submission history are in your own workspace.",
+      signUpEyebrow: "New account",
+      signUpTitle: "Create an account. Get your real experience in order.",
+      signUpBody:
+        "All it takes is an email address. Your career facts and applications stay in your own workspace.",
       forgotEyebrow: "Account recovery",
       forgotTitle: "Reset your password",
       forgotBody:

@@ -78,13 +78,13 @@ test("a new account keeps the language chosen before sign-up", async ({
   let userId: string | undefined;
 
   try {
-    await page.goto("/login");
+    await page.goto("/login?mode=signup");
     await page
       .getByRole("group", { name: en.common.language })
       .getByRole("button", { name: "中文" })
       .click();
     await expect(
-      page.getByRole("heading", { name: zhCN.auth.pages.signInTitle }),
+      page.getByRole("heading", { name: zhCN.auth.pages.signUpTitle }),
     ).toBeVisible();
 
     await page.getByLabel(zhCN.auth.email).fill(email);

@@ -550,8 +550,12 @@ button {
     opacity: 1;
   }
 
+  /* An example, never an instruction — anything the reader must know goes in
+     a label or under the field. It is still text: --ink-soft was 3.18:1 on a
+     white field, under the 4.5:1 floor. Muted clears it and stays visibly
+     lighter than what has been typed. */
   .form-input::placeholder {
-    color: var(--ink-soft);
+    color: var(--ink-muted);
     font-weight: 400;
   }
 

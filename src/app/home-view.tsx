@@ -114,7 +114,7 @@ export function HomeView({
           </p>
 
           <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
-            <Link href="/login" className="button-primary inline-flex min-h-14 items-center justify-center gap-3 whitespace-nowrap px-5 text-base font-semibold">
+            <Link href="/login?mode=signup" className="button-primary inline-flex min-h-14 items-center justify-center gap-3 whitespace-nowrap px-5 text-base font-semibold">
               {landing.primaryCta}
               <ArrowIcon />
             </Link>

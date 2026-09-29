@@ -56,3 +56,42 @@ describe("AuthForm callback feedback", () => {
     expect(zhCN.auth.callback.invalidLink).not.toBe(en.auth.callback.invalidLink);
   });
 });
+
+describe("AuthForm modes", () => {
+  it("signs in by default, and points a newcomer at the other form", () => {
+    render(<AuthForm auth={zhCN.auth} />);
+
+    expect(screen.getByRole("button", { name: zhCN.auth.signIn })).toBeVisible();
+    // One job per form: there is no second submit button to press by mistake.
+    expect(screen.queryByRole("button", { name: zhCN.auth.signUp })).toBeNull();
+    expect(
+      screen.getByRole("link", { name: zhCN.auth.signUp }),
+    ).toHaveAttribute("href", "/login?mode=signup");
+    expect(screen.getByLabelText(zhCN.auth.password)).toHaveAttribute(
+      "autocomplete",
+      "current-password",
+    );
+    // The rule is for choosing a password, not for typing one that exists.
+    expect(screen.queryByText(zhCN.auth.passwordRule)).toBeNull();
+  });
+
+  it("states the password rule beside the field when creating an account", () => {
+    render(<AuthForm auth={zhCN.auth} mode="signUp" />);
+
+    expect(screen.getByRole("button", { name: zhCN.auth.signUp })).toBeVisible();
+    expect(screen.queryByRole("button", { name: zhCN.auth.signIn })).toBeNull();
+    expect(
+      screen.getByRole("link", { name: zhCN.auth.signIn }),
+    ).toHaveAttribute("href", "/login");
+
+    const password = screen.getByLabelText(zhCN.auth.password);
+    expect(password).toHaveAttribute("autocomplete", "new-password");
+    // Under the field and tied to it, where it is still there once typing
+    // has started. It used to be the placeholder.
+    expect(password).toHaveAccessibleDescription(zhCN.auth.passwordRule);
+    expect(password).not.toHaveAttribute("placeholder");
+    expect(
+      screen.queryByRole("link", { name: zhCN.auth.forgotPassword }),
+    ).toBeNull();
+  });
+});

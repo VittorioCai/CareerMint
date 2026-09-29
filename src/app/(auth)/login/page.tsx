@@ -1,10 +1,10 @@
 import { AuthShell } from "@/components/auth-shell";
 import { getDictionary } from "@/i18n/server";
 
-import { AuthForm, type CallbackError } from "./auth-form";
+import { AuthForm, type AuthMode, type CallbackError } from "./auth-form";
 
 type LoginPageProps = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; mode?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: LoginPageProps) {
@@ -17,13 +17,18 @@ export default async function LoginPage({ searchParams }: LoginPageProps) {
       ? params.error
       : undefined;
 
+  // A callback error is about an account that already exists, so it is always
+  // read on the sign-in side whatever the query string asks for.
+  const mode: AuthMode =
+    params.mode === "signup" && !callbackError ? "signUp" : "signIn";
+
   return (
     <AuthShell
-      eyebrow={auth.pages.signInEyebrow}
-      title={auth.pages.signInTitle}
-      description={auth.pages.signInBody}
+      eyebrow={mode === "signUp" ? auth.pages.signUpEyebrow : auth.pages.signInEyebrow}
+      title={mode === "signUp" ? auth.pages.signUpTitle : auth.pages.signInTitle}
+      description={mode === "signUp" ? auth.pages.signUpBody : auth.pages.signInBody}
     >
-      <AuthForm callbackError={callbackError} auth={auth} />
+      <AuthForm callbackError={callbackError} auth={auth} mode={mode} />
     </AuthShell>
   );
 }
